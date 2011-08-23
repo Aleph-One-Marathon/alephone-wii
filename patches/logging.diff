@@ -1,0 +1,3487 @@
+Index: Source_Files/GameWorld/devices.cpp
+===================================================================
+--- Source_Files/GameWorld/devices.cpp	(revision 4521)
++++ Source_Files/GameWorld/devices.cpp	(working copy)
+@@ -69,7 +69,7 @@
+ #include "lightsource.h"
+ #include "game_window.h"
+ #include "items.h"
+-#include "shell.h"	// screen_printf()
++#include "Logging.h"	// LogTarget::getScreenLogTarget().log()
+ //MH: Lua scripting
+ #include "lua_script.h"
+ 
+@@ -750,7 +750,7 @@
+         }
+         else
+         {
+-                screen_printf("%s has saved the game", inWhoSaved->name);
++                LogTarget::getScreenLogTarget().log("%s has saved the game", inWhoSaved->name);
+         }
+ }
+ 
+@@ -791,7 +791,7 @@
+                                 //MH: Lua script hook
+                                 L_Call_Terminal_Enter(side->control_panel_permutation,player_index);
+ 				
+-				/* this will handle changing levels, if necessary (i.e., if we’re finished) */
++				/* this will handle changing levels, if necessary (i.e., if weire finished) */
+ 				enter_computer_interface(player_index, side->control_panel_permutation, calculate_level_completion_state());
+ 			}
+ 			break;
+Index: Source_Files/GameWorld/player.cpp
+===================================================================
+--- Source_Files/GameWorld/player.cpp	(revision 4521)
++++ Source_Files/GameWorld/player.cpp	(working copy)
+@@ -27,7 +27,7 @@
+ Wednesday, November 30, 1994 6:56:20 PM  (Jason)
+ 	oxygen is used up faster by running and by firing.
+ Thursday, January 12, 1995 11:18:18 AM  (Jason')
+-	dead players don’t continue to use up oxygen.
++	dead players donit continue to use up oxygen.
+ Thursday, July 6, 1995 4:53:52 PM
+ 	supports multi-player cooperative games. (Ryan)
+ 
+@@ -151,7 +151,7 @@
+ #include "network_games.h"
+ #include "network.h"
+ #include "screen.h"
+-#include "shell.h" // for screen_printf()
++#include "Logging.h" // for LogTarget::getScreenLogTarget().log()
+ #include "Console.h"
+ #include "ViewControl.h"
+ 
+@@ -534,7 +534,7 @@
+ {
+ 	sRealActionQueues->reset();
+ 	reset_recording_and_playback_queues();
+-	sync_heartbeat_count(); //•• MY ADDITION...
++	sync_heartbeat_count(); //••-MY ADDITION...
+ }
+ 
+ // ZZZ addition: need to reset (potentially) multiple sets of ActionQueues, not just the RealActionQueues.
+@@ -590,7 +590,7 @@
+ 			 NONE, NONE, 10*FIXED_ONE);
+ 				}
+ 
+-				screen_printf("%s has become disconnected", player->name);
++				LogTarget::getScreenLogTarget().log("%s has become disconnected", player->name);
+ 				player->netdead = true;
+ 			}
+ 
+@@ -612,7 +612,7 @@
+ 		
+ 		bool IsSwimming = TEST_FLAG(player->variables.flags,_HEAD_BELOW_MEDIA_BIT) && player_settings.CanSwim;
+ 
+-		// if we’ve got the ball we can’t run (that sucks)
++		// if weive got the ball we canit run (that sucks)
+ 		// Benad: also works with _game_of_rugby and _game_of_capture_the_flag
+ 		// LP change: made it possible to swim under a liquid if one has the ball
+ 		// START Benad changed oct. 1st (works with ANY ball color, d'uh...)
+@@ -625,7 +625,7 @@
+ 		
+ 		// if (GET_GAME_TYPE()==_game_of_kill_man_with_ball && dynamic_world->game_player_index==player_index) action_flags&= ~_run_dont_walk;
+ 		
+-		// if our head is under media, we can’t run (that sucks, too)
++		// if our head is under media, we canit run (that sucks, too)
+ 		if (IsSwimming && (action_flags&_run_dont_walk)) action_flags&= ~_run_dont_walk, action_flags|= _swim;
+ 		
+ 		update_player_physics_variables(player_index, action_flags, inPredictive);
+@@ -642,9 +642,9 @@
+ 				if(((GET_GAME_OPTIONS()&_suicide_is_penalized) || (GET_GAME_OPTIONS()&_dying_is_penalized)) && (player_index == local_player_index))
+ 				{
+ 					if(player->reincarnation_delay == 0)
+-						screen_printf("You may rise to fight again");
++						LogTarget::getScreenLogTarget().log("You may rise to fight again");
+ 					else if(player->reincarnation_delay < 4 * TICKS_PER_SECOND && (player->reincarnation_delay % TICKS_PER_SECOND) == 0)
+-						screen_printf("%d...", player->reincarnation_delay / TICKS_PER_SECOND);
++						LogTarget::getScreenLogTarget().log("%d...", player->reincarnation_delay / TICKS_PER_SECOND);
+ 				}
+ 			}
+ 			if (player->extravision_duration)
+@@ -708,7 +708,7 @@
+ 							int theSeconds = player->reincarnation_delay / TICKS_PER_SECOND;
+ 							// If 3 or less, he'll be getting a countdown anyway, and may start spamming the action key.
+ 							if(theSeconds > 3)
+-								screen_printf("%d penalty seconds remain", theSeconds);
++								LogTarget::getScreenLogTarget().log("%d penalty seconds remain", theSeconds);
+ 						}
+ 					}
+ 					else
+@@ -1380,7 +1380,7 @@
+ 					{
+ 						player= get_player_data(other_player_index);
+ 
+-						/* Set them to be teleporting if the already aren’t, or if they are but it */
++						/* Set them to be teleporting if the already arenit, or if they are but it */
+ 						/*  is a simple teleport (intralevel) */
+ 						if (player_index!=other_player_index)
+ 						{
+@@ -1499,7 +1499,7 @@
+ 	
+ 	get_player_transfer_mode(player_index, &transfer_mode, &transfer_period);
+ 	
+-	/* if we’re not dead, handle changing shapes (if we are dead, the correct dying shape has
++	/* if weire not dead, handle changing shapes (if we are dead, the correct dying shape has
+ 		already been set and we just have to wait for the animation to finish) */
+ 	if (!PLAYER_IS_DEAD(player))
+ 	{
+@@ -1534,11 +1534,11 @@
+ 	
+ 	if (animate)
+ 	{
+-		/* animate the player only if we’re not airborne and not totally dead */
++		/* animate the player only if weire not airborne and not totally dead */
+ 		if ((variables->action!=_player_airborne || (PLAYER_IS_TELEPORTING(player) || PLAYER_IS_INTERLEVEL_TELEPORTING(player)))&&!PLAYER_IS_TOTALLY_DEAD(player)) animate_object(monster->object_index);
+ 		if (PLAYER_IS_DEAD(player) && !PLAYER_IS_TELEPORTING(player) && (GET_OBJECT_ANIMATION_FLAGS(legs)&_obj_last_frame_animated) && !PLAYER_IS_TOTALLY_DEAD(player))
+ 		{
+-			/* we’ve finished the animation; let the player reincarnate if he wants to */
++			/* weive finished the animation; let the player reincarnate if he wants to */
+ 			SET_PLAYER_TOTALLY_DEAD_STATUS(player, true);
+ 			set_player_dead_shape(player_index, false);
+ 
+@@ -1564,13 +1564,13 @@
+ 
+ 	monster->action= _monster_is_moving; /* was probably _dying or something */
+ 
+-	/* remove only the player’s torso, which should be invisible anyway, and turn his legs
++	/* remove only the playeris torso, which should be invisible anyway, and turn his legs
+ 		into garbage */
+ 	remove_parasitic_object(monster->object_index);
+ 	turn_object_to_shit(monster->object_index);
+ 
+-	/* create a new pair of legs, and (completely behind MONSTERS.C’s back) reattach it to
+-		it’s monster (shape will be set by set_player_shapes, below) */
++	/* create a new pair of legs, and (completely behind MONSTERS.Cis back) reattach it to
++		itis monster (shape will be set by set_player_shapes, below) */
+ 	player->object_index= monster->object_index= new_map_object(&location, 0);
+ 	object= get_object_data(monster->object_index);
+ 	SET_OBJECT_SOLIDITY(object, true);
+@@ -1799,7 +1799,7 @@
+ 			short item_kind= get_item_kind(item_type);
+ 			bool dropped= false;
+ 			
+-			// if we’re not set to burn items or this is an important item (i.e., repair chip) drop it
++			// if weire not set to burn items or this is an important item (i.e., repair chip) drop it
+ 			if (!(GET_GAME_OPTIONS()&_burn_items_on_death) ||
+ 				(item_kind==_item && dynamic_world->player_count>1))
+ 			{
+Index: Source_Files/Lua/lua_script.cpp
+===================================================================
+--- Source_Files/Lua/lua_script.cpp	(revision 4521)
++++ Source_Files/Lua/lua_script.cpp	(working copy)
+@@ -110,6 +110,8 @@
+ #include "BStream.h"
+ #include "Plugins.h"
+ 
++#include "Logging.h"
++
+ #include "lua_script.h"
+ #include "lua_map.h"
+ #include "lua_monsters.h"
+@@ -895,7 +897,7 @@
+ 			lua_pcall(State(), 1, 1, 0);
+ 			if (lua_tostring(State(), -1))
+ 			{
+-				screen_printf("%s", lua_tostring(State(), -1));
++				LogTarget::getScreenLogTarget().log("%s", lua_tostring(State(), -1));
+ 			}
+ 		}
+ 	}
+@@ -1077,7 +1079,7 @@
+ void
+ L_Error(const char* inMessage)
+ {
+-	if (!mute_lua) screen_printf("%s", inMessage);
++	if (!mute_lua) LogTarget::getScreenLogTarget().log("%s", inMessage);
+ 	logError(inMessage);
+ }
+ 
+@@ -1483,7 +1485,7 @@
+ 
+ 			if (current_heading < heading)
+ 			{
+-				screen_printf("Player heading is on the right of the goal_point");
++				LogTarget::getScreenLogTarget().log("Player heading is on the right of the goal_point");
+ 				// turn_left
+ 				while (current_heading <= heading)
+ 				{
+@@ -1496,7 +1498,7 @@
+ 			}
+ 				else if (current_heading > heading)
+ 				{
+-					screen_printf("Player heading is on the left of the goal_point");
++					LogTarget::getScreenLogTarget().log("Player heading is on the left of the goal_point");
+ 					// turn_right
+ 					while (player->facing >= heading)
+ 					{
+@@ -1510,7 +1512,7 @@
+ 
+ 				if (current_point.x < goal_point.x)
+ 				{
+-					screen_printf("goal_point is in front of player");
++					LogTarget::getScreenLogTarget().log("goal_point is in front of player");
+ 
+ 					/*
+ 					 while (current_point.x > goal_point.x)
+@@ -1523,7 +1525,7 @@
+ 				}
+ 				else if (current_point.x > goal_point.x)
+ 				{
+-					screen_printf("goal_point is behind player");
++					LogTarget::getScreenLogTarget().log("goal_point is behind player");
+ 					/*
+ 					 while (current_point.x < goal_point.x)
+ 					 {
+@@ -1550,20 +1552,20 @@
+ 
+ 			if (player->facing < new_facing)
+ 			{
+-				screen_printf("new_facing is on right of the player heading");
++				LogTarget::getScreenLogTarget().log("new_facing is on right of the player heading");
+ 			}
+ 				else if (player->facing > new_facing)
+ 				{
+-					screen_printf("new_facing is on left of the player heading");
++					LogTarget::getScreenLogTarget().log("new_facing is on left of the player heading");
+ 				}
+ 
+ 				if (player->elevation < new_elevation)
+ 				{
+-					screen_printf("new_elevation is above player elevation");
++					LogTarget::getScreenLogTarget().log("new_elevation is above player elevation");
+ 				}
+ 				else if (player->elevation > new_elevation)
+ 				{
+-					screen_printf("new_elevation is under player elevation");
++					LogTarget::getScreenLogTarget().log("new_elevation is under player elevation");
+ 				}
+ 
+ 				break;
+@@ -1861,11 +1863,11 @@
+ 	mute_lua = !mute_lua;
+ 	if (mute_lua)
+ 	{
+-		screen_printf("adding Lua messages to the ignore list");
++		LogTarget::getScreenLogTarget().log("adding Lua messages to the ignore list");
+ 	} 
+ 	else
+ 	{
+-		screen_printf("removing Lua messages from the ignore list");
++		LogTarget::getScreenLogTarget().log("removing Lua messages from the ignore list");
+ 	}
+ }
+ 
+Index: Source_Files/Lua/lauxlib.c
+===================================================================
+--- Source_Files/Lua/lauxlib.c	(revision 4521)
++++ Source_Files/Lua/lauxlib.c	(working copy)
+@@ -24,7 +24,9 @@
+ 
+ #include "lauxlib.h"
+ 
++#include "Logging.h"
+ 
++
+ #define FREELIST_REF	0	/* free list of references */
+ 
+ 
+@@ -639,7 +641,7 @@
+ 
+ static int panic (lua_State *L) {
+   (void)L;  /* to avoid warnings */
+-  fprintf(stderr, "PANIC: unprotected error in call to Lua API (%s)\n",
++  LogTarget::getErrorLogTarget().log("PANIC: unprotected error in call to Lua API (%s)\n",
+                    lua_tostring(L, -1));
+   return 0;
+ }
+Index: Source_Files/Lua/liolib.c
+===================================================================
+--- Source_Files/Lua/liolib.c	(revision 4521)
++++ Source_Files/Lua/liolib.c	(working copy)
+@@ -18,6 +18,7 @@
+ #include "lauxlib.h"
+ #include "lualib.h"
+ 
++#include "Logging.h"
+ 
+ 
+ #define IO_INPUT	1
+@@ -398,7 +399,7 @@
+     if (lua_type(L, arg) == LUA_TNUMBER) {
+       /* optimization: could be done exactly as for strings */
+       status = status &&
+-          fprintf(f, LUA_NUMBER_FMT, lua_tonumber(L, arg)) > 0;
++          StreamLogTarget::getSharedInstance().log(f, LUA_NUMBER_FMT, lua_tonumber(L, arg)) > 0;
+     }
+     else {
+       size_t l;
+Index: Source_Files/Lua/lua_player.cpp
+===================================================================
+--- Source_Files/Lua/lua_player.cpp	(revision 4521)
++++ Source_Files/Lua/lua_player.cpp	(working copy)
+@@ -47,6 +47,8 @@
+ #include "SoundManager.h"
+ #include "ViewControl.h"
+ 
++#include "Logging.h"
++
+ #define DONT_REPEAT_DEFINITIONS
+ #include "item_definitions.h"
+ #include "projectile_definitions.h"
+@@ -1571,7 +1573,7 @@
+ 		lua_pcall(L, 1, 1, 0);
+ 		if (lua_tostring(L, -1))
+ 		{
+-			screen_printf("%s", lua_tostring(L, -1));
++			LogTarget::getScreenLogTarget().log("%s", lua_tostring(L, -1));
+ 		}
+ 		lua_pop(L, 1);
+ 	}
+@@ -2218,7 +2220,7 @@
+ 	lua_pcall(L, 1, 1, 0);
+ 	if (lua_tostring(L, -1))
+ 	{
+-		screen_printf("%s", lua_tostring(L, -1));
++		LogTarget::getScreenLogTarget().log("%s", lua_tostring(L, -1));
+ 	}
+ 	lua_pop(L, 1);
+ 
+Index: Source_Files/RenderOther/images.cpp
+===================================================================
+--- Source_Files/RenderOther/images.cpp	(revision 4521)
++++ Source_Files/RenderOther/images.cpp	(working copy)
+@@ -343,7 +343,7 @@
+ 					data_size = uncompress_rle32(src, row_bytes, dst, dst_pitch, height);
+ 					break;
+ 				default:
+-					fprintf(stderr, "Unimplemented packing type %d (depth %d) in PICT resource\n", pack_type, depth);
++					LogTarget::getErrorLogTarget().log("Unimplemented packing type %d (depth %d) in PICT resource\n", pack_type, depth);
+ 					data_size = -1;
+ 					break;
+ 			}
+@@ -441,13 +441,13 @@
+ 	SDL_RWseek(p, 6, SEEK_CUR);		// picSize/top/left
+ 	int pic_height = SDL_ReadBE16(p);
+ 	int pic_width = SDL_ReadBE16(p);
+-	//printf("pic_width %d, pic_height %d\n", pic_width, pic_height);
++	//LogTarget::getOutLogTarget().log("pic_width %d, pic_height %d\n", pic_width, pic_height);
+ 
+ 	// Read and parse picture opcodes
+ 	bool done = false;
+ 	while (!done) {
+ 		uint16 opcode = SDL_ReadBE16(p);
+-		//printf("%04x\n", opcode);
++		//LogTarget::getOutLogTarget().log("%04x\n", opcode);
+ 		switch (opcode) {
+ 
+ 			case 0x0000:	// NOP
+@@ -538,7 +538,7 @@
+ 				if (opcode == 0x009a || opcode == 0x009b)
+ 					SDL_RWseek(p, 4, SEEK_CUR);		// pmBaseAddr
+ 				uint16 row_bytes = SDL_ReadBE16(p);	// the upper 2 bits are flags
+-				//printf(" row_bytes %04x\n", row_bytes);
++				//LogTarget::getOutLogTarget().log(" row_bytes %04x\n", row_bytes);
+ 				bool is_pixmap = ((row_bytes & 0x8000) != 0);
+ 				row_bytes &= 0x3fff;
+ 				uint16 top = SDL_ReadBE16(p);
+@@ -556,7 +556,7 @@
+ 					pack_type = 0;
+ 					pixel_size = 1;
+ 				}
+-				//printf(" width %d, height %d, row_bytes %d, depth %d, pack_type %d\n", width, height, row_bytes, pixel_size, pack_type);
++				//LogTarget::getOutLogTarget().log(" width %d, height %d, row_bytes %d, depth %d, pack_type %d\n", width, height, row_bytes, pixel_size, pack_type);
+ 
+ 				// Allocate surface for picture
+ 				uint32 Rmask = 0, Gmask = 0, Bmask = 0;
+@@ -582,7 +582,7 @@
+ 						surface_depth = 32;
+ 						break;
+ 					default:
+-						fprintf(stderr, "Unsupported PICT depth %d\n", pixel_size);
++						LogTarget::getErrorLogTarget().log("Unsupported PICT depth %d\n", pixel_size);
+ 						done = true;
+ 						break;
+ 				}
+@@ -674,7 +674,7 @@
+ 				uint32 id_size = SDL_ReadBE32(p);
+ 				uint32 codec_type = SDL_ReadBE32(p);
+ 				if (codec_type != FOUR_CHARS_TO_INT('j','p','e','g')) {
+-					fprintf(stderr, "Unsupported codec type %c%c%c%c\n", codec_type >> 24, codec_type >> 16, codec_type >> 8, codec_type);
++					LogTarget::getErrorLogTarget().log("Unsupported codec type %c%c%c%c\n", codec_type >> 24, codec_type >> 16, codec_type >> 8, codec_type);
+ 					done = true;
+ 					break;
+ 				}
+@@ -723,7 +723,7 @@
+ 				else if (opcode >= 0x8000 && opcode < 0x8100)
+ 					break;
+ 				else {
+-					fprintf(stderr, "Unimplemented opcode %04x in PICT resource\n", opcode);
++					LogTarget::getErrorLogTarget().log("Unimplemented opcode %04x in PICT resource\n", opcode);
+ 					done = true;
+ 				}
+ 				break;
+Index: Source_Files/RenderOther/screen_shared.h
+===================================================================
+--- Source_Files/RenderOther/screen_shared.h	(revision 4521)
++++ Source_Files/RenderOther/screen_shared.h	(working copy)
+@@ -31,7 +31,7 @@
+ 	Added accessors for datafields now opaque in Carbon
+ 
+  Aug 6, 2003 (Woody Zenfell):
+-	Minor tweaks to screen_printf() mechanism (safer; resets when screen_reset called)
++	Minor tweaks to LogTarget::getScreenLogTarget().log() mechanism (safer; resets when screen_reset called)
+ */
+ 
+ #include <stdarg.h>
+@@ -58,6 +58,9 @@
+ #include "Image_Blitter.h"
+ #include "OGL_Blitter.h"
+ 
++#include "Logging.h"
++
++
+ /* ---------- globals */
+ 
+ struct color_table *uncorrected_color_table; /* the pristine color environment of the game (can be 16bit) */
+@@ -897,7 +900,7 @@
+ // LP addition: display message on the screen;
+ // this really puts the current message into a buffer
+ // Code cribbed from csstrings
+-void screen_printf(const char *format, ...)
++void screen_printf(const char *format, va_list list)
+ {
+ 	MostRecentMessage = (MostRecentMessage + 1) % NumScreenMessages;
+ 	while (MostRecentMessage < 0)
+@@ -906,11 +909,7 @@
+ 	
+ 	Message.TimeRemaining = 7*TICKS_PER_SECOND;
+ 
+-	va_list list;
+-
+-	va_start(list,format);
+ 	// ZZZ: [v]sprintf is evil, generally: hard to guarantee you don't overflow target buffer
+ 	// using [v]snprintf instead
+ 	vsnprintf(Message.Text,sizeof(Message.Text),format,list);
+-	va_end(list);
+ }
+Index: Source_Files/RenderOther/screen.cpp
+===================================================================
+--- Source_Files/RenderOther/screen.cpp	(revision 4521)
++++ Source_Files/RenderOther/screen.cpp	(working copy)
+@@ -761,8 +761,8 @@
+ 		if (!OGL_CheckExtension("GL_ARB_vertex_shader") || !OGL_CheckExtension("GL_ARB_fragment_shader") || !OGL_CheckExtension("GL_ARB_shader_objects") || !OGL_CheckExtension("GL_ARB_shading_language_100"))
+ 		{
+ 			logWarning("OpenGL (Shader) renderer is not available");
+-			fprintf(stderr, "WARNING: Failed to initialize OpenGL (Shader) renderer\n");
+-			fprintf(stderr, "WARNING: Retrying with OpenGL (Classic) renderer\n");
++			LogTarget::getErrorLogTarget().log("WARNING: Failed to initialize OpenGL (Shader) renderer\n");
++			LogTarget::getErrorLogTarget().log("WARNING: Retrying with OpenGL (Classic) renderer\n");
+ 			screen_mode.acceleration = graphics_preferences->screen_mode.acceleration = _opengl_acceleration;
+ 			SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+ 			main_surface = SDL_SetVideoMode(vmode_width, vmode_height, depth, flags);
+@@ -772,10 +772,10 @@
+ #endif
+ 
+ 	if (main_surface == NULL) {
+-		fprintf(stderr, "Can't open video display (%s)\n", SDL_GetError());
++		LogTarget::getErrorLogTarget().log("Can't open video display (%s)\n", SDL_GetError());
+ #ifdef HAVE_OPENGL
+-		fprintf(stderr, "WARNING: Failed to initialize OpenGL with 24 bit colour\n");
+-		fprintf(stderr, "WARNING: Retrying with 16 bit colour\n");
++		LogTarget::getErrorLogTarget().log("WARNING: Failed to initialize OpenGL with 24 bit colour\n");
++		LogTarget::getErrorLogTarget().log("WARNING: Retrying with 16 bit colour\n");
+ 		
+ 		if (screen_mode.acceleration == _shader_acceleration)
+ 		{
+@@ -789,7 +789,7 @@
+ 
+ 		main_surface = SDL_SetVideoMode(vmode_width, vmode_height, depth, flags);
+  		if (main_surface == NULL) {
+- 			fprintf(stderr, "Can't open video display (%s)\n", SDL_GetError());
++ 			LogTarget::getErrorLogTarget().log("Can't open video display (%s)\n", SDL_GetError());
+  			exit(1);
+  		}
+ #else
+@@ -833,11 +833,11 @@
+ 		static bool gl_info_printed = false;
+ 		if (!gl_info_printed)
+ 		{
+-			printf("GL_VENDOR: %s\n", glGetString(GL_VENDOR));
+-			printf("GL_RENDERER: %s\n", glGetString(GL_RENDERER));
+-			printf("GL_VERSION: %s\n", glGetString(GL_VERSION));
++			LogTarget::getOutLogTarget().log("GL_VENDOR: %s\n", glGetString(GL_VENDOR));
++			LogTarget::getOutLogTarget().log("GL_RENDERER: %s\n", glGetString(GL_RENDERER));
++			LogTarget::getOutLogTarget().log("GL_VERSION: %s\n", glGetString(GL_VERSION));
+ //		const char *gl_extensions = (const char *)glGetString(GL_EXTENSIONS);
+-//		printf("GL_EXTENSIONS: %s\n", gl_extensions);
++//		LogTarget::getOutLogTarget().log("GL_EXTENSIONS: %s\n", gl_extensions);
+ 			gl_info_printed = true;
+ 		}
+ 		glScissor(0, 0, width, height);
+Index: Source_Files/RenderOther/sdl_fonts.cpp
+===================================================================
+--- Source_Files/RenderOther/sdl_fonts.cpp	(revision 4521)
++++ Source_Files/RenderOther/sdl_fonts.cpp	(working copy)
+@@ -137,7 +137,7 @@
+ 	// Load font family resource
+ 	LoadedResource fond;
+ 	if (!get_resource(FOUR_CHARS_TO_INT('F', 'O', 'N', 'D'), spec.font, fond)) {
+-		fprintf(stderr, "Font family resource for font ID %d not found\n", spec.font);
++		LogTarget::getErrorLogTarget().log("Font family resource for font ID %d not found\n", spec.font);
+ 		return NULL;
+ 	}
+ 	SDL_RWops *p = SDL_RWFromMem(fond.GetPointer(), (int)fond.GetLength());
+@@ -179,7 +179,7 @@
+ 				info->leading = SDL_ReadBE16(p);
+ 				int bytes_per_row = SDL_ReadBE16(p) * 2;
+ 
+-				//printf(" first %d, last %d, max_kern %d, rect_w %d, rect_h %d, ascent %d, descent %d, leading %d, bytes_per_row %d\n",
++				//LogTarget::getOutLogTarget().log(" first %d, last %d, max_kern %d, rect_w %d, rect_h %d, ascent %d, descent %d, leading %d, bytes_per_row %d\n",
+ 				//	info->first_character, info->last_character, info->maximum_kerning,
+ 				//	info->rect_width, info->rect_height, info->ascent, info->descent, info->leading, bytes_per_row);
+ 
+@@ -217,7 +217,7 @@
+ 			} else {
+ 				delete info;
+ 				info = NULL;
+-				fprintf(stderr, "Bitmap font resource ID %d not found\n", id);
++				LogTarget::getErrorLogTarget().log("Bitmap font resource ID %d not found\n", id);
+ 			}
+ 		}
+ 	}
+Index: Source_Files/RenderMain/ImageLoader_Shared.cpp
+===================================================================
+--- Source_Files/RenderMain/ImageLoader_Shared.cpp	(revision 4521)
++++ Source_Files/RenderMain/ImageLoader_Shared.cpp	(working copy)
+@@ -35,7 +35,9 @@
+ #include "SDL.h"
+ #include "SDL_endian.h"
+ 
++#include "Logging.h"
+ 
++
+ #ifdef HAVE_OPENGL
+ #include "OGL_Headers.h"
+ #include "OGL_Setup.h" // OGL_IsActive
+@@ -51,7 +53,7 @@
+ 
+ 	// make sure the level is valid
+ 	if (Width >> level == 0 && Height >> level == 0) {
+-		fprintf(stderr, "invalid mip map level size requested\n");
++		LogTarget::getErrorLogTarget().log("invalid mip map level size requested\n");
+ 		return 0;
+ 	}
+ 	switch (Format) {
+@@ -66,7 +68,7 @@
+ 		return (max(1, (((Width >> level) + 3) / 4)) * max(1, (((Height >> level)  + 3) / 4)) * 16);
+ 		break;
+ 	default:
+-		fprintf(stderr, "invalid format!\n");
++		LogTarget::getErrorLogTarget().log("invalid format!\n");
+ 		assert(false);
+ 	}
+ }
+@@ -155,7 +157,7 @@
+ 		else 
+ #endif
+ 		{
+-			fprintf(stderr, "GL not active\n");
++			LogTarget::getErrorLogTarget().log("GL not active\n");
+ 			return false;
+ 		}
+ 	} 
+@@ -211,9 +213,9 @@
+ 	}
+ 	
+ 	if (totalSize + GetMipMapSize(level) > GetBufferSize()) {
+-		fprintf(stderr, "buffer not large enough\n");
++		LogTarget::getErrorLogTarget().log("buffer not large enough\n");
+ 		if (flags & ImageLoader_LoadMipMaps) {
+-			fprintf(stderr, "(loading mipmaps\n");
++			LogTarget::getErrorLogTarget().log("(loading mipmaps\n");
+ 		}
+ 		return false;
+ 	}
+@@ -266,7 +268,7 @@
+ 		for (int row = 0; row < srcHeight / 4; row++)
+ 		{
+ 			if (!file.Read(srcWidth / 4 * 8, &buffer[row * dstWidth / 4 * 8])) {
+-				fprintf(stderr, "failed to read %i bytes\n", srcWidth / 4 * 8);
++				LogTarget::getErrorLogTarget().log("failed to read %i bytes\n", srcWidth / 4 * 8);
+ 				return false;
+ 			}
+ 		}
+@@ -283,7 +285,7 @@
+ 		for (int row = 0; row < srcHeight / 4; row++)
+ 		{
+ 			if (!file.Read(srcWidth / 4 * 16, &buffer[row * dstWidth / 4 * 16])) {
+-				fprintf(stderr, "failed to read %i bytes\n", srcWidth / 4 * 16);
++				LogTarget::getErrorLogTarget().log("failed to read %i bytes\n", srcWidth / 4 * 16);
+ 				return false;
+ 			}
+ 		}
+@@ -397,14 +399,14 @@
+ 
+ 		inputStream.ignore(4);
+ 	} catch (AStream::failure f) {
+-		fprintf(stderr, "exception %s, returning false\n", f.what());
++		LogTarget::getErrorLogTarget().log("exception %s, returning false\n", f.what());
+ 		return false;
+ 	}
+ 	
+ 	// textures only please
+ 	if ((ddsd.ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP) ||
+ 	    (ddsd.ddsCaps.dwCaps2 & DDSCAPS2_VOLUME)) {
+-		fprintf(stderr, "cubemap or volume\n");
++		LogTarget::getErrorLogTarget().log("cubemap or volume\n");
+ 		return false;
+ 	}
+ 
+@@ -453,7 +455,7 @@
+ 		
+ 		// we don't handle incomplete mip map chains
+ 		if (OriginalMipMapCount != 1 + floor(log2(max(OriginalWidth, OriginalHeight)))) {
+-			fprintf(stderr, "incomplete mipmap chain (%ix%i, %ix%i, %i mipmaps\n", Width, Height, ddsd.dwWidth, ddsd.dwHeight, OriginalMipMapCount);
++			LogTarget::getErrorLogTarget().log("incomplete mipmap chain (%ix%i, %ix%i, %i mipmaps\n", Width, Height, ddsd.dwWidth, ddsd.dwHeight, OriginalMipMapCount);
+ 			return false;
+ 		}
+ 
+Index: Source_Files/RenderMain/OGL_Shader.cpp
+===================================================================
+--- Source_Files/RenderMain/OGL_Shader.cpp	(revision 4521)
++++ Source_Files/RenderMain/OGL_Shader.cpp	(working copy)
+@@ -26,7 +26,9 @@
+ #include "FileHandler.h"
+ #include "OGL_Setup.h"
+ 
++#include "Logging.h"
+ 
++
+ // gl_ClipVertex workaround
+ // In Mac OS X 10.4 and Mesa, setting gl_ClipVertex causes a black screen.
+ // Unfortunately, it's required for proper 5-D space on other
+@@ -165,7 +167,7 @@
+ 	OpenedFile file;
+ 	if (!fileSpec.Open(file))
+ 	{
+-		fprintf(stderr, "%s not found\n", fileSpec.GetPath());
++		LogTarget::getErrorLogTarget().log("%s not found\n", fileSpec.GetPath());
+ 		return;
+ 	}
+ 
+Index: Source_Files/RenderMain/shapes.cpp
+===================================================================
+--- Source_Files/RenderMain/shapes.cpp	(revision 4521)
++++ Source_Files/RenderMain/shapes.cpp	(working copy)
+@@ -23,7 +23,7 @@
+ Thursday, May 19, 1994 9:06:28 AM
+ 	unification of wall and object shapes complete, new shading table builder.
+ Wednesday, June 22, 1994 11:55:07 PM
+-	we now read data from alain’s shape extractor.
++	we now read data from alainis shape extractor.
+ Saturday, July 9, 1994 3:22:11 PM
+ 	lightening_table removed; we now build darkening tables on a collection-by-collection basis
+ 	(one 8k darkening table per clut permutation of the given collection)
+@@ -98,6 +98,8 @@
+ #include "FileHandler.h"
+ #include "progress.h"
+ 
++#include "Logging.h"
++
+ #include "map.h"
+ 
+ // LP addition: OpenGL support
+@@ -143,7 +145,7 @@
+ 	markNONE,
+ 	markLOAD= 1,
+ 	markUNLOAD= 2,
+-	markSTRIP= 4 /* we don’t want bitmaps, just high/low-level shape data */,
++	markSTRIP= 4 /* we donit want bitmaps, just high/low-level shape data */,
+ 	markPATCHED = 8 /* force re-load */
+ };
+ 
+@@ -849,7 +851,7 @@
+ 	
+ 	if (strip) {
+ 		//!! don't know what to do
+-		fprintf(stderr, "Stripped shapes not implemented\n");
++		LogTarget::getErrorLogTarget().log("Stripped shapes not implemented\n");
+ 		abort();
+ 	}
+ 
+@@ -1011,7 +1013,7 @@
+ 				}
+ 				else
+ 				{
+-					fprintf(stderr, "Unrecognized tag in patch file '%c%c%c%c'\n %x", tag >> 24, tag >> 16, tag >> 8, tag, tag);
++					LogTarget::getErrorLogTarget().log("Unrecognized tag in patch file '%c%c%c%c'\n %x", tag >> 24, tag >> 16, tag >> 8, tag, tag);
+ 				}
+ 			}
+ 					
+@@ -1565,7 +1567,7 @@
+ 	}
+ }
+ 
+-/* returns count, doesn’t fill NULL buffer */
++/* returns count, doesnit fill NULL buffer */
+ short get_shape_descriptors(
+ 	short shape_type,
+ 	shape_descriptor *buffer)
+@@ -1847,7 +1849,7 @@
+ 	{
+ //		if (with_progress_bar)
+ //			draw_progress_bar(MAXIMUM_COLLECTIONS+collection_index, 2*MAXIMUM_COLLECTIONS);
+-		/* don’t reload collections which are already in memory, but do lock them */
++		/* donit reload collections which are already in memory, but do lock them */
+ 		if (collection_loaded(header))
+ 		{
+ 			// In case the substitute images had been changed by some level-specific MML...
+@@ -1963,7 +1965,7 @@
+ }
+ 
+ /* given a list of RGBColors, find out which one, if any, match the given color.  if there
+-	aren’t any matches, add a new entry and return that index. */
++	arenit any matches, add a new entry and return that index. */
+ static short find_or_add_color(
+ 	struct rgb_color_value *color,
+ 	register struct rgb_color_value *colors,
+@@ -2038,8 +2040,8 @@
+ 	colors[0].flags= colors[0].value= 0;
+ 	color_count= 1;
+ 
+-	/* loop through all collections, only paying attention to the loaded ones.  we’re
+-		depending on finding the gray run (white to black) first; so it’s the responsibility
++	/* loop through all collections, only paying attention to the loaded ones.  weire
++		depending on finding the gray run (white to black) first; so itis the responsibility
+ 		of the lowest numbered loaded collection to give us this */
+ 	for (collection_index=0;collection_index<MAXIMUM_COLLECTIONS;++collection_index)
+ 	{
+@@ -2056,7 +2058,7 @@
+ //			if (collection_index==15) dprintf("primary clut %p", primary_colors);
+ //			dprintf("primary clut %d entries;dm #%d #%d", collection->color_count, primary_colors, collection->color_count*sizeof(ColorSpec));
+ 
+-			/* add the colors from this collection’s primary color table to the aggregate color
++			/* add the colors from this collectionis primary color table to the aggregate color
+ 				table and build the remapping table */
+ 			for (color_index=0;color_index<collection->color_count-NUMBER_OF_PRIVATE_COLORS;++color_index)
+ 			{
+@@ -2146,7 +2148,7 @@
+ 			/* 8-bit interface, non-8-bit main window; remember interface CLUT separately */
+ 			if (collection_index==_collection_interface && interface_bit_depth==8 && bit_depth!=interface_bit_depth) _change_clut(change_interface_clut, colors, color_count);
+ 			
+-			/* if we’re not in 8-bit, we don’t have to carry our colors over into the next collection */
++			/* if weire not in 8-bit, we donit have to carry our colors over into the next collection */
+ 			if (bit_depth!=8) color_count= 1;
+ 		}
+ 	}
+Index: Source_Files/shell.cpp
+===================================================================
+--- Source_Files/shell.cpp	(revision 4521)
++++ Source_Files/shell.cpp	(working copy)
+@@ -59,6 +59,9 @@
+ #include "Plugins.h"
+ #include "FilmProfile.h"
+ 
++#include "Logging.h"
++
++
+ #include "mytm.h"	// mytm_initialize(), for platform-specific shell_*.h
+ 
+ #include <stdlib.h>
+@@ -116,6 +119,9 @@
+ #include <shlobj.h>
+ #endif
+ 
++#include <c:/devkitPro/libogc/include/network.h>
++#include <debug.h>
++
+ #include "alephversion.h"
+ 
+ #include "Logging.h"
+@@ -167,6 +173,15 @@
+ void execute_timer_tasks(uint32 time);
+ 
+ // Prototypes
++vector<string> get_options_from_ini_file();
++vector<string> get_options_from_argv(int argc, char **argv);
++bool check_option(const string& option, const string& shortName, const string& longName);
++void parse_options(const string prg_name, const vector<string>& options);
++void wait_before_exiting(int exit_code);
++void wait(float seconds);
++void message(const string& msg);
++
++static void initialize_remote_debug();
+ static void initialize_application(void);
+ void shutdown_application(void);
+ static void initialize_marathon_music_handler(void);
+@@ -180,7 +195,7 @@
+ #ifdef __WIN32__
+ 	MessageBox(NULL, "Command line switches:\n\n"
+ #else
+-	printf("\nUsage: %s [options] [directory] [file]\n"
++	LogTarget::getOutLogTarget().log("\nUsage: %s [options] [directory] [file]\n"
+ #endif
+ 	  "\t[-h | --help]          Display this help message\n"
+ 	  "\t[-v | --version]       Display the game version\n"
+@@ -193,11 +208,12 @@
+ #endif
+ 	  "\t[-s | --nosound]       Do not access the sound card\n"
+ 	  "\t[-m | --nogamma]       Disable gamma table effects (menu fades)\n"
+-          "\t[-j | --nojoystick]    Do not initialize joysticks\n"
++	  "\t[-j | --nojoystick]    Do not initialize joysticks\n"
+ 	  // Documenting this might be a bad idea?
+ 	  // "\t[-i | --insecure_lua]  Allow Lua netscripts to take over your computer\n"
++	  "\t[-F | --options_file]  Load options from the given file\n"
+ 	  "\tdirectory              Directory containing scenario data files\n"
+-          "\tfile                   Saved game to load or film to play\n"
++	  "\tfile                   Saved game to load or film to play\n"
+ 	  "\nYou can also use the ALEPHONE_DATA environment variable to specify\n"
+ 	  "the data directory.\n"
+ #ifdef __WIN32__
+@@ -206,7 +222,7 @@
+ 	  , prg_name
+ #endif
+ 	);
+-	exit(0);
++	wait_before_exiting(0);
+ }
+ 
+ extern bool handle_open_replay(FileSpecifier& File);
+@@ -245,12 +261,132 @@
+ 	default:
+ 		break;
+ 	}
+-	
++
+ 	return done;
+ }
+ 
++vector<string> get_options_from_ini_file(const string& optionFile) {
++	vector<string> argv;
++	FileSpecifier ini_file_spec = optionFile.c_str();
++
++	if (ini_file_spec.Exists() && !ini_file_spec.IsDir()) {
++        message("Option file found...");
++		OpenedFile ini_file;
++		if (ini_file_spec.Open(ini_file)) {
++            message("Option file opened...");
++			int file_length;
++			ini_file.GetLength(file_length);
++
++			char read_buffer[file_length + 1];
++			ini_file.Read(file_length, read_buffer);
++			read_buffer[file_length] = '\0';
++			string ini_file_content = read_buffer;
++			message("Option file content : " + ini_file_content);
++
++			char options_separators[] = {' ', '\r', '\n', '\t', '\0'};
++			size_t start_index = 0;
++			while (start_index != string::npos) {
++				size_t end_index = ini_file_content.find_first_of(options_separators, start_index);
++
++				string option;
++				if (end_index == string::npos) {
++					option = ini_file_content.substr(start_index, end_index);
++					start_index = end_index;
++				} else {
++					option = ini_file_content.substr(start_index, end_index - start_index);
++					start_index = end_index + 1;
++				}
++				if (option.size() > 0) {
++					argv.push_back(option);
++					message("\t. " + option);
++				}
++			}
++		}
++	} else {
++        message("Option file not found!");
++    }
++
++	return argv;
++}
++
++vector<string> get_options_from_argv(int argc, char **argv) {
++	vector<string> options;
++	for (int i = 0; i < argc; i++) {
++		options.push_back(argv[i]);
++	}
++
++#if defined(__WII__)
++    message("Adding fake parameters to allow Wii version to start.");
++	options.push_back("-F");
++	options.push_back("sd:/apps/AlephOne/AlephOne.ini");
++#endif
++
++	return options;
++}
++
++void parse_options(const string prg_name, const vector<string>& options) {
++    LogTarget::getOutLogTarget().log("Parsing options...\n");
++	for (vector<string>::const_iterator it = options.begin(); it != options.end(); it++) {
++		const string& argv = *it;
++
++		LogTarget::getOutLogTarget().log("\t. %s\n", argv.c_str());
++
++		if (check_option(argv, "-h", "--help")) {
++			usage(prg_name.c_str());
++		} else if (check_option(argv, "-v", "--version")) {
++			LogTarget::getOutLogTarget().log("Aleph One " A1_VERSION_STRING "\n");
++			wait_before_exiting(0);
++		} else if (check_option(argv, "-f", "--fullscreen")) {
++			force_fullscreen = true;
++		} else if (check_option(argv, "-w", "--windowed")) {
++			force_windowed = true;
++		} else if (check_option(argv, "-g", "--nogl")) {
++			option_nogl = true;
++		} else if (check_option(argv, "-s", "--nosound")) {
++			option_nosound = true;
++		} else if (check_option(argv, "-j", "--nojoystick")) {
++			option_nojoystick = true;
++		} else if (check_option(argv, "-m", "--nogamma")) {
++			option_nogamma = true;
++		} else if (check_option(argv, "-i", "--insecure_lua")) {
++			insecure_lua = true;
++		} else if (check_option(argv, "-d", "--debug")) {
++			option_debug = true;
++		} else if (check_option(argv, "-F", "--options-file")) {
++			if ((it + 1) != options.end()) {
++				it++;
++				vector<string> iniFileOptions = get_options_from_ini_file(*it);
++				parse_options(prg_name, iniFileOptions);
++			} else {
++				LogTarget::getOutLogTarget().log("Missing value for option '%s'.\n", argv.c_str());
++			}
++		} else if (argv[0] != '-') {
++			// if it's a directory, make it the default data dir
++			// otherwise push it and handle it later
++			FileSpecifier f(argv.c_str());
++			if (f.IsDir())
++			{
++				arg_directory = argv.c_str();
++			}
++			else
++			{
++				arg_files.push_back(argv.c_str());
++			}
++		} else {
++			LogTarget::getOutLogTarget().log("Unrecognized argument '%s'.\n", argv.c_str());
++			usage(prg_name.c_str());
++		}
++	}
++}
++
++bool check_option(const string& option, const string& shortName, const string& longName) {
++	return (option == shortName) || (option == longName);
++}
++
+ int main(int argc, char **argv)
+ {
++	initialize_remote_debug();
++
+ 	// Print banner (don't bother if this doesn't appear when started from a GUI)
+ 	printf ("Aleph One " A1_VERSION_STRING "\n"
+ 	  "http://marathon.sourceforge.net/\n\n"
+@@ -280,58 +416,20 @@
+     );
+ 
+ 	// Parse arguments
+-	char *prg_name = argv[0];
+-	argc--;
+-	argv++;
+-	while (argc > 0) {
+-		if (strcmp(*argv, "-h") == 0 || strcmp(*argv, "--help") == 0) {
+-			usage(prg_name);
+-		} else if (strcmp(*argv, "-v") == 0 || strcmp(*argv, "--version") == 0) {
+-			printf("Aleph One " A1_VERSION_STRING "\n");
+-			exit(0);
+-		} else if (strcmp(*argv, "-f") == 0 || strcmp(*argv, "--fullscreen") == 0) {
+-			force_fullscreen = true;
+-		} else if (strcmp(*argv, "-w") == 0 || strcmp(*argv, "--windowed") == 0) {
+-			force_windowed = true;
+-		} else if (strcmp(*argv, "-g") == 0 || strcmp(*argv, "--nogl") == 0) {
+-			option_nogl = true;
+-		} else if (strcmp(*argv, "-s") == 0 || strcmp(*argv, "--nosound") == 0) {
+-			option_nosound = true;
+-                } else if (strcmp(*argv, "-j") == 0 || strcmp(*argv, "--nojoystick") == 0) {
+-                        option_nojoystick = true;
+-		} else if (strcmp(*argv, "-m") == 0 || strcmp(*argv, "--nogamma") == 0) {
+-			option_nogamma = true;
+-		} else if (strcmp(*argv, "-i") == 0 || strcmp(*argv, "--insecure_lua") == 0) {
+-			insecure_lua = true;
+-		} else if (strcmp(*argv, "-d") == 0 || strcmp(*argv, "--debug") == 0) {
+-		  option_debug = true;
+-		} else if (*argv[0] != '-') {
+-			// if it's a directory, make it the default data dir
+-			// otherwise push it and handle it later
+-			FileSpecifier f(*argv);
+-			if (f.IsDir())
+-			{
+-				arg_directory = *argv;
+-			}
+-			else
+-			{
+-				arg_files.push_back(*argv);
+-			}
+-		} else {
+-			printf("Unrecognized argument '%s'.\n", *argv);
+-			usage(prg_name);
+-		}
+-		argc--;
+-		argv++;
+-	}
+-
++	string prg_name = argv[0];
++	message(string("Program name : ") + prg_name);
++	vector<string> options = get_options_from_argv(argc - 1, argv + 1);
++	message("Options fetched from argv. Parsing them now...");
++	parse_options(prg_name, options);
+ 	try {
+-		
+ 		// Initialize everything
++		message("Initializing application");
+ 		initialize_application();
+ 
++        message("Handling files to open");
+ 		for (std::vector<std::string>::iterator it = arg_files.begin(); it != arg_files.end(); ++it)
+ 		{
++            message("\t. Handling : " + *it);
+ 			if (handle_open_document(*it))
+ 			{
+ 				break;
+@@ -339,33 +437,76 @@
+ 		}
+ 
+ 		// Run the main loop
++		message("Entering main loop");
+ 		main_event_loop();
+ 
+ 	} catch (exception &e) {
+ 		try 
+ 		{
++		    message(string("Unhandled exception: ") + e.what());
+ 			logFatal("Unhandled exception: %s", e.what());
+ 		}
+ 		catch (...) 
+ 		{
+ 		}
+-		exit(1);
++		wait_before_exiting(1);
+ 	} catch (...) {
+ 		try
+ 		{
++		    message("Unknown exception");
+ 			logFatal("Unknown exception");
+ 		}
+ 		catch (...)
+ 		{
+ 		}
+-		exit(1);
++		wait_before_exiting(1);
+ 	}
++	
++	message("Job done!");
+ 
+ 	return 0;
+ }
+ 
++#include <time.h>
++void wait_before_exiting(int exit_code) {
++    wait(10000);
++    exit(exit_code);
++}
++
++void wait(float seconds) {
++    clock_t endwait = (int)(clock() + seconds * CLOCKS_PER_SEC);
++    while (clock() < endwait) {}
++}
++
++void message(const string& msg) {
++    LogTarget::getOutLogTarget().log("%s\n", msg.c_str());
++    wait(3);
++}
++
++static void initialize_remote_debug() {
++    char localip[16] = {0};
++    char netmask[16] = {0};
++    char gateway[16] = {0};
++/*
++	message("Configuring network ...");
++	if (if_config(localip, netmask, gateway, true) >= 0) {
++		message(string("Network initialized :\n\tip: ") + localip + "\n\tgateway: " + gateway + "\n\tnetmask: " + netmask);
++		
++		message("Initialize remote debug");
++		DEBUG_Init(100, 5656);
++
++		message("Breaking now");
++		_break();
++	} else {
++		message("Could not initialize network! Remote debug will not be possible.");
++	}
++*/
++}
++
+ static void initialize_application(void)
+ {
++	_break();
++
+ #if defined(__WIN32__) && defined(__MINGW32__)
+ 	if (LoadLibrary("exchndl.dll")) option_debug = true;
+ #endif
+@@ -448,6 +589,11 @@
+ 
+ 	log_dir = local_data_dir;
+ 
++#elif defined(__WII__)
++
++	default_data_dir = "sd:/AlephOne";
++	local_data_dir = default_data_dir;
++
+ #else
+ 	default_data_dir = "";
+ 	local_data_dir = "";
+@@ -534,8 +680,8 @@
+ 
+ 	// Check for presence of strings
+ 	if (!TS_IsPresent(strERRORS) || !TS_IsPresent(strFILENAMES)) {
+-		fprintf(stderr, "Can't find required text strings (missing MML?).\n");
+-		exit(1);
++		LogTarget::getErrorLogTarget().log("Can't find required text strings (missing MML?).\n");
++		wait_before_exiting(1);
+ 	}
+ 	
+ 	// Check for presence of files (one last chance to change data_search_path)
+@@ -592,8 +738,8 @@
+ 			      (option_debug ? SDL_INIT_NOPARACHUTE : 0));
+ 	if (retval < 0)
+ 	{
+-		fprintf(stderr, "Couldn't initialize SDL (%s)\n", SDL_GetError());
+-		exit(1);
++		LogTarget::getErrorLogTarget().log("Couldn't initialize SDL (%s)\n", SDL_GetError());
++		wait_before_exiting(1);
+ 	}
+ 	SDL_WM_SetCaption("Aleph One", "Aleph One");
+ 
+@@ -609,15 +755,15 @@
+ #ifdef HAVE_SDL_NET
+ 	// Initialize SDL_net
+ 	if (SDLNet_Init () < 0) {
+-		fprintf (stderr, "Couldn't initialize SDL_net (%s)\n", SDLNet_GetError());
+-		exit(1);
++		LogTarget::getErrorLogTarget().log(stderr, "Couldn't initialize SDL_net (%s)\n", SDLNet_GetError());
++		wait_before_exiting(1);
+ 	}
+ #endif
+ 
+ #ifdef HAVE_SDL_TTF
+ 	if (TTF_Init() < 0) {
+-		fprintf (stderr, "Couldn't initialize SDL_ttf (%s)\n", TTF_GetError());
+-		exit(1);
++		LogTarget::getErrorLogTarget().log(stderr, "Couldn't initialize SDL_ttf (%s)\n", TTF_GetError());
++		wait_before_exiting(1);
+ 	}
+ #endif
+ 
+@@ -927,9 +1073,9 @@
+ 					}
+ 					else {
+ #if defined(__APPLE__) && defined(__MACH__)
+-						screen_printf("If you wish to quit, press Command-Q");
++						LogTarget::getScreenLogTarget().log("If you wish to quit, press Command-Q");
+ #else
+-						screen_printf("If you wish to quit, press Alt+Q.");
++						LogTarget::getScreenLogTarget().log("If you wish to quit, press Alt+Q.");
+ #endif
+ 					}
+ 				}
+Index: Source_Files/Sound/VorbisDecoder.h
+===================================================================
+--- Source_Files/Sound/VorbisDecoder.h	(revision 4521)
++++ Source_Files/Sound/VorbisDecoder.h	(working copy)
+@@ -27,8 +27,13 @@
+ #include "cseries.h"
+ #include "Decoder.h"
+ #ifdef HAVE_VORBISFILE
+-#include <vorbis/vorbisfile.h>
+ 
++#if defined(__WII__)
++# include <tremor/ivorbisfile.h>
++#else
++# include <vorbis/vorbisfile.h>
++#endif
++
+ class VorbisDecoder : public StreamDecoder
+ {
+ public:
+Index: Source_Files/Sound/Mixer.cpp
+===================================================================
+--- Source_Files/Sound/Mixer.cpp	(revision 4521)
++++ Source_Files/Sound/Mixer.cpp	(working copy)
+@@ -22,6 +22,8 @@
+ #include "Mixer.h"
+ #include "interface.h" // for strERRORS
+ 
++#include "Logging.h"
++
+ Mixer* Mixer::m_instance = 0;
+ 
+ extern bool option_nosound;
+@@ -225,7 +227,7 @@
+ 	// Get resource format
+ 	uint16 format = SDL_ReadBE16(p);
+ 	if (format != 1 && format != 2) {
+-		fprintf(stderr, "Unknown sound resource format %d\n", format);
++		LogTarget::getErrorLogTarget().log("Unknown sound resource format %d\n", format);
+ 		SDL_RWclose(p);
+ 		return;
+ 	}
+@@ -246,7 +248,7 @@
+ 		uint16 cmd = SDL_ReadBE16(p);
+ 		uint16 param1 = SDL_ReadBE16(p);
+ 		uint32 param2 = SDL_ReadBE32(p);
+-		//printf("cmd %04x %04x %08x\n", cmd, param1, param2);
++		//LogTarget::getOutLogTarget().log("cmd %04x %04x %08x\n", cmd, param1, param2);
+ 
+ 		if (cmd == 0x8051) {
+ 
+Index: Source_Files/Sound/VorbisDecoder.cpp
+===================================================================
+--- Source_Files/Sound/VorbisDecoder.cpp	(revision 4521)
++++ Source_Files/Sound/VorbisDecoder.cpp	(working copy)
+@@ -94,7 +94,11 @@
+ 	int current_section = 0;
+ 	while (total_bytes_read < max_length)
+ 	{
++#if defined(__WII__)
++		bytes_read = ov_read(&ov_file, (char *) &buffer[total_bytes_read], max_length - total_bytes_read, &current_section);
++#else
+ 		bytes_read = ov_read(&ov_file, (char *) &buffer[total_bytes_read], max_length - total_bytes_read, IsLittleEndian() ? 0 : 1, 2, 1, &current_section);
++#endif
+ 		if (bytes_read <= 0)
+ 			return total_bytes_read;
+ 		total_bytes_read += bytes_read;
+Index: Source_Files/Network/network_dialog_widgets_sdl.cpp
+===================================================================
+--- Source_Files/Network/network_dialog_widgets_sdl.cpp	(revision 4521)
++++ Source_Files/Network/network_dialog_widgets_sdl.cpp	(working copy)
+@@ -825,7 +825,7 @@
+ 
+ void
+ w_players_in_game2::draw(SDL_Surface* s) const {
+-//    printf("widget top is %d, bottom is %d\n", rect.y, rect.y + rect.h);
++//    LogTarget::getOutLogTarget().log("widget top is %d, bottom is %d\n", rect.y, rect.y + rect.h);
+ 
+     // Set clip rectangle so we don't color outside the lines
+     set_drawing_clip_rectangle(rect.y, rect.x, rect.y + rect.h, rect.x + rect.w);
+@@ -836,7 +836,7 @@
+ // outside the widget (because they won't be cleared away when the widget is redrawn).  I'm surrounding
+ // that with a "Somebody Else's Problem" field for the time being.
+ //    set_drawing_clip_rectangle(100, 300, 200, 400);
+-//    printf("clipped at <%d %d %d %d>\n", rect.y, rect.x, rect.y + rect.h, rect.x + rect.w);
++//    LogTarget::getOutLogTarget().log("clipped at <%d %d %d %d>\n", rect.y, rect.x, rect.y + rect.h, rect.x + rect.w);
+ 
+     // theTextLayoutHelper exists for the duration of the draw operation
+     // helps us draw bits of text that do not overlap one another.
+Index: Source_Files/Network/network_microphone_sdl_alsa.cpp
+===================================================================
+--- Source_Files/Network/network_microphone_sdl_alsa.cpp	(revision 4521)
++++ Source_Files/Network/network_microphone_sdl_alsa.cpp	(working copy)
+@@ -32,6 +32,8 @@
+ 
+ #include "network_microphone_shared.h"
+ 
++#include "Logging.h"
++
+ static snd_pcm_t *capture_handle = 0;
+ static snd_pcm_hw_params_t *hw_params;
+ 
+@@ -46,22 +48,22 @@
+ 	int err;
+ 
+ 	if ((err = snd_pcm_open(&capture_handle, "default", SND_PCM_STREAM_CAPTURE, 0)) < 0) {
+-		fprintf(stderr, "snd_pcm_open\n");
++		LogTarget::getErrorLogTarget().log("snd_pcm_open\n");
+ 		return -1;
+ 	}
+ 
+ 	if ((err = snd_pcm_hw_params_malloc(&hw_params)) < 0) {
+-		fprintf(stderr, "snd_pcm_hw_params_malloc\n");
++		LogTarget::getErrorLogTarget().log("snd_pcm_hw_params_malloc\n");
+ 		return -1;
+ 	}
+ 
+ 	if ((err = snd_pcm_hw_params_any(capture_handle, hw_params)) < 0) {
+-		fprintf(stderr, "snd_pcm_hw_params_any\n");
++		LogTarget::getErrorLogTarget().log("snd_pcm_hw_params_any\n");
+ 		return -1;
+ 	}
+ 
+ 	if ((err = snd_pcm_hw_params_set_access(capture_handle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED)) < 0) {
+-		fprintf(stderr, "snd_pcm_hw_params_set_access\n");
++		LogTarget::getErrorLogTarget().log("snd_pcm_hw_params_set_access\n");
+ 		return -1;
+ 	}
+ 
+@@ -73,34 +75,34 @@
+ #endif
+ 
+ 	if ((err = snd_pcm_hw_params_set_format(capture_handle, hw_params, format)) < 0) {
+-		fprintf(stderr, "snd_pcm_hw_params_set_format\n");
++		LogTarget::getErrorLogTarget().log("snd_pcm_hw_params_set_format\n");
+ 		return -1;
+ 	}
+ 
+ 	unsigned int rate = 8000;
+ 	if ((err = snd_pcm_hw_params_set_rate_near(capture_handle, hw_params, &rate, 0)) < 0) {
+-		fprintf(stderr, "snd_pcm_hw_params_set_rate_near\n");
++		LogTarget::getErrorLogTarget().log("snd_pcm_hw_params_set_rate_near\n");
+ 		return -1;
+ 	}
+ 
+ 	if (!announce_microphone_capture_format(rate, false, true)) {
+-		fprintf(stderr, "network microphone support code rejected audio format (rate=%i)\n", rate);
++		LogTarget::getErrorLogTarget().log("network microphone support code rejected audio format (rate=%i)\n", rate);
+ 		return -1;
+ 	}
+ 
+ 	if ((err = snd_pcm_hw_params_set_channels(capture_handle, hw_params, 1)) < 0) {
+-		fprintf(stderr, "snd_pcm_hw_params_set_channels\n");
++		LogTarget::getErrorLogTarget().log("snd_pcm_hw_params_set_channels\n");
+ 		return -1;
+ 	}
+ 
+ 	frames = get_capture_byte_count_per_packet() / bytes_per_frame;
+ 	if ((err = snd_pcm_hw_params_set_period_size_near(capture_handle, hw_params, &frames, 0)) < 0) {
+-		fprintf(stderr, "snd_pcm_hw_params_set_period_size_near\n");
++		LogTarget::getErrorLogTarget().log("snd_pcm_hw_params_set_period_size_near\n");
+ 		return -1;
+ 	}
+ 
+ 	if ((err = snd_pcm_hw_params(capture_handle, hw_params)) < 0) {
+-		fprintf(stderr, "snd_pcm_hw_params\n");
++		LogTarget::getErrorLogTarget().log("snd_pcm_hw_params\n");
+ 		return -1;
+ 	}
+ 
+@@ -108,23 +110,23 @@
+ 
+ 	snd_pcm_sw_params_t *sw_params;
+ 	if ((err = snd_pcm_sw_params_malloc(&sw_params)) < 0) {
+-		fprintf(stderr, "snd_pcm_sw_params_malloc\n");
++		LogTarget::getErrorLogTarget().log("snd_pcm_sw_params_malloc\n");
+ 		return -1;
+ 	}
+ 
+ 	if ((err = snd_pcm_sw_params_current(capture_handle, sw_params)) < 0) {
+-		fprintf(stderr, "snc_pcm_sw_params_current\n");
++		LogTarget::getErrorLogTarget().log("snc_pcm_sw_params_current\n");
+ 		return -1;
+ 	}
+ 
+ 	if ((err = snd_pcm_sw_params_set_avail_min(capture_handle, sw_params, frames)) < 0)
+ 	{
+-		fprintf(stderr, "snd_pcm_params_set_avail_min\n");
++		LogTarget::getErrorLogTarget().log("snd_pcm_params_set_avail_min\n");
+ 		return -1;
+ 	}
+ 
+ 	if ((err = snd_pcm_sw_params_set_start_threshold(capture_handle, sw_params, frames)) < 0) {
+-		fprintf(stderr, "snd_pcm_params_set_start_threshold\n");
++		LogTarget::getErrorLogTarget().log("snd_pcm_params_set_start_threshold\n");
+ 		return -1;
+ 	}
+ 
+@@ -178,14 +180,14 @@
+ 	if (inActive && !mic_active) {
+ 		// prepare the pcm
+ 		if (snd_pcm_prepare(capture_handle) < 0) {
+-			fprintf(stderr, "preparing stream failed\n");
++			LogTarget::getErrorLogTarget().log("preparing stream failed\n");
+ 		}
+ 		if (snd_async_add_pcm_handler(&pcm_callback, capture_handle, CaptureCallback, NULL) < 0) {
+-			fprintf(stderr, "adding pcm handler failed\n");
++			LogTarget::getErrorLogTarget().log("adding pcm handler failed\n");
+ 			return;
+ 		} 
+ 		if (snd_pcm_start(capture_handle) < 0) {
+-			fprintf(stderr, "starting pcm failed\n");
++			LogTarget::getErrorLogTarget().log("starting pcm failed\n");
+ 		}
+ 		mic_active = true;
+ 	} else if (!inActive && mic_active) {
+Index: Source_Files/Network/SDL_netx.cpp
+===================================================================
+--- Source_Files/Network/SDL_netx.cpp	(revision 4521)
++++ Source_Files/Network/SDL_netx.cpp	(working copy)
+@@ -32,6 +32,11 @@
+ #elif defined(__BEOS__)
+ # include <sys/socket.h>
+ # include <netinet/in.h>
++#elif defined(__WII__)
++# include <unistd.h>
++# include <sys/socket.h>
++# include <netinet/in.h>
++# include <sys/ioctl.h>
+ #else
+ # include <unistd.h>
+ # include <sys/socket.h>
+@@ -57,7 +62,7 @@
+ 
+ 
+ // Win32 allows 255.255.255.255 as broadcast, much easier
+-#if !defined(WIN32) && !defined(__BEOS__) && !(defined(mac) /*&& !defined(TARGET_API_MAC_CARBON)*/)
++#if !defined(WIN32) && !defined(__BEOS__) && !defined(__WII__) && !(defined(mac) /*&& !defined(TARGET_API_MAC_CARBON)*/)
+ // FILE-LOCAL (static) CONSTANTS
+ static const int	kMaxNumBroadcastAddresses	= 8;
+ static const int	kIFConfigBufferSize		= 1024;	// in bytes
+@@ -77,7 +82,7 @@
+ // EXTERNALLY-VISIBLE FUNCTIONS
+ int
+ SDLNetx_EnableBroadcast(UDPsocket inSocket) {
+-#if !defined(WIN32) && !defined(__BEOS__) && !defined(mac) && !defined(__MWERKS__)/*&& !defined(TARGET_API_MAC_CARBON))*/
++#if !defined(WIN32) && !defined(__BEOS__) && !defined(__WII__) && !defined(mac) && !defined(__MWERKS__)/*&& !defined(TARGET_API_MAC_CARBON))*/
+     if(!sCollectedBroadcastAddresses)
+         SDLNetxint_CollectBroadcastAddresses(inSocket);
+ #endif
+@@ -141,7 +146,7 @@
+ 
+ 
+ // see simpler function below for Win32
+-#if !defined(WIN32) && !defined(__BEOS__) && !(defined(mac) /*&& !defined(TARGET_API_MAC_CARBON)*/)
++#if !defined(WIN32) && !defined(__BEOS__) && !defined(__WII__) && !(defined(mac) /*&& !defined(TARGET_API_MAC_CARBON)*/)
+ int
+ SDLNetx_UDP_Broadcast(UDPsocket inSocket, UDPpacket* inPacket) {
+     int	theCountOfSuccessfulSends = 0;
+@@ -164,7 +169,7 @@
+ #else
+ // Win32 (at least, Win 98) seems to accept 255.255.255.255 as a valid broadcast address.
+ // I'll live with that for now.
+-// Also doing that for the BeOS and Mac Classic
++// Also doing that for the BeOS and Mac Classic and Wii
+ int
+ SDLNetx_UDP_Broadcast(UDPsocket inSocket, UDPpacket* inPacket) {
+ 	Uint32 theSavedHostAddress = inPacket->address.host;
+@@ -178,7 +183,7 @@
+ 
+ 
+ // INTERNAL (static) FUNCTIONS
+-#if !defined(WIN32) && !defined(__BEOS__) && !defined(mac) && !defined(__MWERKS__)/*&& !defined(TARGET_API_MAC_CARBON))*/
++#if !defined(WIN32) && !defined(__BEOS__) && !defined(__WII__) && !defined(mac) && !defined(__MWERKS__)/*&& !defined(TARGET_API_MAC_CARBON))*/
+ int
+ SDLNetxint_CollectBroadcastAddresses(UDPsocket inSocket) {
+     // Win or lose, we played the game.
+Index: Source_Files/Network/network_star_spoke.cpp
+===================================================================
+--- Source_Files/Network/network_star_spoke.cpp	(revision 4521)
++++ Source_Files/Network/network_star_spoke.cpp	(working copy)
+@@ -1264,11 +1264,11 @@
+ void
+ WriteSpokePreferences(FILE* F)
+ {
+-	fprintf(F, "    <spoke\n");
++	StreamLogTarget::getSharedInstance().log(F, "    <spoke\n");
+ 	for(size_t i = 0; i < kNumInt32Attributes; i++)
+-		fprintf(F, "      %s=\"%d\"\n", sAttributeStrings[i], *(sAttributeDestinations[i]));
+-	fprintf(F, "      adjust_timing=\"%s\"\n", BoolString(sSpokePreferences.mAdjustTiming));
+-	fprintf(F, "    />\n");
++		StreamLogTarget::getSharedInstance().log(F, "      %s=\"%d\"\n", sAttributeStrings[i], *(sAttributeDestinations[i]));
++	StreamLogTarget::getSharedInstance().log(F, "      adjust_timing=\"%s\"\n", BoolString(sSpokePreferences.mAdjustTiming));
++	StreamLogTarget::getSharedInstance().log(F, "    />\n");
+ }
+ 
+ 
+Index: Source_Files/Network/network_speaker_shared.cpp
+===================================================================
+--- Source_Files/Network/network_speaker_shared.cpp	(revision 4521)
++++ Source_Files/Network/network_speaker_shared.cpp	(working copy)
+@@ -40,8 +40,9 @@
+ #include "network_data_formats.h"
+ #include "network_audio_shared.h"
+ #include "player.h"
+-#include "shell.h" // screen_print
+ 
++#include "Logging.h"
++
+ #ifdef SPEEX
+ #include "speex/speex.h"
+ #include "network_speex.h"
+@@ -101,12 +102,12 @@
+ {
+ 	if (sIgnoredPlayers.find(player_index) != sIgnoredPlayers.end())
+ 	{
+-		screen_printf("removing player %i's mic from the ignore list", player_index);
++		LogTarget::getScreenLogTarget().log("removing player %i's mic from the ignore list", player_index);
+ 		sIgnoredPlayers.erase(player_index);
+ 	}
+ 	else
+ 	{
+-		screen_printf("adding player %i's mic to the ignore list", player_index);
++		LogTarget::getScreenLogTarget().log("adding player %i's mic to the ignore list", player_index);
+ 		sIgnoredPlayers.insert(player_index);
+ 	}
+ }
+Index: Source_Files/Network/network_dialogs.cpp
+===================================================================
+--- Source_Files/Network/network_dialogs.cpp	(revision 4521)
++++ Source_Files/Network/network_dialogs.cpp	(working copy)
+@@ -2449,7 +2449,7 @@
+ // Here's the main entry point for thgametypee postgame carnage report.
+ void display_net_game_stats(void)
+ {
+-//printf("display_net_game_stats\n");
++//LogTarget::getOutLogTarget().log("display_net_game_stats\n");
+ 
+ 	if (gMetaserverClient) 
+ 	{
+@@ -3090,7 +3090,7 @@
+ 
+ void open_progress_dialog(size_t message_id, bool show_progress_bar)
+ {
+-//printf("open_progress_dialog %d\n", message_id);
++//LogTarget::getOutLogTarget().log("open_progress_dialog %d\n", message_id);
+ 
+     assert(sProgressDialog == NULL);
+     
+@@ -3115,7 +3115,7 @@
+ 
+ void set_progress_dialog_message(size_t message_id)
+ {
+-//printf("set_progress_dialog_message %d\n", message_id);
++//LogTarget::getOutLogTarget().log("set_progress_dialog_message %d\n", message_id);
+     assert(sProgressMessage != NULL);
+ 
+     sProgressMessage->set_text(TS_GetCString(strPROGRESS_MESSAGES, message_id));
+@@ -3127,7 +3127,7 @@
+ 
+ void close_progress_dialog(void)
+ {
+-//printf("close_progress_dialog\n");
++//LogTarget::getOutLogTarget().log("close_progress_dialog\n");
+ 
+     assert(sProgressDialog != NULL);
+     
+Index: Source_Files/Network/network_microphone_coreaudio.cpp
+===================================================================
+--- Source_Files/Network/network_microphone_coreaudio.cpp	(revision 4521)
++++ Source_Files/Network/network_microphone_coreaudio.cpp	(working copy)
+@@ -27,6 +27,8 @@
+ #include "cstypes.h"
+ #include "network_microphone_shared.h"
+ 
++#include "Logging.h"
++
+ #include <vector>
+ 
+ #ifdef SPEEX
+@@ -52,7 +54,7 @@
+ 	err = AudioUnitRender(fAudioUnit, ioActionFlags, inTimeStamp, inBusNumber, inNumberFrames, fAudioBuffer);
+ 	if (err != noErr)
+ 	{
+-		fprintf(stderr, "AudioUnitRender() failed with error %i\n", err);
++		LogTarget::getErrorLogTarget().log("AudioUnitRender() failed with error %i\n", err);
+ 	} 
+ 	else
+ 	{
+@@ -109,7 +111,7 @@
+ 	err = AudioHardwareGetProperty(kAudioHardwarePropertyDefaultInputDevice, &param, &fInputDeviceID);
+ 	if (err != noErr)
+ 	{
+-		fprintf(stderr, "failed to get default input device\n");
++		LogTarget::getErrorLogTarget().log("failed to get default input device\n");
+ 		return err;
+ 	}
+ 
+@@ -133,7 +135,7 @@
+ 
+ 	if (err != noErr)
+ 	{
+-		fprintf(stderr, "failed to set AU sample rate (%i)\n", err);
++		LogTarget::getErrorLogTarget().log("failed to set AU sample rate (%i)\n", err);
+ 		return err;
+ 	}
+ 
+@@ -141,7 +143,7 @@
+ 	err = AudioUnitSetProperty(fAudioUnit, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, 0, &fInputDeviceID, sizeof(AudioDeviceID));
+ 	if (err != noErr)
+ 	{
+-		fprintf(stderr, "failed to set AU input device\n");
++		LogTarget::getErrorLogTarget().log("failed to set AU input device\n");
+ 		return err;
+ 	}
+ 
+@@ -155,7 +157,7 @@
+ 	err = AudioUnitGetProperty(fAudioUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 1, &fDeviceFormat, &param);
+ 	if (err != noErr)
+ 	{
+-		fprintf(stderr, "failed to get input device ASBD\n");		return err;
++		LogTarget::getErrorLogTarget().log("failed to get input device ASBD\n");		return err;
+ 	}
+ 
+ 	// change the format to our liking
+@@ -174,7 +176,7 @@
+ 	err = AudioUnitSetProperty(fAudioUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Output, 1, &fOutputFormat, sizeof(AudioStreamBasicDescription));
+ 	if (err != noErr)
+ 	{
+-		fprintf(stderr, "failed to set input device ASBD\n");
++		LogTarget::getErrorLogTarget().log("failed to set input device ASBD\n");
+ 		return err;
+ 	}
+ 
+@@ -183,14 +185,14 @@
+ 	err = AudioUnitGetProperty(fAudioUnit, kAudioDevicePropertyBufferFrameSize, kAudioUnitScope_Global, 0, &fAudioSamples, &param);
+ 	if (err != noErr)
+ 	{
+-		fprintf(stderr, "failed to get audio sample size\n");
++		LogTarget::getErrorLogTarget().log("failed to get audio sample size\n");
+ 		return err;
+ 	}
+ 
+ 	err = AudioUnitInitialize(fAudioUnit);
+ 	if (err != noErr)
+ 	{
+-		fprintf(stderr, "failed to initialize AU %i\n", err);
++		LogTarget::getErrorLogTarget().log("failed to initialize AU %i\n", err);
+ 		return err;
+ 	}
+ 
+@@ -203,7 +205,7 @@
+ 
+ 	if (!announce_microphone_capture_format(static_cast<uint32>(fOutputFormat.mSampleRate), fOutputFormat.mChannelsPerFrame == 2, fOutputFormat.mBytesPerFrame == 2))
+ 	{
+-		fprintf(stderr, "network microphone support code rejected audio format (rate=%f)\n", fOutputFormat.mSampleRate);
++		LogTarget::getErrorLogTarget().log("network microphone support code rejected audio format (rate=%f)\n", fOutputFormat.mSampleRate);
+ 		return -1;
+ 	}
+ 
+Index: Source_Files/Network/RingGameProtocol.cpp
+===================================================================
+--- Source_Files/Network/RingGameProtocol.cpp	(revision 4521)
++++ Source_Files/Network/RingGameProtocol.cpp	(working copy)
+@@ -2690,11 +2690,11 @@
+ void
+ WriteRingPreferences(FILE* F)
+ {
+-	fprintf(F,"  <ring_protocol\n");
+-	fprintf(F,"    accept_packets_from_anyone=\"%s\"\n",BoolString(sRingPreferences.mAcceptPacketsFromAnyone));
+-	fprintf(F,"    adapt_to_latency=\"%s\"\n",BoolString(sRingPreferences.mAdaptToLatency));
+-	fprintf(F,"    latency_hold_ticks=\"%hd\"\n",sRingPreferences.mLatencyHoldTicks);
+-	fprintf(F,"  />\n");
++	StreamLogTarget::getSharedInstance().log(F,"  <ring_protocol\n");
++	StreamLogTarget::getSharedInstance().log(F,"    accept_packets_from_anyone=\"%s\"\n",BoolString(sRingPreferences.mAcceptPacketsFromAnyone));
++	StreamLogTarget::getSharedInstance().log(F,"    adapt_to_latency=\"%s\"\n",BoolString(sRingPreferences.mAdaptToLatency));
++	StreamLogTarget::getSharedInstance().log(F,"    latency_hold_ticks=\"%hd\"\n",sRingPreferences.mLatencyHoldTicks);
++	StreamLogTarget::getSharedInstance().log(F,"  />\n");
+ }
+ 
+ 
+Index: Source_Files/Network/network_star_hub.cpp
+===================================================================
+--- Source_Files/Network/network_star_hub.cpp	(revision 4521)
++++ Source_Files/Network/network_star_hub.cpp	(working copy)
+@@ -1798,24 +1798,24 @@
+ void
+ WriteHubPreferences(FILE* F)
+ {
+-	fprintf(F, "    <hub\n");
++	StreamLogTarget::getSharedInstance().log(F, "    <hub\n");
+ 	for(size_t i = 0; i < kNumAttributes; i++)
+ 	{
+ 		if(*(sAttributeDestinations[i]) != sDefaultHubPreferences[i])
+-			fprintf(F, "      %s=\"%d\"\n", sAttributeStrings[i], *(sAttributeDestinations[i]));
++			StreamLogTarget::getSharedInstance().log(F, "      %s=\"%d\"\n", sAttributeStrings[i], *(sAttributeDestinations[i]));
+ 	}
+ 	if (!sHubPreferences.mBandwidthReduction)
+ 	{
+-		fprintf(F, "      use_bandwidth_reduction=\"false\"\n");
++		StreamLogTarget::getSharedInstance().log(F, "      use_bandwidth_reduction=\"false\"\n");
+ 	}
+-	fprintf(F, "    />\n");
++	StreamLogTarget::getSharedInstance().log(F, "    />\n");
+ 
+-	fprintf(F, "    <!-- current hub defaults:\n");
+-	fprintf(F, "      DO NOT EDIT THE FOLLOWING - they're FYI only.  Make settings in 'hub' tag above.\n");
++	StreamLogTarget::getSharedInstance().log(F, "    <!-- current hub defaults:\n");
++	StreamLogTarget::getSharedInstance().log(F, "      DO NOT EDIT THE FOLLOWING - they're FYI only.  Make settings in 'hub' tag above.\n");
+ 	for(size_t i = 0; i < kNumAttributes; i++)
+-		fprintf(F, "      %s=\"%d\"\n", sAttributeStrings[i], sDefaultHubPreferences[i]);
+-	fprintf(F, "      use_bandwidth_reduction=\"true\"\n");
+-	fprintf(F, "    -->\n");
++		StreamLogTarget::getSharedInstance().log(F, "      %s=\"%d\"\n", sAttributeStrings[i], sDefaultHubPreferences[i]);
++	StreamLogTarget::getSharedInstance().log(F, "      use_bandwidth_reduction=\"true\"\n");
++	StreamLogTarget::getSharedInstance().log(F, "    -->\n");
+ }
+ 
+ 
+Index: Source_Files/Network/StarGameProtocol.cpp
+===================================================================
+--- Source_Files/Network/StarGameProtocol.cpp	(revision 4521)
++++ Source_Files/Network/StarGameProtocol.cpp	(working copy)
+@@ -41,7 +41,9 @@
+ #include "player.h" // GetRealActionQueues
+ #include "interface.h" // process_action_flags (despite paf() being defined in vbl.*)
+ 
++#include "Logging.h"
+ 
++
+ // This is a bit hacky yeah, we really ought to check both RealActionQueues and the recording queues, etc.
+ template <typename tValueType>
+ class LegacyActionQueueToTickBasedQueueAdapter : public WritableTickBasedCircularQueue<tValueType> {
+@@ -268,10 +270,10 @@
+ void
+ WriteStarPreferences(FILE* F)
+ {
+-	fprintf(F,"  <star_protocol>\n");
++	StreamLogTarget::getSharedInstance().log(F,"  <star_protocol>\n");
+ 	WriteHubPreferences(F);
+ 	WriteSpokePreferences(F);
+-	fprintf(F,"  </star_protocol>\n");
++	StreamLogTarget::getSharedInstance().log(F,"  </star_protocol>\n");
+ }
+ 
+ #endif // !defined(DISABLE_NETWORKING)
+Index: Source_Files/Network/network.cpp
+===================================================================
+--- Source_Files/Network/network.cpp	(revision 4521)
++++ Source_Files/Network/network.cpp	(working copy)
+@@ -231,24 +231,24 @@
+ 		int player_index = atoi(s.c_str());
+ 		if (player_index == localPlayerIndex)
+ 		{
+-			screen_printf("you can't ignore yourself");
++			LogTarget::getScreenLogTarget().log("you can't ignore yourself");
+ 		} 
+ 		else if (player_index >= 0 && player_index < topology->player_count)
+ 		{
+ 			if (sIgnoredPlayers.find(player_index) != sIgnoredPlayers.end())
+ 			{
+-				screen_printf("removing player %i from the ignore list", player_index);
++				LogTarget::getScreenLogTarget().log("removing player %i from the ignore list", player_index);
+ 				sIgnoredPlayers.erase(player_index);
+ 			} 
+ 			else
+ 			{
+-				screen_printf("adding player %i to the ignore list", player_index);
++				LogTarget::getScreenLogTarget().log("adding player %i to the ignore list", player_index);
+ 				sIgnoredPlayers.insert(player_index);
+ 			}
+ 		} 
+ 		else
+ 		{
+-			screen_printf("invalid player %i", player_index);
++			LogTarget::getScreenLogTarget().log("invalid player %i", player_index);
+ 		}
+ 	}
+ };
+@@ -266,7 +266,7 @@
+ 		int player_index = atoi(s.c_str());
+ 		if (player_index == localPlayerIndex)
+ 		{
+-			screen_printf("you can't ignore your own mic");
++			LogTarget::getScreenLogTarget().log("you can't ignore your own mic");
+ 		}
+ 		else if (player_index >= 0 && player_index < topology->player_count)
+ 		{
+@@ -274,7 +274,7 @@
+ 		}
+ 		else
+ 		{
+-			screen_printf("invalid player %i", player_index);
++			LogTarget::getScreenLogTarget().log("invalid player %i", player_index);
+ 		}
+ 	}
+ };
+@@ -1113,7 +1113,7 @@
+ }
+ 
+ void InGameChatCallbacks::ReceivedMessageFromPlayer(const char *player_name, const char *message) {
+-  screen_printf("%s: %s", player_name, message);
++  LogTarget::getScreenLogTarget().log("%s: %s", player_name, message);
+ }
+ 
+ bool NetEnter(void)
+Index: Source_Files/Network/Metaserver/network_metaserver.cpp
+===================================================================
+--- Source_Files/Network/Metaserver/network_metaserver.cpp	(revision 4521)
++++ Source_Files/Network/Metaserver/network_metaserver.cpp	(working copy)
+@@ -190,7 +190,7 @@
+ 	, m_gameAnnounced(false)
+ {
+ 	m_unexpectedMessageHandler.reset(newMessageHandlerMethod(this, &MetaserverClient::handleUnexpectedMessage));
+-	m_broadcastMessageHandler.reset(newMessageHandlerMethod(this, &MetaserverClient::handleBroadcastMessage));
++	mMessageHandler.reset(newMessageHandlerMethod(this, &MetaserverClient::handleBroadcastMessage));
+ 	m_chatMessageHandler.reset(newMessageHandlerMethod(this, &MetaserverClient::handleChatMessage));
+ 	m_privateMessageHandler.reset(newMessageHandlerMethod(this, &MetaserverClient::handlePrivateMessage));
+ 	m_keepAliveMessageHandler.reset(newMessageHandlerMethod(this, &MetaserverClient::handleKeepAliveMessage));
+@@ -216,7 +216,7 @@
+ 	m_channel->setMessageInflater(m_inflater.get());
+ 
+ 	m_dispatcher->setDefaultHandler(m_unexpectedMessageHandler.get());
+-	m_dispatcher->setHandlerForType(m_broadcastMessageHandler.get(), BroadcastMessage::kType);
++	m_dispatcher->setHandlerForType(mMessageHandler.get(), BroadcastMessage::kType);
+ 	m_dispatcher->setHandlerForType(m_chatMessageHandler.get(), ChatMessage::kType);
+ 	m_dispatcher->setHandlerForType(m_privateMessageHandler.get(), PrivateMessage::kType);
+ 	m_dispatcher->setHandlerForType(m_keepAliveMessageHandler.get(), KeepAliveMessage::kType);
+Index: Source_Files/Misc/TCPLogTarget.h
+===================================================================
+--- Source_Files/Misc/TCPLogTarget.h	(revision 0)
++++ Source_Files/Misc/TCPLogTarget.h	(revision 0)
+@@ -0,0 +1,26 @@
++#ifndef _TCP_LOG_TARGET_H_
++#define _TCP_LOG_TARGET_H_
++
++#include "LogTarget.h"
++#include <string>
++
++
++class TCPLogTarget : public LogTarget {
++public:
++    TCPLogTarget(const std::string& hostName, uint16_t hostPort);
++    virtual ~TCPLogTarget();
++    
++    virtual void log(const char *format, va_list list) const;
++
++    static const TCPLogTarget& getSharedInstance();
++
++private:
++    void setupLogSocket(const std::string& hostName, uint16_t hostPort);
++    void closeLogSocket();
++    
++    static TCPLogTarget* sSharedInstance;
++    
++    int mSocket;
++};
++
++#endif
+Index: Source_Files/Misc/StreamLogTarget.h
+===================================================================
+--- Source_Files/Misc/StreamLogTarget.h	(revision 0)
++++ Source_Files/Misc/StreamLogTarget.h	(revision 0)
+@@ -0,0 +1,24 @@
++#ifndef _STREAM_LOG_TARGET_H_
++#define _STREAM_LOG_TARGET_H_
++
++#include "LogTarget.h"
++#include <cstdio>
++
++
++class StreamLogTarget : public LogTarget {
++public:
++    StreamLogTarget(FILE *defaultStream = stdout);
++
++    virtual void log(const char *format, va_list list) const;
++
++    virtual void log(FILE *stream, const char *format, ...) const;
++    virtual void log(FILE *stream, const char *format, va_list list) const;
++    
++    static const StreamLogTarget& getSharedInstance();
++
++private:
++    FILE* mDefaultStream;
++    static StreamLogTarget* sSharedInstance;
++};
++
++#endif
+Index: Source_Files/Misc/thread_priority_sdl_mac.cpp
+===================================================================
+--- Source_Files/Misc/thread_priority_sdl_mac.cpp	(revision 4521)
++++ Source_Files/Misc/thread_priority_sdl_mac.cpp	(working copy)
+@@ -18,7 +18,7 @@
+     static bool didPrintOutWarning = false;
+     
+     if(!didPrintOutWarning) {
+-        printf("warning: BoostThreadPriority not implemented for this system.  Network performance may suffer.\n");
++        LogTarget::getOutLogTarget().log("warning: BoostThreadPriority not implemented for this system.  Network performance may suffer.\n");
+         didPrintOutWarning = true;
+     }
+     */
+Index: Source_Files/Misc/LogTarget.h
+===================================================================
+--- Source_Files/Misc/LogTarget.h	(revision 0)
++++ Source_Files/Misc/LogTarget.h	(revision 0)
+@@ -0,0 +1,24 @@
++#ifndef _LOG_TARGET_H_
++#define _LOG_TARGET_H_
++
++#include <cstdarg>
++
++
++class LogTarget {
++public:
++    virtual void log(const char *format, ...) const;
++    virtual void log(const char *format, va_list list) const = 0;
++
++    static const LogTarget& getOutLogTarget();
++    static const LogTarget& getErrorLogTarget();
++    static const LogTarget& getScreenLogTarget();
++    
++    static LogTarget* newCustomLogTarget(LogTarget* logTarget);
++    
++private:
++    static LogTarget* sOutLogTarget;
++    static LogTarget* sErrorLogTarget;
++    static LogTarget* sScreenLogTarget;
++};
++
++#endif
+Index: Source_Files/Misc/TCPLogTarget.cpp
+===================================================================
+--- Source_Files/Misc/TCPLogTarget.cpp	(revision 0)
++++ Source_Files/Misc/TCPLogTarget.cpp	(revision 0)
+@@ -0,0 +1,87 @@
++#include "TCPLogTarget.h"
++#include <cstdlib>
++#include <sys/socket.h>
++#include <netdb.h>
++#include <cstring>
++#include "StreamLogTarget.h"
++
++
++static const int MAX_LOG_ENTRY_SIZE = 4096;
++
++TCPLogTarget* TCPLogTarget::sSharedInstance = NULL;
++
++TCPLogTarget::TCPLogTarget(const std::string& hostName, uint16_t hostPort) {
++    setupLogSocket(hostName, hostPort);
++}
++
++TCPLogTarget::~TCPLogTarget() {
++    closeLogSocket();
++}
++
++void TCPLogTarget::setupLogSocket(const std::string& hostName, uint16_t hostPort) {
++	const LogTarget& errorLog = StreamLogTarget(stderr);
++	
++    mSocket = socket(AF_INET, SOCK_STREAM, 0);
++    if (mSocket < 0) {
++        errorLog.log("Unable to create log socket\n");
++        return;
++    }
++#if defined(SO_NOSIGPIPE)
++    int noSigPipe = 1;
++    if (setsockopt(mSocket, SOL_SOCKET, SO_NOSIGPIPE, &noSigPipe, sizeof(int)) < 0) {
++        errorLog.log("Unable to set SO_NOSIGPIPE socket option\n");
++    }
++#else
++	errorLog.log("SO_NOSIGPIPE option not available\n");
++#endif
++
++    int tcpNoDelay = 1;
++    if (setsockopt(mSocket, IPPROTO_TCP, TCP_NODELAY, &tcpNoDelay,sizeof(int))< 0) {
++        errorLog.log("Unable to set TCP_NODELAY socket option\n");
++    }
++    
++    struct hostent *host = gethostbyname(hostName.c_str());
++    if (host == NULL) {
++        closeLogSocket();
++        errorLog.log("Log host not found %s:%d\n", hostName.c_str(), hostPort);
++        return;
++    }
++    
++    struct sockaddr_in hostAddress;
++    bzero((char*) &hostAddress, sizeof(hostAddress));
++    hostAddress.sin_family = AF_INET;
++    bcopy((char*) host->h_addr, (char*) &hostAddress.sin_addr.s_addr, host->h_length);
++    hostAddress.sin_port = htons(hostPort);
++    
++    if (connect(mSocket, (const struct sockaddr*) &hostAddress, sizeof(hostAddress)) < 0) {
++        closeLogSocket();
++        errorLog.log("Unable to connect to log host %s:%d\n", hostName.c_str(), hostPort);
++    }
++}
++
++void TCPLogTarget::closeLogSocket() {
++    if (mSocket >= 0) {
++        close(mSocket);
++        mSocket = -1;
++    }
++}
++
++void TCPLogTarget::log(const char *format, va_list list) const {
++	if (mSocket >= 0) {
++        char logEntryBuffer[MAX_LOG_ENTRY_SIZE];
++        int logEntrySize = vsnprintf(logEntryBuffer, MAX_LOG_ENTRY_SIZE, format, list);
++        if (logEntrySize == -1) {
++            logEntrySize = MAX_LOG_ENTRY_SIZE - 1;
++        }
++        
++		write(mSocket, logEntryBuffer, logEntrySize);
++	}
++}
++
++const TCPLogTarget& TCPLogTarget::getSharedInstance() {
++    if (sSharedInstance == NULL) {
++        sSharedInstance = new TCPLogTarget("127.0.0.1", 5050);
++    }
++    
++    return *sSharedInstance;
++}
+Index: Source_Files/Misc/preferences.cpp
+===================================================================
+--- Source_Files/Misc/preferences.cpp	(revision 4521)
++++ Source_Files/Misc/preferences.cpp	(working copy)
+@@ -2019,14 +2019,14 @@
+ template<class CType> void WriteColor(FILE *F,
+ 	const char *Prefix, CType& Color, const char *Suffix)
+ {
+-	fprintf(F,"%s<color red=\"%f\" green=\"%f\" blue=\"%f\"/>%s",
++	StreamLogTarget::getSharedInstance().log(F,"%s<color red=\"%f\" green=\"%f\" blue=\"%f\"/>%s",
+ 		Prefix,CNorm*Color.red,CNorm*Color.green,CNorm*Color.blue,Suffix);
+ }
+ 
+ template<class CType> void WriteColorWithIndex(FILE *F,
+ 	const char *Prefix, int Index, CType& Color, const char *Suffix)
+ {
+-	fprintf(F,"%s<color index=\"%d\" red=\"%f\" green=\"%f\" blue=\"%f\"/>%s",
++	StreamLogTarget::getSharedInstance().log(F,"%s<color index=\"%d\" red=\"%f\" green=\"%f\" blue=\"%f\"/>%s",
+ 		Prefix,Index,CNorm*Color.red,CNorm*Color.green,CNorm*Color.blue,Suffix);
+ }
+ 
+@@ -2044,7 +2044,7 @@
+ {
+ 	void operator() (const std::string& arg) const {
+ 		hub_set_minimum_send_period(atoi(arg.c_str()));
+-		screen_printf("latency tolerance is now %i", atoi(arg.c_str()));
++		LogTarget::getScreenLogTarget().log("latency tolerance is now %i", atoi(arg.c_str()));
+ 		write_preferences();
+ 	}
+ };
+@@ -2052,7 +2052,7 @@
+ struct get_latency_tolerance
+ {
+ 	void operator() (const std::string&) const {
+-		screen_printf("latency tolerance is %i", hub_get_minimum_send_period());
++		LogTarget::getScreenLogTarget().log("latency tolerance is %i", hub_get_minimum_send_period());
+ 	}
+ };
+ 
+@@ -2202,149 +2202,149 @@
+ 		return;
+ 	}
+ 
+-	fprintf(F,"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+-	fprintf(F,"<!-- Preferences file for the Marathon Open Source \"Aleph One\" engine -->\n\n");
++	StreamLogTarget::getSharedInstance().log(F,"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
++	StreamLogTarget::getSharedInstance().log(F,"<!-- Preferences file for the Marathon Open Source \"Aleph One\" engine -->\n\n");
+ 	
+-	fprintf(F,"<mara_prefs>\n\n");
++	StreamLogTarget::getSharedInstance().log(F,"<mara_prefs>\n\n");
+ 	
+-	fprintf(F,"<graphics\n");
+-	fprintf(F,"  scmode_width=\"%hd\"\n", graphics_preferences->screen_mode.width);
+-	fprintf(F,"  scmode_height=\"%hd\"\n", graphics_preferences->screen_mode.height);
+-	fprintf(F,"  scmode_auto_resolution=\"%s\"\n", BoolString(graphics_preferences->screen_mode.auto_resolution));
+-	fprintf(F,"  scmode_hud=\"%s\"\n", BoolString(graphics_preferences->screen_mode.hud));
+-	fprintf(F,"  scmode_hud_scale=\"%hd\"\n", graphics_preferences->screen_mode.hud_scale_level);
+-	fprintf(F,"  scmode_term_scale=\"%hd\"\n", graphics_preferences->screen_mode.term_scale_level);
+-	fprintf(F,"  scmode_translucent_map=\"%s\"\n", BoolString(graphics_preferences->screen_mode.translucent_map));
+-	fprintf(F,"  scmode_accel=\"%hd\"\n",graphics_preferences->screen_mode.acceleration);
+-	fprintf(F,"  scmode_highres=\"%s\"\n",BoolString(graphics_preferences->screen_mode.high_resolution));
+-	fprintf(F,"  scmode_fullscreen=\"%s\"\n",BoolString(graphics_preferences->screen_mode.fullscreen));
+-	fprintf(F,"  scmode_fill_the_screen=\"%s\"\n", BoolString(graphics_preferences->screen_mode.fill_the_screen));
+-	fprintf(F,"  scmode_bitdepth=\"%hd\"\n",graphics_preferences->screen_mode.bit_depth);
+-	fprintf(F,"  scmode_gamma=\"%hd\"\n",graphics_preferences->screen_mode.gamma_level);
+-    fprintf(F,"  scmode_fix_h_not_v=\"%s\"\n", BoolString(graphics_preferences->screen_mode.fix_h_not_v));
+-	fprintf(F,"  ogl_flags=\"%hu\"\n",graphics_preferences->OGL_Configure.Flags);
+-	fprintf(F,"  software_alpha_blending=\"%i\"\n", graphics_preferences->software_alpha_blending);
+-        fprintf(F,"  anisotropy_level=\"%f\"\n", graphics_preferences->OGL_Configure.AnisotropyLevel);
+-	fprintf(F,"  multisamples=\"%i\"\n", graphics_preferences->OGL_Configure.Multisamples);
+-	fprintf(F,"  geforce_fix=\"%s\"\n", BoolString(graphics_preferences->OGL_Configure.GeForceFix));
+-	fprintf(F,"  wait_for_vsync=\"%s\"\n", BoolString(graphics_preferences->OGL_Configure.WaitForVSync));
+-	fprintf(F,"  gamma_corrected_blending=\"%s\"\n", BoolString(graphics_preferences->OGL_Configure.Use_sRGB));
+-	fprintf(F,"  use_npot=\"%s\"\n", BoolString(graphics_preferences->OGL_Configure.Use_NPOT));
+-	fprintf(F,"  double_corpse_limit=\"%s\"\n", BoolString(graphics_preferences->double_corpse_limit));
+-	fprintf(F,"  hog_the_cpu=\"%s\"\n", BoolString(graphics_preferences->hog_the_cpu));
+-	fprintf(F,">\n");
+-	fprintf(F,"  <void>\n");
++	StreamLogTarget::getSharedInstance().log(F,"<graphics\n");
++	StreamLogTarget::getSharedInstance().log(F,"  scmode_width=\"%hd\"\n", graphics_preferences->screen_mode.width);
++	StreamLogTarget::getSharedInstance().log(F,"  scmode_height=\"%hd\"\n", graphics_preferences->screen_mode.height);
++	StreamLogTarget::getSharedInstance().log(F,"  scmode_auto_resolution=\"%s\"\n", BoolString(graphics_preferences->screen_mode.auto_resolution));
++	StreamLogTarget::getSharedInstance().log(F,"  scmode_hud=\"%s\"\n", BoolString(graphics_preferences->screen_mode.hud));
++	StreamLogTarget::getSharedInstance().log(F,"  scmode_hud_scale=\"%hd\"\n", graphics_preferences->screen_mode.hud_scale_level);
++	StreamLogTarget::getSharedInstance().log(F,"  scmode_term_scale=\"%hd\"\n", graphics_preferences->screen_mode.term_scale_level);
++	StreamLogTarget::getSharedInstance().log(F,"  scmode_translucent_map=\"%s\"\n", BoolString(graphics_preferences->screen_mode.translucent_map));
++	StreamLogTarget::getSharedInstance().log(F,"  scmode_accel=\"%hd\"\n",graphics_preferences->screen_mode.acceleration);
++	StreamLogTarget::getSharedInstance().log(F,"  scmode_highres=\"%s\"\n",BoolString(graphics_preferences->screen_mode.high_resolution));
++	StreamLogTarget::getSharedInstance().log(F,"  scmode_fullscreen=\"%s\"\n",BoolString(graphics_preferences->screen_mode.fullscreen));
++	StreamLogTarget::getSharedInstance().log(F,"  scmode_fill_the_screen=\"%s\"\n", BoolString(graphics_preferences->screen_mode.fill_the_screen));
++	StreamLogTarget::getSharedInstance().log(F,"  scmode_bitdepth=\"%hd\"\n",graphics_preferences->screen_mode.bit_depth);
++	StreamLogTarget::getSharedInstance().log(F,"  scmode_gamma=\"%hd\"\n",graphics_preferences->screen_mode.gamma_level);
++    StreamLogTarget::getSharedInstance().log(F,"  scmode_fix_h_not_v=\"%s\"\n", BoolString(graphics_preferences->screen_mode.fix_h_not_v));
++	StreamLogTarget::getSharedInstance().log(F,"  ogl_flags=\"%hu\"\n",graphics_preferences->OGL_Configure.Flags);
++	StreamLogTarget::getSharedInstance().log(F,"  software_alpha_blending=\"%i\"\n", graphics_preferences->software_alpha_blending);
++        StreamLogTarget::getSharedInstance().log(F,"  anisotropy_level=\"%f\"\n", graphics_preferences->OGL_Configure.AnisotropyLevel);
++	StreamLogTarget::getSharedInstance().log(F,"  multisamples=\"%i\"\n", graphics_preferences->OGL_Configure.Multisamples);
++	StreamLogTarget::getSharedInstance().log(F,"  geforce_fix=\"%s\"\n", BoolString(graphics_preferences->OGL_Configure.GeForceFix));
++	StreamLogTarget::getSharedInstance().log(F,"  wait_for_vsync=\"%s\"\n", BoolString(graphics_preferences->OGL_Configure.WaitForVSync));
++	StreamLogTarget::getSharedInstance().log(F,"  gamma_corrected_blending=\"%s\"\n", BoolString(graphics_preferences->OGL_Configure.Use_sRGB));
++	StreamLogTarget::getSharedInstance().log(F,"  use_npot=\"%s\"\n", BoolString(graphics_preferences->OGL_Configure.Use_NPOT));
++	StreamLogTarget::getSharedInstance().log(F,"  double_corpse_limit=\"%s\"\n", BoolString(graphics_preferences->double_corpse_limit));
++	StreamLogTarget::getSharedInstance().log(F,"  hog_the_cpu=\"%s\"\n", BoolString(graphics_preferences->hog_the_cpu));
++	StreamLogTarget::getSharedInstance().log(F,">\n");
++	StreamLogTarget::getSharedInstance().log(F,"  <void>\n");
+ 	WriteColor(F,"    ",graphics_preferences->OGL_Configure.VoidColor,"\n");
+-	fprintf(F,"  </void>\n");
+-	fprintf(F,"  <landscapes>\n");
++	StreamLogTarget::getSharedInstance().log(F,"  </void>\n");
++	StreamLogTarget::getSharedInstance().log(F,"  <landscapes>\n");
+ 	for (int i=0; i<4; i++)
+ 		for (int j=0; j<2; j++)
+ 			WriteColorWithIndex(F,"    ",(2*i+j),
+ 				graphics_preferences->OGL_Configure.LscpColors[i][j],"\n");
+-	fprintf(F,"  </landscapes>\n");
++	StreamLogTarget::getSharedInstance().log(F,"  </landscapes>\n");
+ 	for (int k=0; k<OGL_NUMBER_OF_TEXTURE_TYPES; k++)
+ 	{
+ 		OGL_Texture_Configure& TxtrConfig = graphics_preferences->OGL_Configure.TxtrConfigList[k];
+-		fprintf(F,"  <texture index=\"%hd\" near_filter=\"%hd\" far_filter=\"%hd\" resolution=\"%hd\" color_format=\"%d\" max_size=\"%d\"/>\n",
++		StreamLogTarget::getSharedInstance().log(F,"  <texture index=\"%hd\" near_filter=\"%hd\" far_filter=\"%hd\" resolution=\"%hd\" color_format=\"%d\" max_size=\"%d\"/>\n",
+ 			k, TxtrConfig.NearFilter, TxtrConfig.FarFilter, TxtrConfig.Resolution, TxtrConfig.ColorFormat, TxtrConfig.MaxSize);
+ 	}
+ 	OGL_Texture_Configure& TxtrConfig = graphics_preferences->OGL_Configure.ModelConfig;
+-	fprintf(F,"  <texture index=\"%hd\" near_filter=\"%hd\" far_filter=\"%hd\" resolution=\"%hd\" color_format=\"%d\" max_size=\"%d\"/>\n",
++	StreamLogTarget::getSharedInstance().log(F,"  <texture index=\"%hd\" near_filter=\"%hd\" far_filter=\"%hd\" resolution=\"%hd\" color_format=\"%d\" max_size=\"%d\"/>\n",
+ 		OGL_NUMBER_OF_TEXTURE_TYPES, TxtrConfig.NearFilter, TxtrConfig.FarFilter, TxtrConfig.Resolution, TxtrConfig.ColorFormat, TxtrConfig.MaxSize);
+-	fprintf(F,"</graphics>\n\n");
++	StreamLogTarget::getSharedInstance().log(F,"</graphics>\n\n");
+ 	
+-	fprintf(F,"<player\n");
+-	fprintf(F, "  name=\"%s\"\n", mac_roman_to_utf8(pstring_to_string(player_preferences->name)).c_str());
+-	fprintf(F,"  color=\"%hd\"\n",player_preferences->color);
+-	fprintf(F,"  team=\"%hd\"\n",player_preferences->team);
+-	fprintf(F,"  last_time_ran=\"%u\"\n",player_preferences->last_time_ran);
+-	fprintf(F,"  difficulty=\"%hd\"\n",player_preferences->difficulty_level);
+-	fprintf(F,"  bkgd_music=\"%s\"\n",BoolString(player_preferences->background_music_on));
+-	fprintf(F,">\n");
++	StreamLogTarget::getSharedInstance().log(F,"<player\n");
++	StreamLogTarget::getSharedInstance().log(F, "  name=\"%s\"\n", mac_roman_to_utf8(pstring_to_string(player_preferences->name)).c_str());
++	StreamLogTarget::getSharedInstance().log(F,"  color=\"%hd\"\n",player_preferences->color);
++	StreamLogTarget::getSharedInstance().log(F,"  team=\"%hd\"\n",player_preferences->team);
++	StreamLogTarget::getSharedInstance().log(F,"  last_time_ran=\"%u\"\n",player_preferences->last_time_ran);
++	StreamLogTarget::getSharedInstance().log(F,"  difficulty=\"%hd\"\n",player_preferences->difficulty_level);
++	StreamLogTarget::getSharedInstance().log(F,"  bkgd_music=\"%s\"\n",BoolString(player_preferences->background_music_on));
++	StreamLogTarget::getSharedInstance().log(F,">\n");
+ 	ChaseCamData& ChaseCam = player_preferences->ChaseCam;
+-	fprintf(F,"  <chase_cam behind=\"%hd\" upward=\"%hd\" rightward=\"%hd\" flags=\"%hd\"\n",
++	StreamLogTarget::getSharedInstance().log(F,"  <chase_cam behind=\"%hd\" upward=\"%hd\" rightward=\"%hd\" flags=\"%hd\"\n",
+ 		ChaseCam.Behind, ChaseCam.Upward, ChaseCam.Rightward, ChaseCam.Flags);
+-	fprintf(F,"    damping=\"%f\" spring=\"%f\" opacity=\"%f\"/>\n",
++	StreamLogTarget::getSharedInstance().log(F,"    damping=\"%f\" spring=\"%f\" opacity=\"%f\"/>\n",
+ 		ChaseCam.Damping, ChaseCam.Spring, ChaseCam.Opacity);
+ 	CrosshairData& Crosshairs = player_preferences->Crosshairs;
+-	fprintf(F,"  <crosshairs\n");
+-	fprintf(F,"    thickness=\"%hd\" from_center=\"%hd\" length=\"%hd\"\n",
++	StreamLogTarget::getSharedInstance().log(F,"  <crosshairs\n");
++	StreamLogTarget::getSharedInstance().log(F,"    thickness=\"%hd\" from_center=\"%hd\" length=\"%hd\"\n",
+ 		Crosshairs.Thickness, Crosshairs.FromCenter, Crosshairs.Length);
+-	fprintf(F,"    shape=\"%hd\" opacity=\"%f\"\n",
++	StreamLogTarget::getSharedInstance().log(F,"    shape=\"%hd\" opacity=\"%f\"\n",
+ 		Crosshairs.Shape, Crosshairs.Opacity);
+-	fprintf(F,"  >\n"),
++	StreamLogTarget::getSharedInstance().log(F,"  >\n"),
+ 	WriteColor(F,"    ",Crosshairs.Color,"\n");
+-	fprintf(F,"  </crosshairs>\n");
+-	fprintf(F,"</player>\n\n");
++	StreamLogTarget::getSharedInstance().log(F,"  </crosshairs>\n");
++	StreamLogTarget::getSharedInstance().log(F,"</player>\n\n");
+ 	
+-	fprintf(F,"<input\n");
+-	fprintf(F,"  device=\"%hd\"\n",input_preferences->input_device);
+-	fprintf(F,"  modifiers=\"%hu\"\n",input_preferences->modifiers);
+-	fprintf(F,"  sens_horizontal=\"%d\"\n",input_preferences->sens_horizontal); // ZZZ, LP
+-	fprintf(F,"  sens_vertical=\"%d\"\n",input_preferences->sens_vertical); // ZZZ, LP
+-	fprintf(F,"  mouse_acceleration=\"%s\"\n",BoolString(input_preferences->mouse_acceleration)); // SB
+-	fprintf(F,"  joystick_id=\"%hd\"\n", input_preferences->joystick_id);
++	StreamLogTarget::getSharedInstance().log(F,"<input\n");
++	StreamLogTarget::getSharedInstance().log(F,"  device=\"%hd\"\n",input_preferences->input_device);
++	StreamLogTarget::getSharedInstance().log(F,"  modifiers=\"%hu\"\n",input_preferences->modifiers);
++	StreamLogTarget::getSharedInstance().log(F,"  sens_horizontal=\"%d\"\n",input_preferences->sens_horizontal); // ZZZ, LP
++	StreamLogTarget::getSharedInstance().log(F,"  sens_vertical=\"%d\"\n",input_preferences->sens_vertical); // ZZZ, LP
++	StreamLogTarget::getSharedInstance().log(F,"  mouse_acceleration=\"%s\"\n",BoolString(input_preferences->mouse_acceleration)); // SB
++	StreamLogTarget::getSharedInstance().log(F,"  joystick_id=\"%hd\"\n", input_preferences->joystick_id);
+ 
+-	fprintf(F,">\n");
++	StreamLogTarget::getSharedInstance().log(F,">\n");
+ 	for (int i = 0; i < MAX_BUTTONS; i++)
+-		fprintf(F,"  <mouse_button index=\"%hd\" action=\"%s\"/>\n", i,
++		StreamLogTarget::getSharedInstance().log(F,"  <mouse_button index=\"%hd\" action=\"%s\"/>\n", i,
+ 			input_preferences->mouse_button_actions[i] == _mouse_button_fires_left_trigger ? "left_trigger" : 
+ 			input_preferences->mouse_button_actions[i] == _mouse_button_fires_right_trigger ? "right_trigger" : "none");
+ 	for (int i = 0; i < NUMBER_OF_JOYSTICK_MAPPINGS; ++i)
+-		fprintf(F,"  <joystick_axis_mapping index=\"%hd\" axis=\"%hd\" axis_sensitivity=\"%f\" bound=\"%hd\"/>\n", i, input_preferences->joystick_axis_mappings[i], input_preferences->joystick_axis_sensitivities[i], input_preferences->joystick_axis_bounds[i]);
++		StreamLogTarget::getSharedInstance().log(F,"  <joystick_axis_mapping index=\"%hd\" axis=\"%hd\" axis_sensitivity=\"%f\" bound=\"%hd\"/>\n", i, input_preferences->joystick_axis_mappings[i], input_preferences->joystick_axis_sensitivities[i], input_preferences->joystick_axis_bounds[i]);
+ 	for (int k=0; k<NUMBER_OF_KEYS; k++)
+-		fprintf(F,"  <sdl_key index=\"%hd\" value=\"%hd\"/>\n",
++		StreamLogTarget::getSharedInstance().log(F,"  <sdl_key index=\"%hd\" value=\"%hd\"/>\n",
+ 			k,input_preferences->keycodes[k]);
+ 	for (int k=0; k<NUMBER_OF_SHELL_KEYS;k++)
+-		fprintf(F,"  <sdl_key index=\"%hd\" value=\"%hd\"/>\n",
++		StreamLogTarget::getSharedInstance().log(F,"  <sdl_key index=\"%hd\" value=\"%hd\"/>\n",
+ 			k + NUMBER_OF_KEYS, input_preferences->shell_keycodes[k]);
+-	fprintf(F,"</input>\n\n");
++	StreamLogTarget::getSharedInstance().log(F,"</input>\n\n");
+ 	
+-	fprintf(F,"<sound\n");
+-	fprintf(F,"  channels=\"%hd\"\n",sound_preferences->channel_count);
+-	fprintf(F,"  volume=\"%hd\"\n",sound_preferences->volume);
+-	fprintf(F,"  music_volume=\"%hd\"\n",sound_preferences->music);
+-	fprintf(F,"  flags=\"%hu\"\n",sound_preferences->flags);
+-	fprintf(F,"  rate=\"\%hu\"\n", sound_preferences->rate);
+-	fprintf(F,"  samples=\"\%hu\"\n", sound_preferences->samples);
+-	fprintf(F,"  volume_while_speaking=\"\%hu\"\n", sound_preferences->volume_while_speaking);
+-	fprintf(F,"  mute_while_transmitting=\"%s\"\n", BoolString(sound_preferences->mute_while_transmitting));
+-	fprintf(F,"/>\n\n");
++	StreamLogTarget::getSharedInstance().log(F,"<sound\n");
++	StreamLogTarget::getSharedInstance().log(F,"  channels=\"%hd\"\n",sound_preferences->channel_count);
++	StreamLogTarget::getSharedInstance().log(F,"  volume=\"%hd\"\n",sound_preferences->volume);
++	StreamLogTarget::getSharedInstance().log(F,"  music_volume=\"%hd\"\n",sound_preferences->music);
++	StreamLogTarget::getSharedInstance().log(F,"  flags=\"%hu\"\n",sound_preferences->flags);
++	StreamLogTarget::getSharedInstance().log(F,"  rate=\"\%hu\"\n", sound_preferences->rate);
++	StreamLogTarget::getSharedInstance().log(F,"  samples=\"\%hu\"\n", sound_preferences->samples);
++	StreamLogTarget::getSharedInstance().log(F,"  volume_while_speaking=\"\%hu\"\n", sound_preferences->volume_while_speaking);
++	StreamLogTarget::getSharedInstance().log(F,"  mute_while_transmitting=\"%s\"\n", BoolString(sound_preferences->mute_while_transmitting));
++	StreamLogTarget::getSharedInstance().log(F,"/>\n\n");
+ 	
+ #if !defined(DISABLE_NETWORKING)
+-	fprintf(F,"<network\n");
+-	fprintf(F,"  microphone=\"%s\"\n",BoolString(network_preferences->allow_microphone));
+-	fprintf(F,"  untimed=\"%s\"\n",BoolString(network_preferences->game_is_untimed));
+-	fprintf(F,"  type=\"%hd\"\n",network_preferences->type);
+-	fprintf(F,"  game_type=\"%hd\"\n",network_preferences->game_type);
+-	fprintf(F,"  difficulty=\"%hd\"\n",network_preferences->difficulty_level);
+-	fprintf(F,"  game_options=\"%hu\"\n",network_preferences->game_options);
+-	fprintf(F,"  time_limit=\"%d\"\n",network_preferences->time_limit);
+-	fprintf(F,"  kill_limit=\"%hd\"\n",network_preferences->kill_limit);
+-	fprintf(F,"  entry_point=\"%hd\"\n",network_preferences->entry_point);
+-        fprintf(F,"  autogather=\"%s\"\n",BoolString(network_preferences->autogather));
+-        fprintf(F,"  join_by_address=\"%s\"\n",BoolString(network_preferences->join_by_address));
++	StreamLogTarget::getSharedInstance().log(F,"<network\n");
++	StreamLogTarget::getSharedInstance().log(F,"  microphone=\"%s\"\n",BoolString(network_preferences->allow_microphone));
++	StreamLogTarget::getSharedInstance().log(F,"  untimed=\"%s\"\n",BoolString(network_preferences->game_is_untimed));
++	StreamLogTarget::getSharedInstance().log(F,"  type=\"%hd\"\n",network_preferences->type);
++	StreamLogTarget::getSharedInstance().log(F,"  game_type=\"%hd\"\n",network_preferences->game_type);
++	StreamLogTarget::getSharedInstance().log(F,"  difficulty=\"%hd\"\n",network_preferences->difficulty_level);
++	StreamLogTarget::getSharedInstance().log(F,"  game_options=\"%hu\"\n",network_preferences->game_options);
++	StreamLogTarget::getSharedInstance().log(F,"  time_limit=\"%d\"\n",network_preferences->time_limit);
++	StreamLogTarget::getSharedInstance().log(F,"  kill_limit=\"%hd\"\n",network_preferences->kill_limit);
++	StreamLogTarget::getSharedInstance().log(F,"  entry_point=\"%hd\"\n",network_preferences->entry_point);
++        StreamLogTarget::getSharedInstance().log(F,"  autogather=\"%s\"\n",BoolString(network_preferences->autogather));
++        StreamLogTarget::getSharedInstance().log(F,"  join_by_address=\"%s\"\n",BoolString(network_preferences->join_by_address));
+         WriteXML_CString(F, "  join_address=\"",network_preferences->join_address,256,"\"\n");
+-        fprintf(F,"  local_game_port=\"%hu\"\n",network_preferences->game_port);
+-	fprintf(F,"  game_protocol=\"%s\"\n",sNetworkGameProtocolNames[network_preferences->game_protocol]);
+-	fprintf(F,"  use_speex_netmic_encoder=\"%s\"\n", BoolString(network_preferences->use_speex_encoder));
+-	fprintf(F,"  use_netscript=\"%s\"\n", BoolString(network_preferences->use_netscript));
++        StreamLogTarget::getSharedInstance().log(F,"  local_game_port=\"%hu\"\n",network_preferences->game_port);
++	StreamLogTarget::getSharedInstance().log(F,"  game_protocol=\"%s\"\n",sNetworkGameProtocolNames[network_preferences->game_protocol]);
++	StreamLogTarget::getSharedInstance().log(F,"  use_speex_netmic_encoder=\"%s\"\n", BoolString(network_preferences->use_speex_encoder));
++	StreamLogTarget::getSharedInstance().log(F,"  use_netscript=\"%s\"\n", BoolString(network_preferences->use_netscript));
+ 	WriteXML_CString(F,"  netscript_file=\"", network_preferences->netscript_file, sizeof(network_preferences->netscript_file), "\"\n");
+-	fprintf(F,"  cheat_flags=\"%hu\"\n",network_preferences->cheat_flags);
+-	fprintf(F,"  advertise_on_metaserver=\"%s\"\n",BoolString(network_preferences->advertise_on_metaserver));
+-	fprintf(F,"  attempt_upnp=\"%s\"\n", BoolString(network_preferences->attempt_upnp));
+-	fprintf(F,"  check_for_updates=\"%s\"\n", BoolString(network_preferences->check_for_updates));
+-	fprintf(F,"  metaserver_login=\"%.16s\"\n", network_preferences->metaserver_login);
++	StreamLogTarget::getSharedInstance().log(F,"  cheat_flags=\"%hu\"\n",network_preferences->cheat_flags);
++	StreamLogTarget::getSharedInstance().log(F,"  advertise_on_metaserver=\"%s\"\n",BoolString(network_preferences->advertise_on_metaserver));
++	StreamLogTarget::getSharedInstance().log(F,"  attempt_upnp=\"%s\"\n", BoolString(network_preferences->attempt_upnp));
++	StreamLogTarget::getSharedInstance().log(F,"  check_for_updates=\"%s\"\n", BoolString(network_preferences->check_for_updates));
++	StreamLogTarget::getSharedInstance().log(F,"  metaserver_login=\"%.16s\"\n", network_preferences->metaserver_login);
+ 	
+-	fprintf(F,"  metaserver_password=\"");
++	StreamLogTarget::getSharedInstance().log(F,"  metaserver_password=\"");
+ 	for (int i = 0; i < 16; i++) {
+-		fprintf(F, "%.2x", network_preferences->metaserver_password[i] ^ sPasswordMask[i]);
++		StreamLogTarget::getSharedInstance().log(F, "%.2x", network_preferences->metaserver_password[i] ^ sPasswordMask[i]);
+ 	}
+-	fprintf(F, "\"\n");
+-	fprintf(F,"  use_custom_metaserver_colors=\"%s\"\n", BoolString(network_preferences->use_custom_metaserver_colors));
+-	fprintf(F,"  mute_metaserver_guests=\"%s\"\n", BoolString(network_preferences->mute_metaserver_guests));
++	StreamLogTarget::getSharedInstance().log(F, "\"\n");
++	StreamLogTarget::getSharedInstance().log(F,"  use_custom_metaserver_colors=\"%s\"\n", BoolString(network_preferences->use_custom_metaserver_colors));
++	StreamLogTarget::getSharedInstance().log(F,"  mute_metaserver_guests=\"%s\"\n", BoolString(network_preferences->mute_metaserver_guests));
+ 	
+-	fprintf(F,">\n");
++	StreamLogTarget::getSharedInstance().log(F,">\n");
+ #ifndef SDL
+ 	WriteXML_FSSpec(F,"  ", kNetworkScriptFileSpecIndex, network_preferences->netscript_file);
+ #endif
+@@ -2354,10 +2354,10 @@
+ 	}
+ 	WriteStarPreferences(F);
+ 	WriteRingPreferences(F);
+-	fprintf(F,"</network>\n\n");
++	StreamLogTarget::getSharedInstance().log(F,"</network>\n\n");
+ #endif // !defined(DISABLE_NETWORKING)
+ 
+-	fprintf(F,"<environment\n");
++	StreamLogTarget::getSharedInstance().log(F,"<environment\n");
+ 	WriteXML_CString(F,"  map_file=\"",environment_preferences->map_file,256,"\"\n");
+ 	WriteXML_CString(F,"  physics_file=\"",environment_preferences->physics_file,256,"\"\n");
+ 	WriteXML_CString(F,"  shapes_file=\"",environment_preferences->shapes_file,256,"\"\n");
+@@ -2372,28 +2372,28 @@
+ 	} else
+ #endif
+ 	WriteXML_CString(F,"  theme_dir=\"",environment_preferences->theme_dir,256,"\"\n");
+-	fprintf(F,"  map_checksum=\"%u\"\n",environment_preferences->map_checksum);
+-	fprintf(F,"  physics_checksum=\"%u\"\n",environment_preferences->physics_checksum);
+-	fprintf(F,"  shapes_mod_date=\"%u\"\n",uint32(environment_preferences->shapes_mod_date));
+-	fprintf(F,"  sounds_mod_date=\"%u\"\n",uint32(environment_preferences->sounds_mod_date));
+-	fprintf(F,"  group_by_directory=\"%s\"\n",BoolString(environment_preferences->group_by_directory));
+-	fprintf(F,"  reduce_singletons=\"%s\"\n",BoolString(environment_preferences->reduce_singletons));
+-	fprintf(F,"  smooth_text=\"%s\"\n", BoolString(environment_preferences->smooth_text));
++	StreamLogTarget::getSharedInstance().log(F,"  map_checksum=\"%u\"\n",environment_preferences->map_checksum);
++	StreamLogTarget::getSharedInstance().log(F,"  physics_checksum=\"%u\"\n",environment_preferences->physics_checksum);
++	StreamLogTarget::getSharedInstance().log(F,"  shapes_mod_date=\"%u\"\n",uint32(environment_preferences->shapes_mod_date));
++	StreamLogTarget::getSharedInstance().log(F,"  sounds_mod_date=\"%u\"\n",uint32(environment_preferences->sounds_mod_date));
++	StreamLogTarget::getSharedInstance().log(F,"  group_by_directory=\"%s\"\n",BoolString(environment_preferences->group_by_directory));
++	StreamLogTarget::getSharedInstance().log(F,"  reduce_singletons=\"%s\"\n",BoolString(environment_preferences->reduce_singletons));
++	StreamLogTarget::getSharedInstance().log(F,"  smooth_text=\"%s\"\n", BoolString(environment_preferences->smooth_text));
+ 	WriteXML_CString(F,"  solo_lua_file=\"", environment_preferences->solo_lua_file, 256, "\"\n");
+-	fprintf(F,"  use_solo_lua=\"%s\"\n", BoolString(environment_preferences->use_solo_lua));
++	StreamLogTarget::getSharedInstance().log(F,"  use_solo_lua=\"%s\"\n", BoolString(environment_preferences->use_solo_lua));
+ 	WriteXML_CString(F,"  hud_lua_file=\"", environment_preferences->hud_lua_file, 256, "\"\n");
+-	fprintf(F,"  use_hud_lua=\"%s\"\n", BoolString(environment_preferences->use_hud_lua));
+-	fprintf(F,"  hide_alephone_extensions=\"%s\"\n", BoolString(environment_preferences->hide_extensions));
+-	fprintf(F,"  film_profile=\"%u\"\n", static_cast<uint32>(environment_preferences->film_profile));
+-	fprintf(F,">\n");
++	StreamLogTarget::getSharedInstance().log(F,"  use_hud_lua=\"%s\"\n", BoolString(environment_preferences->use_hud_lua));
++	StreamLogTarget::getSharedInstance().log(F,"  hide_alephone_extensions=\"%s\"\n", BoolString(environment_preferences->hide_extensions));
++	StreamLogTarget::getSharedInstance().log(F,"  film_profile=\"%u\"\n", static_cast<uint32>(environment_preferences->film_profile));
++	StreamLogTarget::getSharedInstance().log(F,">\n");
+ 	for (Plugins::iterator it = Plugins::instance()->begin(); it != Plugins::instance()->end(); ++it) {
+ 		if (it->compatible() && !it->enabled) {
+-			fprintf(F,"  <disable_plugin path=\"%s\"/>\n", it->directory.GetPath());
++			StreamLogTarget::getSharedInstance().log(F,"  <disable_plugin path=\"%s\"/>\n", it->directory.GetPath());
+ 		}
+ 	}
+-	fprintf(F,"</environment>\n\n");
++	StreamLogTarget::getSharedInstance().log(F,"</environment>\n\n");
+ 			
+-	fprintf(F,"</mara_prefs>\n\n");
++	StreamLogTarget::getSharedInstance().log(F,"</mara_prefs>\n\n");
+ 	
+ 	fclose(F);
+ 	
+@@ -2850,19 +2850,19 @@
+ 
+ void WriteXML_PasString(FILE *F, const char *Prefix, const unsigned char *String, const char *Suffix)
+ {
+-	fprintf(F,"%s",Prefix);
++	StreamLogTarget::getSharedInstance().log(F,"%s",Prefix);
+ 	for (int k=1; k<=String[0]; k++)
+ 		WriteXML_Char(F,String[k]);
+-	fprintf(F,"%s",Suffix);
++	StreamLogTarget::getSharedInstance().log(F,"%s",Suffix);
+ }
+ 
+ void WriteXML_CString(FILE *F, const char *Prefix, const char *String, int MaxLen, const char *Suffix)
+ {
+-	fprintf(F,"%s",Prefix);
++	StreamLogTarget::getSharedInstance().log(F,"%s",Prefix);
+ 	size_t Len = strlen(String);
+ 	for (size_t k=0; k<Len; k++)
+ 		WriteXML_Char(F,String[k]);
+-	fprintf(F,"%s",Suffix);
++	StreamLogTarget::getSharedInstance().log(F,"%s",Suffix);
+ }
+ 
+ void WriteXML_Char(FILE *F, unsigned char c)
+@@ -2873,7 +2873,7 @@
+ 	{
+ 		// Turn the bad character into a good one,
+ 		// because Expat dislikes characters below 0x20
+-		fprintf(F,"$");
++		StreamLogTarget::getSharedInstance().log(F,"$");
+ 	}
+ 	else
+ 	{
+@@ -2881,23 +2881,23 @@
+ 		{
+ 		// XML reserved characters
+ 		case '&':
+-			fprintf(F,"&amp;");
++			StreamLogTarget::getSharedInstance().log(F,"&amp;");
+ 			break;
+ 		
+ 		case '<':
+-			fprintf(F,"&lt;");
++			StreamLogTarget::getSharedInstance().log(F,"&lt;");
+ 			break;
+ 		
+ 		case '>':
+-			fprintf(F,"&gt;");
++			StreamLogTarget::getSharedInstance().log(F,"&gt;");
+ 			break;
+ 		
+ 		case '"':
+-			fprintf(F,"&quot;");
++			StreamLogTarget::getSharedInstance().log(F,"&quot;");
+ 			break;
+ 		
+ 		case '\'':
+-			fprintf(F,"&apos;");
++			StreamLogTarget::getSharedInstance().log(F,"&apos;");
+ 			break;
+ 		
+ 		// OK character
+Index: Source_Files/Misc/PlayerImage_sdl.cpp
+===================================================================
+--- Source_Files/Misc/PlayerImage_sdl.cpp	(revision 4521)
++++ Source_Files/Misc/PlayerImage_sdl.cpp	(working copy)
+@@ -352,7 +352,7 @@
+         
+         SDL_BlitSurface(mLegsSurface, NULL, inSurface, const_cast<SDL_Rect*>(&theWorkingRect));
+         
+-//        printf("legs bottom at %d\n", theWorkingRect.y + theWorkingRect.h);
++//        LogTarget::getOutLogTarget().log("legs bottom at %d\n", theWorkingRect.y + theWorkingRect.h);
+     }
+     
+     if(canDrawTorso()) {
+@@ -362,7 +362,7 @@
+         
+         SDL_BlitSurface(mTorsoSurface, NULL, inSurface, const_cast<SDL_Rect*>(&theWorkingRect));
+         
+-//        printf("torso top at %d\n", theWorkingRect.y);
++//        LogTarget::getOutLogTarget().log("torso top at %d\n", theWorkingRect.y);
+     }
+ }
+ 
+Index: Source_Files/Misc/LogTargetForwarder.cpp
+===================================================================
+--- Source_Files/Misc/LogTargetForwarder.cpp	(revision 0)
++++ Source_Files/Misc/LogTargetForwarder.cpp	(revision 0)
+@@ -0,0 +1,23 @@
++#include "LogTargetForwarder.h"
++#include <cstring>
++#include <cstdio>
++
++
++static const int MAX_LOG_ENTRY_SIZE = 4096;
++
++void LogTargetForwarder::log(const char *format, va_list list) const {
++    char logEntryBuffer[MAX_LOG_ENTRY_SIZE];
++    int logEntrySize = vsnprintf(logEntryBuffer, MAX_LOG_ENTRY_SIZE, format, list);
++    if (logEntrySize == -1) {
++        logEntrySize = MAX_LOG_ENTRY_SIZE - 1;
++    }
++
++    for (std::vector<const LogTarget*>::const_iterator it = mLogTargets.begin(); it != mLogTargets.end(); it++) {
++        const LogTarget* logTarget = *it;
++        logTarget->log(logEntryBuffer);
++    }
++}
++
++void LogTargetForwarder::addLogTarget(const LogTarget* logTarget) {
++    mLogTargets.push_back(logTarget);
++}
+Index: Source_Files/Misc/Logging.cpp
+===================================================================
+--- Source_Files/Misc/Logging.cpp	(revision 4521)
++++ Source_Files/Misc/Logging.cpp	(working copy)
+@@ -110,7 +110,7 @@
+ 
+ class TopLevelLogger : public Logger {
+ public:
+-    TopLevelLogger() : mMostRecentCommonStackDepth(0), mMostRecentlyPrintedStackDepth(0) {}
++    TopLevelLogger(LogTarget* logTarget) : mLogTarget(logTarget), mMostRecentCommonStackDepth(0), mMostRecentlyPrintedStackDepth(0) {}
+     virtual void pushLogContextV(const char* inFile, int inLine, const char* inContext, va_list inArgs);
+     virtual void popLogContext();
+     virtual void logMessageV(const char* inDomain, int inLevel, const char* inFile, int inLine, const char* inMessage, va_list inArgs);
+@@ -119,6 +119,7 @@
+     vector<string>	mContextStack;
+     size_t	mMostRecentCommonStackDepth;
+     size_t	mMostRecentlyPrintedStackDepth;
++    LogTarget* mLogTarget;
+ };
+ 
+ 
+@@ -174,7 +175,7 @@
+             theString += "while ";
+             theString += mContextStack[depth];
+             
+-            fprintf(sOutputFile, "%s\n", theString.c_str());
++            mLogTarget->log("%s\n", theString.c_str());
+         }
+         
+         vsnprintf(stringBuffer, kStringBufferSize, inMessage, inArgs);
+@@ -190,7 +191,7 @@
+         else
+             theString += "\n";
+         
+-        fprintf(sOutputFile, "%s", theString.c_str());
++        mLogTarget->log("%s", theString.c_str());
+         
+         if(sFlushOutput)
+                 fflush(sOutputFile);
+@@ -226,12 +227,13 @@
+ 
+     sOutputFile = fopen(fs.GetPath(), "a");
+ 
+-    sCurrentLogger = new TopLevelLogger;
++    LogTarget* logTarget = LogTarget::newCustomLogTarget(new StreamLogTarget(sOutputFile));
++    sCurrentLogger = new TopLevelLogger(logTarget);
+     if(sOutputFile != NULL)
+     {
+ 	    time_t theTime = time(NULL);
+ 	    const char* theTimeString = ctime(&theTime);
+-	    fprintf(sOutputFile, "\n-------------------- %s\n\n", theTimeString == NULL ? "(timestamp unavailable)" : theTimeString);
++	    logTarget->log("\n-------------------- %s\n\n", theTimeString == NULL ? "(timestamp unavailable)" : theTimeString);
+     }
+ }
+ 
+Index: Source_Files/Misc/thread_priority_sdl_posix.cpp
+===================================================================
+--- Source_Files/Misc/thread_priority_sdl_posix.cpp	(revision 4521)
++++ Source_Files/Misc/thread_priority_sdl_posix.cpp	(working copy)
+@@ -21,6 +21,7 @@
+ 
+ #include	"thread_priority_sdl.h"
+ 
++#if defined(_POSIX_PRIORITY_SCHEDULING)
+ #if defined(TARGET_API_MAC_CARBON) && __MACH__
+ #include <SDL/SDL_Thread.h>
+ #else
+@@ -29,6 +30,7 @@
+ 
+ #include	<pthread.h>
+ #include        <sched.h>
++#endif
+ 
+ bool
+ BoostThreadPriority(SDL_Thread* inThread) {
+Index: Source_Files/Misc/Console.cpp
+===================================================================
+--- Source_Files/Misc/Console.cpp	(revision 4521)
++++ Source_Files/Misc/Console.cpp	(working copy)
+@@ -293,7 +293,7 @@
+ 			replace_first(display_string, player_key, player_name);
+ 		}
+ 
+-		screen_printf("%s", display_string.c_str());
++		LogTarget::getScreenLogTarget().log("%s", display_string.c_str());
+ 	}
+ }
+ 
+@@ -304,7 +304,7 @@
+ 	void operator() (const std::string& arg) const {
+ 		if (!NetAllowSavingLevel())
+ 		{
+-			screen_printf("Level saving disabled");
++			LogTarget::getScreenLogTarget().log("Level saving disabled");
+ 			return;
+ 		}
+ 
+@@ -331,9 +331,9 @@
+ 		fs.SetToLocalDataDir();
+ 		fs += filename;
+ 		if (export_level(fs))
+-			screen_printf("Saved %s", utf8_to_mac_roman(fs.GetPath()).c_str());
++			LogTarget::getScreenLogTarget().log("Saved %s", utf8_to_mac_roman(fs.GetPath()).c_str());
+ 		else
+-			screen_printf("An error occurred while saving the level");
++			LogTarget::getScreenLogTarget().log("An error occurred while saving the level");
+ 	}
+ };
+ 
+Index: Source_Files/Misc/LogTargetForwarder.h
+===================================================================
+--- Source_Files/Misc/LogTargetForwarder.h	(revision 0)
++++ Source_Files/Misc/LogTargetForwarder.h	(revision 0)
+@@ -0,0 +1,18 @@
++#ifndef _LOG_TARGET_FORWARDER_H_
++#define _LOG_TARGET_FORWARDER_H_
++
++#include "LogTarget.h"
++#include <vector>
++
++
++class LogTargetForwarder : public LogTarget {
++public:
++    virtual void log(const char *format, va_list list) const;
++    
++    void addLogTarget(const LogTarget* logTarget);
++
++private:
++    std::vector<const LogTarget*> mLogTargets;
++};
++
++#endif
+Index: Source_Files/Misc/export_definitions.cpp
+===================================================================
+--- Source_Files/Misc/export_definitions.cpp	(revision 4521)
++++ Source_Files/Misc/export_definitions.cpp	(working copy)
+@@ -35,6 +35,8 @@
+ #include "media.h"
+ #include "tags.h"
+ 
++#include "Logging.h"
++
+ /* ---------- globals */
+ 
+ #define EXPORT_STRUCTURE 1
+@@ -58,7 +60,7 @@
+ {
+ 	if (argc<=1)
+ 	{
+-		fprintf(stderr, "Usage: %s <destination>\n", argv[0]);
++		LogTarget::getErrorLogTarget().log("Usage: %s <destination>\n", argv[0]);
+ 		exit(1);
+ 	}
+ 	else
+@@ -77,12 +79,12 @@
+ 		{
+ 			if(!create_physics_file((FileDesc *) &physics_spec))
+ 			{
+-				fprintf(stderr, "Unable to create the physics file!\n");
++				LogTarget::getErrorLogTarget().log("Unable to create the physics file!\n");
+ 			}
+ 		} 
+ 		else
+ 		{
+-			fprintf(stderr, "%s: Error opening '%s' (Err: %d)", argv[0], argv[1], error);
++			LogTarget::getErrorLogTarget().log("%s: Error opening '%s' (Err: %d)", argv[0], argv[1], error);
+ 			exit(1);
+ 		}
+ 	}
+@@ -155,7 +157,7 @@
+ 
+ 			close_wad_file(file_ref);
+ 
+-			fprintf(stderr, "Physics File: %P Checksum: 0x%x\n", file->name, 
++			LogTarget::getErrorLogTarget().log("Physics File: %P Checksum: 0x%x\n", file->name, 
+ 				read_wad_file_checksum(file));
+ 		}
+ 	}
+Index: Source_Files/Misc/ScreenLogTarget.cpp
+===================================================================
+--- Source_Files/Misc/ScreenLogTarget.cpp	(revision 0)
++++ Source_Files/Misc/ScreenLogTarget.cpp	(revision 0)
+@@ -0,0 +1,7 @@
++#include "ScreenLogTarget.h"
++#include "shell.h" // For screen_printf
++
++
++void ScreenLogTarget::log(const char *format, va_list list) const {
++    screen_printf(format, list);
++}
+Index: Source_Files/Misc/Logging.h
+===================================================================
+--- Source_Files/Misc/Logging.h	(revision 4521)
++++ Source_Files/Misc/Logging.h	(working copy)
+@@ -31,6 +31,7 @@
+ #define LOGGING_H
+ 
+ #include <stdarg.h>
++#include "LogTarget.h"
+ 
+ enum {
+ 	logFatalLevel	= 0,	// program must exit
+Index: Source_Files/Misc/StreamLogTarget.cpp
+===================================================================
+--- Source_Files/Misc/StreamLogTarget.cpp	(revision 0)
++++ Source_Files/Misc/StreamLogTarget.cpp	(revision 0)
+@@ -0,0 +1,30 @@
++#include "StreamLogTarget.h"
++
++
++StreamLogTarget* StreamLogTarget::sSharedInstance = NULL;
++
++StreamLogTarget::StreamLogTarget(FILE *defaultStream) : mDefaultStream(defaultStream) {
++}
++
++void StreamLogTarget::log(const char *format, va_list list) const {
++    log(mDefaultStream, format, list);
++}
++
++void StreamLogTarget::log(FILE *stream, const char *format, ...) const {
++	va_list list;
++	va_start(list, format);
++	log(stream, format, list);
++	va_end(list);
++}
++
++void StreamLogTarget::log(FILE *stream, const char *format, va_list list) const {
++    vfprintf(stream, format, list);
++}
++
++const StreamLogTarget& StreamLogTarget::getSharedInstance() {
++    if (sSharedInstance == NULL) {
++        sSharedInstance = new StreamLogTarget();
++    }
++    
++    return *sSharedInstance;
++}
+Index: Source_Files/Misc/thread_priority_sdl_dummy.cpp
+===================================================================
+--- Source_Files/Misc/thread_priority_sdl_dummy.cpp	(revision 4521)
++++ Source_Files/Misc/thread_priority_sdl_dummy.cpp	(working copy)
+@@ -23,12 +23,14 @@
+ 
+ #include    <stdio.h>
+ 
++#include "Logging.h"
++
+ bool
+ BoostThreadPriority(SDL_Thread* inThread) {
+     static bool didPrintOutWarning = false;
+     
+     if(!didPrintOutWarning) {
+-        printf("warning: BoostThreadPriority not implemented for this system.  Network performance may suffer.\n");
++        LogTarget::getOutLogTarget().log("warning: BoostThreadPriority not implemented for this system.  Network performance may suffer.\n");
+         didPrintOutWarning = true;
+     }
+ 
+Index: Source_Files/Misc/LogTarget.cpp
+===================================================================
+--- Source_Files/Misc/LogTarget.cpp	(revision 0)
++++ Source_Files/Misc/LogTarget.cpp	(revision 0)
+@@ -0,0 +1,53 @@
++#include "LogTarget.h"
++#include "LogTargetForwarder.h"
++#include "StreamLogTarget.h"
++#include "ScreenLogTarget.h"
++#include "TCPLogTarget.h"
++
++
++LogTarget* LogTarget::sOutLogTarget = NULL;
++LogTarget* LogTarget::sErrorLogTarget = NULL;
++LogTarget* LogTarget::sScreenLogTarget = NULL;
++
++void LogTarget::log(const char *format, ...) const {
++	va_list list;
++	va_start(list, format);
++	log(format, list);
++	va_end(list);
++}
++
++const LogTarget& LogTarget::getOutLogTarget() {
++    if (sOutLogTarget == NULL) {
++        sOutLogTarget = newCustomLogTarget(new StreamLogTarget(stdout));
++    }
++
++    return *sOutLogTarget;
++}
++
++const LogTarget& LogTarget::getErrorLogTarget() {
++    if (sErrorLogTarget == NULL) {
++        sErrorLogTarget = newCustomLogTarget(new StreamLogTarget(stderr));
++    }
++
++    return *sErrorLogTarget;
++}
++
++const LogTarget& LogTarget::getScreenLogTarget() {
++    if (sScreenLogTarget == NULL) {
++        sScreenLogTarget = newCustomLogTarget(new ScreenLogTarget());
++    }
++
++    return *sScreenLogTarget;
++}
++
++LogTarget* LogTarget::newCustomLogTarget(LogTarget* logTarget) {
++#if defined(SEND_LOGS_TO_NETWORK)
++    LogTargetForwarder* logTargetForwarder = new LogTargetForwarder();
++    logTargetForwarder->addLogTarget(logTarget);
++    logTargetForwarder->addLogTarget(&TCPLogTarget::getSharedInstance());
++    
++    return logTargetForwarder;
++#else
++    return logTarget;
++#endif
++}
+Index: Source_Files/Misc/Makefile.am
+===================================================================
+--- Source_Files/Misc/Makefile.am	(revision 4521)
++++ Source_Files/Misc/Makefile.am	(working copy)
+@@ -21,7 +21,8 @@
+   interface.cpp \
+   Logging.cpp PlayerImage_sdl.cpp PlayerName.cpp preferences.cpp \
+   preference_dialogs.cpp preferences_widgets_sdl.cpp Scenario.cpp sdl_dialogs.cpp $(THREAD_PRIORITY) \
+-  sdl_widgets.cpp shared_widgets.cpp vbl.cpp
++  sdl_widgets.cpp shared_widgets.cpp vbl.cpp \
++  LogTarget.cpp LogTargetForwarder.cpp ScreenLogTarget.cpp StreamLogTarget.cpp TCPLogTarget.cpp
+ 
+ EXTRA_libmisc_a_SOURCES = alephone.xpm alephone32.xpm thread_priority_sdl_posix.cpp thread_priority_sdl_dummy.cpp thread_priority_sdl_win32.cpp thread_priority_sdl_macosx.cpp
+ 
+Index: Source_Files/Misc/thread_priority_sdl_win32.cpp
+===================================================================
+--- Source_Files/Misc/thread_priority_sdl_win32.cpp	(revision 4521)
++++ Source_Files/Misc/thread_priority_sdl_win32.cpp	(working copy)
+@@ -25,6 +25,8 @@
+ #include    <stdio.h>
+ #include    <SDL_thread.h>
+ 
++#include "Logging.h"
++
+ static bool
+ TryToReduceMainThreadPriority() {
+     static bool isMainThreadPriorityReduced = false;
+@@ -49,19 +51,19 @@
+ 	HMODULE kernel32 = GetModuleHandle("KERNEL32");
+ 
+ 	if (kernel32 == NULL)
+-	{	printf("warning: BoostThreadPriority failed: Could not open KERNEL32.  Network performance may suffer.\n"); }
++	{	LogTarget::getOutLogTarget().log("warning: BoostThreadPriority failed: Could not open KERNEL32.  Network performance may suffer.\n"); }
+ 	else
+ 	{
+ 		OpenThreadPtrT OpenThreadPtr = reinterpret_cast<OpenThreadPtrT>(GetProcAddress(kernel32, "OpenThread"));
+ 
+ 		if (OpenThreadPtr == NULL)
+-		{	printf("warning: BoostThreadPriority failed: No OpenThread (only available on WinME, Win2000, WinXP or better).  Network performance may suffer.\n"); }
++		{	LogTarget::getOutLogTarget().log("warning: BoostThreadPriority failed: No OpenThread (only available on WinME, Win2000, WinXP or better).  Network performance may suffer.\n"); }
+ 		else
+ 		{
+             HANDLE theTargetThread = OpenThreadPtr(STANDARD_RIGHTS_REQUIRED | THREAD_SET_INFORMATION, FALSE, SDL_GetThreadID(inThread));
+ 
+ 			if (theTargetThread == NULL)
+-			{	printf("warning: BoostThreadPriority failed: Could not open thread.  Network performance may suffer.\n"); }
++			{	LogTarget::getOutLogTarget().log("warning: BoostThreadPriority failed: Could not open thread.  Network performance may suffer.\n"); }
+ 			else
+ 			{
+                 if(SetThreadPriority(theTargetThread, THREAD_PRIORITY_TIME_CRITICAL)
+Index: Source_Files/Misc/ScreenLogTarget.h
+===================================================================
+--- Source_Files/Misc/ScreenLogTarget.h	(revision 0)
++++ Source_Files/Misc/ScreenLogTarget.h	(revision 0)
+@@ -0,0 +1,12 @@
++#ifndef _SCREEN_LOG_TARGET_H_
++#define _SCREEN_LOG_TARGET_H_
++
++#include "LogTarget.h"
++
++
++class ScreenLogTarget : public LogTarget {
++public:
++    virtual void log(const char *format, va_list list) const;
++};
++
++#endif
+Index: Source_Files/ModelView/QD3D_Loader.cpp
+===================================================================
+--- Source_Files/ModelView/QD3D_Loader.cpp	(revision 4521)
++++ Source_Files/ModelView/QD3D_Loader.cpp	(working copy)
+@@ -48,7 +48,9 @@
+ #include "cseries.h"
+ #include "QD3D_Loader.h"
+ 
++#include "Logging.h"
+ 
++
+ // Debug-message destination
+ static FILE *DBOut = NULL;
+ 
+@@ -94,7 +96,7 @@
+ // For displaying QD3D errors:
+ static void QD3D_Error_Handler(TQ3Error FirstError, TQ3Error LastError, int32 UserData)
+ {
+-	if (DBOut) fprintf(DBOut,"QD3D Error: %d\n",LastError);
++	if (DBOut) StreamLogTarget::getSharedInstance().log(DBOut,"QD3D Error: %d\n",LastError);
+ }
+ 
+ // Loads a QD3D model as a group object; returns NULL if it could not be loaded
+@@ -183,7 +185,7 @@
+ 		const int BufferSize = 256;
+ 		char Buffer[BufferSize];
+ 		Spec.GetName(Buffer);
+-		fprintf(DBOut,"Loading QuickDraw-3D model file %s\n",Buffer);
++		StreamLogTarget::getSharedInstance().log(DBOut,"Loading QuickDraw-3D model file %s\n",Buffer);
+ 	}
+ 	
+ 	TQ3Object ModelObject = LoadModel(Spec);
+@@ -193,7 +195,7 @@
+ 	
+ 	if (Q3View_StartRendering(TriangulatorView) == kQ3Failure)
+ 	{
+-		if (DBOut) fprintf(DBOut,"ERROR: couldn't start triangulation 'rendering'\n");
++		if (DBOut) StreamLogTarget::getSharedInstance().log(DBOut,"ERROR: couldn't start triangulation 'rendering'\n");
+ 		Q3Object_Dispose(ModelObject);
+ 		return false;
+ 	}
+@@ -202,7 +204,7 @@
+ 		Q3SubdivisionStyle_Submit(&TesselationData, TriangulatorView);
+ 		if (Q3Object_Submit(ModelObject, TriangulatorView) == kQ3Failure)
+ 		{
+-			if (DBOut) fprintf(DBOut,"ERROR: model could not be 'rendered'\n");
++			if (DBOut) StreamLogTarget::getSharedInstance().log(DBOut,"ERROR: model could not be 'rendered'\n");
+ 		}
+ 	}
+ 	while (Q3View_EndRendering(TriangulatorView) == kQ3ViewStatusRetraverse);
+Index: Source_Files/ModelView/Dim3_Loader.cpp
+===================================================================
+--- Source_Files/ModelView/Dim3_Loader.cpp	(revision 4521)
++++ Source_Files/ModelView/Dim3_Loader.cpp	(working copy)
+@@ -41,7 +41,9 @@
+ #include "XML_Configure.h"
+ #include "XML_ElementParser.h"
+ 
++#include "Logging.h"
+ 
++
+ const float DegreesToInternal = float(FULL_CIRCLE)/float(360);
+ 
+ // Convert angle from degrees to the Marathon engine's internal units
+@@ -162,13 +164,13 @@
+ 		const int BufferSize = 256;
+ 		char Buffer[BufferSize];
+ 		Spec.GetName(Buffer);
+-		fprintf(DBOut,"Loading Dim3 model file %s\n",Buffer);
++		StreamLogTarget::getSharedInstance().log(DBOut,"Loading Dim3 model file %s\n",Buffer);
+ 	}
+ 	
+ 	OpenedFile OFile;
+ 	if (!Spec.Open(OFile))
+ 	{	
+-		if (DBOut) fprintf(DBOut,"ERROR opening the file\n");
++		if (DBOut) StreamLogTarget::getSharedInstance().log(DBOut,"ERROR opening the file\n");
+ 		return false;
+ 	}
+ 
+@@ -190,7 +192,7 @@
+ 	XML_DataBlockLoader.SourceName = FileName;
+ 	if (!XML_DataBlockLoader.ParseData(&FileContents[0],Len))
+ 	{
+-		if (DBOut) fprintf(DBOut, "There were parsing errors in Dim3 model file %s\n",FileName);
++		if (DBOut) StreamLogTarget::getSharedInstance().log(DBOut, "There were parsing errors in Dim3 model file %s\n",FileName);
+ 	}
+ 	
+ 	// Set these up now
+@@ -364,7 +366,7 @@
+ 	const char *Name = SourceName ? SourceName : "[]";
+ 
+ 	if (DBOut)
+-		fprintf(DBOut, "Error in reading data/resources from object %s\n",Name);
++		StreamLogTarget::getSharedInstance().log(DBOut, "Error in reading data/resources from object %s\n",Name);
+ }
+ 
+ 
+@@ -374,7 +376,7 @@
+ 	const char *Name = SourceName ? SourceName : "[]";
+ 
+ 	if (DBOut)
+-		fprintf(DBOut, "XML parsing error: %s at line %d in object %s\n", ErrorString, LineNumber, Name);
++		StreamLogTarget::getSharedInstance().log(DBOut, "XML parsing error: %s at line %d in object %s\n", ErrorString, LineNumber, Name);
+ }
+ 
+ 
+@@ -382,7 +384,7 @@
+ void XML_Dim3DataBlock::ReportInterpretError(const char *ErrorString)
+ {
+ 	if (DBOut)
+-		fprintf(DBOut, "%s\n",ErrorString);
++		StreamLogTarget::getSharedInstance().log(DBOut, "%s\n",ErrorString);
+ }
+ 
+ // Requests aborting of parsing (reasonable if there were lots of errors)
+Index: Source_Files/shell.h
+===================================================================
+--- Source_Files/shell.h	(revision 4521)
++++ Source_Files/shell.h	(working copy)
+@@ -24,7 +24,7 @@
+ Saturday, August 22, 1992 2:18:48 PM
+ 
+ Saturday, January 2, 1993 10:22:46 PM
+-	thank god c doesn’t choke on incomplete structure references.
++	thank god c doesnit choke on incomplete structure references.
+ 
+ Jul 5, 2000 (Loren Petrich):
+ 	Added XML support for controlling the cheats
+@@ -141,7 +141,7 @@
+ 
+ // LP: displays a text message on the screen in "printf" fashion
+ // Implemented in the "screen" routines
+-void screen_printf(const char *format, ...);
++void screen_printf(const char *format, va_list list);
+ 
+ 
+ #endif
+Index: Source_Files/CSeries/csalerts_sdl.cpp
+===================================================================
+--- Source_Files/CSeries/csalerts_sdl.cpp	(revision 4521)
++++ Source_Files/CSeries/csalerts_sdl.cpp	(working copy)
+@@ -61,7 +61,7 @@
+ 	}
+ 	MessageBox(NULL, message, severity == infoError ? "Warning" : "Error", type);
+ #else
+-	fprintf(stderr, "%s: %s\n", severity == infoError ? "INFO" : "FATAL", message);
++	LogTarget::getErrorLogTarget().log("%s: %s\n", severity == infoError ? "INFO" : "FATAL", message);
+ #endif	
+ }
+ 
+@@ -199,7 +199,7 @@
+ void pause_debug(void)
+ {
+         logNote("pause_debug called");
+-	fprintf(stderr, "pause\n");
++	LogTarget::getErrorLogTarget().log("pause\n");
+ }
+ 
+ 
+@@ -210,7 +210,7 @@
+ void vpause(const char *message)
+ {
+         logWarning1("vpause: %s", message);
+-	fprintf(stderr, "vpause %s\n", message);
++	LogTarget::getErrorLogTarget().log("vpause %s\n", message);
+ }
+ 
+ 
+@@ -221,7 +221,7 @@
+ void halt(void)
+ {
+         logFatal("halt called");
+-	fprintf(stderr, "halt\n");
++	LogTarget::getErrorLogTarget().log("halt\n");
+ 	abort();
+ }
+ 
+Index: Source_Files/Input/joystick_sdl.cpp
+===================================================================
+--- Source_Files/Input/joystick_sdl.cpp	(revision 4521)
++++ Source_Files/Input/joystick_sdl.cpp	(working copy)
+@@ -43,7 +43,7 @@
+     // joystick events :)
+     joystick = joystick ? joystick : SDL_JoystickOpen(input_preferences->joystick_id);
+ 
+-    //printf("Opened joystick at %p\n", joystick);
++    //LogTarget::getOutLogTarget()->log("Opened joystick at %p\n", joystick);
+ 
+     // initialization was easy!
+     return;
+@@ -100,7 +100,7 @@
+         if ((*store_location < input_preferences->joystick_axis_bounds[i]) && (*store_location > -input_preferences->joystick_axis_bounds[i]))
+             *store_location = 0;
+     }
+-    //printf("tick: %d\tstrafe: %d\tyaw: %d\tpitch: %d\tvel: %d\n", tick, strafe, yaw, pitch, vel);
++    //LogTarget::getOutLogTarget()->log("tick: %d\tstrafe: %d\tyaw: %d\tpitch: %d\tvel: %d\n", tick, strafe, yaw, pitch, vel);
+ 
+     // we have intelligently set up ways to allow variably throttled movement
+     // for these controls
+Index: Source_Files/XML/XML_DataBlock.cpp
+===================================================================
+--- Source_Files/XML/XML_DataBlock.cpp	(revision 4521)
++++ Source_Files/XML/XML_DataBlock.cpp	(working copy)
+@@ -78,7 +78,7 @@
+ #endif
+ 	
+ #ifdef SDL
+-	fprintf(stderr, "Error in reading data/resources from object %s\n",Name);
++	LogTarget::getErrorLogTarget().log("Error in reading data/resources from object %s\n",Name);
+ 	exit(1);
+ #endif
+ }
+@@ -103,7 +103,7 @@
+ #endif
+ 
+ #ifdef SDL
+-	fprintf(stderr, "XML parsing error: %s at line %d in object %s\n", ErrorString, LineNumber, Name);
++	LogTarget::getErrorLogTarget().log("XML parsing error: %s at line %d in object %s\n", ErrorString, LineNumber, Name);
+ #endif
+ }
+ 
+Index: Source_Files/XML/XML_Loader_SDL.cpp
+===================================================================
+--- Source_Files/XML/XML_Loader_SDL.cpp	(revision 4521)
++++ Source_Files/XML/XML_Loader_SDL.cpp	(working copy)
+@@ -34,6 +34,8 @@
+ #include "XML_Loader_SDL.h"
+ #include "FileHandler.h"
+ 
++#include "Logging.h"
++
+ #include <stdio.h>
+ #include <vector>
+ #include <algorithm>
+@@ -63,7 +65,7 @@
+ 
+ void XML_Loader_SDL::ReportReadError()
+ {
+-	fprintf(stderr, "Error in reading resources\n");
++	LogTarget::getErrorLogTarget().log("Error in reading resources\n");
+ 	exit(1);
+ }
+ 
+@@ -74,7 +76,7 @@
+ 
+ void XML_Loader_SDL::ReportParseError(const char *ErrorString, int LineNumber)
+ {
+-	fprintf(stderr, "XML parsing error: %s at line %d in object %s\n", ErrorString, LineNumber, FileName);
++	LogTarget::getErrorLogTarget().log("XML parsing error: %s at line %d in object %s\n", ErrorString, LineNumber, FileName);
+ }
+ 
+ 
+@@ -87,7 +89,7 @@
+ void XML_Loader_SDL::ReportInterpretError(const char *ErrorString)
+ {
+ 	if (GetNumInterpretErrors() < MaxErrorsToShow)
+-		fprintf(stderr, "%s\n", ErrorString);
++		LogTarget::getErrorLogTarget().log("%s\n", ErrorString);
+ }
+ 
+ 
+@@ -121,7 +123,7 @@
+ 		// Read and parse file
+ 		if (file.Read(data_size, data)) {
+ 			if (!DoParse())
+-				fprintf(stderr, "There were parsing errors in configuration file %s\n", FileName);
++				LogTarget::getErrorLogTarget().log("There were parsing errors in configuration file %s\n", FileName);
+ 		}
+ 
+ 		// Delete buffer
+Index: Source_Files/Files/access.cpp
+===================================================================
+--- Source_Files/Files/access.cpp	(revision 0)
++++ Source_Files/Files/access.cpp	(revision 0)
+@@ -0,0 +1,42 @@
++#include <unistd.h>
++#include <stdio.h>
++#include <SDL.h>
++
++#include "Logging.h"
++
++bool checkMode(const char *path, int amode);
++
++// Basic, almost-dummy implementation, not complying with specifications.
++int access(const char *path, int amode) {
++    if (((amode & R_OK) != 0) && !checkMode(path, R_OK)) {
++        return -1;
++    }
++    if (((amode & W_OK) != 0) && !checkMode(path, W_OK)) {
++        return -1;
++    }
++    
++    return 0;
++}
++
++bool checkMode(const char *path, int amode) {
++	SDL_RWops* file = NULL;
++	switch (amode) {
++		case R_OK:
++			file = SDL_RWFromFile(path, "rb");
++		break;
++		case W_OK:
++			file = SDL_RWFromFile(path, "r+b");
++		break;
++		default:
++			LogTarget::getOutLogTarget()->log("Unsupported mode : %d -> ", amode);
++		break;
++	}
++	
++    if (file == NULL) {
++		LogTarget::getOutLogTarget()->log("File '%s' cannot be opened with mode : %d (error : %s)\n", path, amode, SDL_GetError());
++        return false;
++    } else {
++		SDL_RWclose(file);
++		return true;
++	}
++}
+Index: Source_Files/Files/preprocess_map_shared.cpp
+===================================================================
+--- Source_Files/Files/preprocess_map_shared.cpp	(revision 4521)
++++ Source_Files/Files/preprocess_map_shared.cpp	(working copy)
+@@ -28,7 +28,7 @@
+ #include "interface.h"
+ #include "TextStrings.h"	// TS_GetCString()
+ #include "map.h"	// static_world->level_name
+-#include "shell.h"	// screen_printf()
++#include "Logging.h"	// LogTarget::getScreenLogTarget().log()
+ 
+ #include <ctype.h>	// I get the impression this is part of Standard C
+ 
+@@ -134,7 +134,7 @@
+ 
+ 
+ // Analogous to 'save_game()', but does not present any dialog to the user, and reports the results
+-// using screen_printf().  If inOverwriteRecent is set, it will save over the most recently saved
++// using LogTarget::getScreenLogTarget().log().  If inOverwriteRecent is set, it will save over the most recently saved
+ // or restored game (if possible).  If inOverwriteRecent is not set, or if there is no recent game
+ // to save over, it will pick a new, nonconflicting filename and save to it.
+ // Returns whether save was successful.
+@@ -184,11 +184,11 @@
+         theOutputFile.GetName(theSavedGameName);
+         
+         if(successfulSave) {
+-                screen_printf("%s saved game '%s'", createNewFile ? "Created new" : "Replaced existing", theSavedGameName);
++                LogTarget::getScreenLogTarget().log("%s saved game '%s'", createNewFile ? "Created new" : "Replaced existing", theSavedGameName);
+                 // play a sound?
+         }
+         else {
+-                screen_printf("Unable to save game as '%s'", theSavedGameName);
++                LogTarget::getScreenLogTarget().log("Unable to save game as '%s'", theSavedGameName);
+                 // play a sound?
+         }
+ 
+Index: Source_Files/Files/resource_manager.cpp
+===================================================================
+--- Source_Files/Files/resource_manager.cpp	(revision 4521)
++++ Source_Files/Files/resource_manager.cpp	(working copy)
+@@ -72,7 +72,7 @@
+ 		uint32 id = SDL_ReadBE32(f);
+ 		int32 ofs = SDL_ReadBE32(f);
+ 		int32 len = SDL_ReadBE32(f);
+-		//printf(" entry id %d, offset %d, length %d\n", id, ofs, len);
++		//LogTarget::getOutLogTarget()->log(" entry id %d, offset %d, length %d\n", id, ofs, len);
+ 		if (id == req_id) {
+ 			offset = ofs;
+ 			length = len;
+@@ -103,7 +103,7 @@
+ 			data <<= 1;
+ 		}
+ 	}
+-	//printf("crc %02x\n", crc);
++	//LogTarget::getOutLogTarget()->log("crc %02x\n", crc);
+ 	if (crc != ((header[124] << 8) | header[125]))
+ 		return false;
+ 	
+@@ -232,7 +232,7 @@
+ 	SDL_RWseek(f, map_offset + 24, SEEK_SET);
+ 	uint32 type_list_offset = map_offset + SDL_ReadBE16(f);
+ 	//uint32 name_list_offset = map_offset + SDL_ReadBE16(f);
+-	//printf(" type_list_offset %d, name_list_offset %d\n", type_list_offset, name_list_offset);
++	//LogTarget::getOutLogTarget()->log(" type_list_offset %d, name_list_offset %d\n", type_list_offset, name_list_offset);
+ 
+ 	// Verify integrity of map header
+ 	if (type_list_offset >= file_size) {
+@@ -249,7 +249,7 @@
+ 		uint32 type = SDL_ReadBE32(f);
+ 		int num_refs = SDL_ReadBE16(f) + 1;
+ 		uint32 ref_list_offset = type_list_offset + SDL_ReadBE16(f);
+-		//printf("  type %c%c%c%c, %d refs\n", type >> 24, type >> 16, type >> 8, type, num_refs);
++		//LogTarget::getOutLogTarget()->log("  type %c%c%c%c, %d refs\n", type >> 24, type >> 16, type >> 8, type, num_refs);
+ 
+ 		// Verify integrity of item
+ 		if (ref_list_offset >= file_size) {
+@@ -269,7 +269,7 @@
+ 			int id = SDL_ReadBE16(f);
+ 			SDL_RWseek(f, 2, SEEK_CUR);
+ 			uint32 rsrc_data_offset = data_offset + (SDL_ReadBE32(f) & 0x00ffffff);
+-			//printf("   id %d, rsrc_data_offset %d\n", id, rsrc_data_offset);
++			//LogTarget::getOutLogTarget()->log("   id %d, rsrc_data_offset %d\n", id, rsrc_data_offset);
+ 
+ 			// Verify integrify of item
+ 			if (rsrc_data_offset >= file_size) {
+@@ -520,7 +520,7 @@
+ 			rsrc.size = size;
+ #endif
+ 
+-//			fprintf(stderr, "get_resource type %c%c%c%c, id %d -> data %p, size %d\n", type >> 24, type >> 16, type >> 8, type, id, p, size);
++//			LogTarget::getErrorLogTarget().log("get_resource type %c%c%c%c, id %d -> data %p, size %d\n", type >> 24, type >> 16, type >> 8, type, id, p, size);
+ 			return true;
+ 		}
+ 	}
+@@ -580,7 +580,7 @@
+ 		rsrc.size = size;
+ #endif
+ 
+-//		fprintf(stderr, "get_ind_resource type %c%c%c%c, index %d -> data %p, size %d\n", type >> 24, type >> 16, type >> 8, type, index, p, size);
++//		LogTarget::getErrorLogTarget().log("get_ind_resource type %c%c%c%c, index %d -> data %p, size %d\n", type >> 24, type >> 16, type >> 8, type, index, p, size);
+ 		return true;
+ 	}
+ 	return false;
+Index: Source_Files/Files/Makefile.am
+===================================================================
+--- Source_Files/Files/Makefile.am	(revision 4521)
++++ Source_Files/Files/Makefile.am	(working copy)
+@@ -12,7 +12,7 @@
+   find_files.h game_wad.h Packing.h resource_manager.h			\
+   SDL_rwops_zzip.h tags.h wad.h wad_prefs.h				\
+ 									\
+-  AStream.cpp crc.cpp FileHandler.cpp find_files_sdl.cpp game_wad.cpp	\
++  access.cpp AStream.cpp crc.cpp FileHandler.cpp find_files_sdl.cpp game_wad.cpp	\
+   import_definitions.cpp Packing.cpp preprocess_map_sdl.cpp		\
+   preprocess_map_shared.cpp resource_manager.cpp $(ZZIP_SRCS) wad.cpp	\
+   wad.cpp wad_prefs.cpp wad_sdl.cpp
+Index: Source_Files/LibNAT/error.c
+===================================================================
+--- Source_Files/LibNAT/error.c	(revision 4521)
++++ Source_Files/LibNAT/error.c	(working copy)
+@@ -28,6 +28,7 @@
+ #include <stdlib.h>
+ #include <stdio.h>
+ #include "error.h"
++#include "Logging.h"
+ 
+ /* Implementation for printing an error to stderr. Contains
+    a huge switch statement with every possible error and a
+@@ -38,109 +39,109 @@
+   {
+   /* General Errors */
+   case OK:
+-    (void)fprintf(stderr, "No Error Occured.\n");
++    (void)LogTarget::getErrorLogTarget().log("No Error Occured.\n");
+     break;
+   case BAD_MALLOC:
+-    (void)fprintf(stderr, "Bad Malloc.\n");
++    (void)LogTarget::getErrorLogTarget().log("Bad Malloc.\n");
+     break;
+   case BAD_PARAMS:
+-    (void)fprintf(stderr, "Bad Params.\n");
++    (void)LogTarget::getErrorLogTarget().log("Bad Params.\n");
+     break;
+ 
+   /* Socket Errors */
+   case SOCKET_CONNECT_FAILED:
+-    (void)fprintf(stderr, "Socket Connection Failed.\n");
++    (void)LogTarget::getErrorLogTarget().log("Socket Connection Failed.\n");
+     break;
+   case SOCKET_SEND_TIMEOUT:
+-    (void)fprintf(stderr, "Socket Send Timeout.\n");
++    (void)LogTarget::getErrorLogTarget().log("Socket Send Timeout.\n");
+     break;
+   case SOCKET_SEND_FAILED:
+-    (void)fprintf(stderr, "Socket Send Failure.\n");
++    (void)LogTarget::getErrorLogTarget().log("Socket Send Failure.\n");
+     break;
+   case SOCKET_RECV_TIMEOUT:
+-    (void)fprintf(stderr, "Socket Recv Timeout.\n");
++    (void)LogTarget::getErrorLogTarget().log("Socket Recv Timeout.\n");
+     break;
+   case SOCKET_RECV_FAILED:
+-    (void)fprintf(stderr, "Socket Recv Failure.\n");
++    (void)LogTarget::getErrorLogTarget().log("Socket Recv Failure.\n");
+     break;
+   case SOCKET_WSASTARTUP_FAILED:
+-    (void)fprintf(stderr, "WSAStartup Failure.\n");
++    (void)LogTarget::getErrorLogTarget().log("WSAStartup Failure.\n");
+     break;
+   case SOCKET_INVALID_LIB:
+-    (void)fprintf(stderr, "Invalid Winsock library found.\n");
++    (void)LogTarget::getErrorLogTarget().log("Invalid Winsock library found.\n");
+     break;
+   case SOCKET_GETHOSTBYNAME_FAILED:
+-    (void)fprintf(stderr, "Gethostbyname failed.\n");
++    (void)LogTarget::getErrorLogTarget().log("Gethostbyname failed.\n");
+     break;
+   case SOCKET_INVALID:
+-    (void)fprintf(stderr, "Invalid Socket.\n");
++    (void)LogTarget::getErrorLogTarget().log("Invalid Socket.\n");
+     break;
+   case SOCKET_IOCTL_FAILURE:
+-    (void)fprintf(stderr, "IOCTL Failed.\n");
++    (void)LogTarget::getErrorLogTarget().log("IOCTL Failed.\n");
+     break;
+   case SOCKET_GETFL_FAILURE:
+-    (void)fprintf(stderr, "GETFL Failed.\n");
++    (void)LogTarget::getErrorLogTarget().log("GETFL Failed.\n");
+     break;
+   case SOCKET_SETFL_FAILURE:
+-    (void)fprintf(stderr, "SETFL Failed.\n");
++    (void)LogTarget::getErrorLogTarget().log("SETFL Failed.\n");
+     break;
+   case SOCKET_GETSOCKNAME_FAILED:
+-    (void)fprintf(stderr, "getsockname() Failed.");
++    (void)LogTarget::getErrorLogTarget().log("getsockname() Failed.");
+     break;
+ 
+   /* HTTP Errors */
+   case HTTP_RECV_FAILED:
+-    (void)fprintf(stderr, "HTTP Receive failed.\n");
++    (void)LogTarget::getErrorLogTarget().log("HTTP Receive failed.\n");
+     break;
+   case HTTP_RECV_OVER_MAXSIZE:
+-    (void)fprintf(stderr, "HTTP Received more data than can fit in buffer.\n");
++    (void)LogTarget::getErrorLogTarget().log("HTTP Received more data than can fit in buffer.\n");
+     break;
+   case HTTP_PORT_OUT_OF_RANGE:
+-    (void)fprintf(stderr, "HTTP port given is out of range.\n");
++    (void)LogTarget::getErrorLogTarget().log("HTTP port given is out of range.\n");
+     break;
+   case HTTP_NO_CONTENT_LENGTH:
+-    (void)fprintf(stderr, "No Content-Length found in HTTP Header.\n");
++    (void)LogTarget::getErrorLogTarget().log("No Content-Length found in HTTP Header.\n");
+     break;
+   case HTTP_HEADER_NOT_OK:
+-    (void)fprintf(stderr, "Didn't receive an HTTP/1.1 200 OK Header for HTTP.\n");
++    (void)LogTarget::getErrorLogTarget().log("Didn't receive an HTTP/1.1 200 OK Header for HTTP.\n");
+      break;
+   case HTTP_INVALID_URL:
+-    (void)fprintf(stderr, "URL is not a valid HTTP URL.\n");
++    (void)LogTarget::getErrorLogTarget().log("URL is not a valid HTTP URL.\n");
+     break;
+ 
+   /* SSDP Errors */
+   case SSDP_RECV_FAILED:
+-    (void)fprintf(stderr, "SSDP Receive failed.\n");
++    (void)LogTarget::getErrorLogTarget().log("SSDP Receive failed.\n");
+     break;
+   case SSDP_RECV_OVER_MAXSIZE:
+-    (void)fprintf(stderr, "SSDP Received more data than can fit in buffer.\n");
++    (void)LogTarget::getErrorLogTarget().log("SSDP Received more data than can fit in buffer.\n");
+     break;
+   case SSDP_HEADER_NOT_OK:
+-    (void)fprintf(stderr, "Didn't receive an HTTP/1.1 200 OK Header for SSDP.\n");
++    (void)LogTarget::getErrorLogTarget().log("Didn't receive an HTTP/1.1 200 OK Header for SSDP.\n");
+     break;
+   case SSDP_NO_LOCATION_TAG:
+-    (void)fprintf(stderr, "No location tag found in SSDP header.\n");
++    (void)LogTarget::getErrorLogTarget().log("No location tag found in SSDP header.\n");
+     break;
+   case SSDP_NO_LOCATION:
+-    (void)fprintf(stderr, "No location found in SSDP header.\n");
++    (void)LogTarget::getErrorLogTarget().log("No location found in SSDP header.\n");
+     break;
+     
+   /* UPnP Errors */
+   case UPNP_BAD_DESCRIPTION:
+-    (void)fprintf(stderr, "Bad Description XML could not be parsed.\n");
++    (void)LogTarget::getErrorLogTarget().log("Bad Description XML could not be parsed.\n");
+     break;
+   case UPNP_GET_PUBLIC_IP_FAILED:
+-    (void)fprintf(stderr, "Get Public IP Failed.\n");
++    (void)LogTarget::getErrorLogTarget().log("Get Public IP Failed.\n");
+     break;
+   case UPNP_BAD_PUBLIC_IP_RESPONSE:
+-    (void)fprintf(stderr, "Bad XML Response from Get Public IP.\n");
++    (void)LogTarget::getErrorLogTarget().log("Bad XML Response from Get Public IP.\n");
+     break;
+   case UPNP_URL_OVER_MAX_LEN:
+-    (void)fprintf(stderr, "URL Over Maximum Allowed Length.\n");
++    (void)LogTarget::getErrorLogTarget().log("URL Over Maximum Allowed Length.\n");
+     break;
+ 
+   default:
+-    (void)fprintf(stderr, "Some Error.\n");
++    (void)LogTarget::getErrorLogTarget().log("Some Error.\n");
+     break;
+   }
+ }
+Index: Source_Files/TCPMess/CommunicationsChannel.cpp
+===================================================================
+--- Source_Files/TCPMess/CommunicationsChannel.cpp	(revision 4521)
++++ Source_Files/TCPMess/CommunicationsChannel.cpp	(working copy)
+@@ -33,6 +33,8 @@
+ #include "MessageInflater.h"
+ #include "MessageHandler.h"
+ 
++#include "Logging.h"
++
+ #include <stdlib.h>
+ #include <iostream> // debugging
+ #include <cerrno>
+@@ -784,7 +786,7 @@
+ 		OTRcvUDErr( sock->channel, NULL );
+ 		
+ #ifdef DEBUG_NET
+-		printf("AsyncTCPPopEvent  T_UDERR recognized");
++		LogTarget::getOutLogTarget().log("AsyncTCPPopEvent  T_UDERR recognized");
+ #endif
+ 	}
+ 	
+@@ -836,7 +838,7 @@
+ 
+ #ifdef DEBUG_NET
+ 		if ( res != kOTNoDataErr )
+-			printf("SDLNet_TCP_Recv received ; %d\n", res );
++			LogTarget::getOutLogTarget().log("SDLNet_TCP_Recv received ; %d\n", res );
+ #endif
+ 		
+ 		AsyncTCPPopEvent(sock);
+@@ -850,7 +852,7 @@
+ 	sock->ready = 0;
+ 	if ( len == 0 && res != kOTNoDataErr) { /* Open Transport error */
+ #ifdef DEBUG_NET
+-		printf("Open Transport error: %d\n", res);
++		LogTarget::getOutLogTarget().log("Open Transport error: %d\n", res);
+ #endif
+ 		return(-1);
+ 	}

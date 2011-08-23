@@ -1,0 +1,20 @@
+Index: Source_Files/Misc/thread_priority_sdl_posix.cpp
+===================================================================
+--- Source_Files/Misc/thread_priority_sdl_posix.cpp	(revision 4513)
++++ Source_Files/Misc/thread_priority_sdl_posix.cpp	(working copy)
+@@ -21,6 +21,7 @@
+ 
+ #include	"thread_priority_sdl.h"
+ 
++#if defined(_POSIX_PRIORITY_SCHEDULING)
+ #if defined(TARGET_API_MAC_CARBON) && __MACH__
+ #include <SDL/SDL_Thread.h>
+ #else
+@@ -29,6 +30,7 @@
+ 
+ #include	<pthread.h>
+ #include        <sched.h>
++#endif
+ 
+ bool
+ BoostThreadPriority(SDL_Thread* inThread) {
