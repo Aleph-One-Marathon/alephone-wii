@@ -35,7 +35,7 @@ function getSources {
     spushd ${SOURCES_PATH}
     if [ $(isStateDone fetch_sources) = "false" ]; then
         echo "Fetching Aleph-One's source code..."
-        svn checkout -r 4521 -q https://marathon.svn.sourceforge.net/svnroot/marathon/trunk .
+        svn checkout -r 4524 -q https://marathon.svn.sourceforge.net/svnroot/marathon/trunk .
         setStateDone fetch_sources $?
     fi
     FETCH_SOURCES_DONE=$(isStateDone fetch_sources)
@@ -86,9 +86,7 @@ function configureBuild {
 function build {
     spushd ${BUILD_PATH}
     if [ ${CONFIGURE_DONE} = "true" ]; then
-#        make && make install
-        make
-        cp Source_Files/alephone ${BIN_PATH}/${APPS_DIR}/${ALEPH_DIR}/alephone
+        make && make install
     fi
     MAKE_INSTALL_SUCCESS=$?
     spopd
@@ -113,6 +111,6 @@ BIN_PATH=$(getAbsolutePath ${FLAVOR}/bin)
 
 getSources
 setupBuildEnvironment
-# applyPatches
+applyPatches
 configureBuild
 build

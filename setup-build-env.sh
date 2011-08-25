@@ -19,7 +19,7 @@ export ELF2DOL=${DEVKITPPC}/bin/elf2dol
 
 export MACHDEP="-g -mcpu=750 -meabi -mhard-float -mrvl"
 export OPTIMS="" #-O3 -ffunction-sections -fdata-sections -fmodulo-sched"
-export DEFS="-DGEKKO -D__WII__ -DHW_RVL -DSEND_LOGS_TO_NETWORK"
+export DEFS="-DGEKKO -D__WII__ -DHW_RVL"
 export LIBS="-ldb -lnetport -lSDL_net -lSDL_ttf -lSDL_gfx -lSDL_mixer -lSDL_image -lsmpeg -lSDL -ljpeg -lpng -lfreetype -lvorbisidec -lz -lfat -lwiiuse -lbte -logc -lm -lwiikeyboard"
 export CFLAGS="${MACHDEP} ${OPTIMS} ${DEFS}"
 export CXXFLAGS="${CFLAGS}"

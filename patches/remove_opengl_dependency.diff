@@ -1,0 +1,328 @@
+Index: Source_Files/Lua/lua_map.cpp
+===================================================================
+--- Source_Files/Lua/lua_map.cpp	(revision 4524)
++++ Source_Files/Lua/lua_map.cpp	(working copy)
+@@ -2890,19 +2890,31 @@
+ 
+ static int Lua_Fog_Color_Get_R(lua_State *L)
+ {
++#ifdef HAVE_OPENGL
+ 	lua_pushnumber(L, (float) (OGL_GetFogData(Lua_Fog_Color::Index(L, 1))->Color.red) / 65535);
++#else
++	fprintf(stderr, "Fog not supported in software rendering mode.");
++#endif
+ 	return 1;
+ }
+ 
+ static int Lua_Fog_Color_Get_G(lua_State *L)
+ {
++#ifdef HAVE_OPENGL
+ 	lua_pushnumber(L, (float) (OGL_GetFogData(Lua_Fog_Color::Index(L, 1))->Color.green) / 65535);
++#else
++	fprintf(stderr, "Fog not supported in software rendering mode.");
++#endif
+ 	return 1;
+ }
+ 
+ static int Lua_Fog_Color_Get_B(lua_State *L)
+ {
++#ifdef HAVE_OPENGL
+ 	lua_pushnumber(L, (float) (OGL_GetFogData(Lua_Fog_Color::Index(L, 1))->Color.blue) / 65535);
++#else
++	fprintf(stderr, "Fog not supported in software rendering mode.");
++#endif
+ 	return 1;
+ }
+ 
+@@ -2912,7 +2924,11 @@
+ 		luaL_error(L, "r: incorrect argument type");
+ 
+ 	float color = static_cast<float>(lua_tonumber(L, 2));
++#ifdef HAVE_OPENGL
+ 	OGL_GetFogData(Lua_Fog_Color::Index(L, 1))->Color.red = PIN(int(65535 * color + 0.5), 0, 65535);
++#else
++	fprintf(stderr, "Fog not supported in software rendering mode.");
++#endif
+ 	return 0;
+ }
+ 
+@@ -2922,7 +2938,11 @@
+ 		luaL_error(L, "g: incorrect argument type");
+ 
+ 	float color = static_cast<float>(lua_tonumber(L, 2));
++#ifdef HAVE_OPENGL
+ 	OGL_GetFogData(Lua_Fog_Color::Index(L, 1))->Color.green = PIN(int(65535 * color + 0.5), 0, 65535);
++#else
++	fprintf(stderr, "Fog not supported in software rendering mode.");
++#endif
+ 	return 0;
+ }
+ 
+@@ -2932,7 +2952,11 @@
+ 		luaL_error(L, "b: incorrect argument type");
+ 
+ 	float color = static_cast<float>(lua_tonumber(L, 2));
++#ifdef HAVE_OPENGL
+ 	OGL_GetFogData(Lua_Fog_Color::Index(L, 1))->Color.blue = PIN(int(65535 * color + 0.5), 0, 65535);
++#else
++	fprintf(stderr, "Fog not supported in software rendering mode.");
++#endif
+ 	return 0;
+ }
+ 
+@@ -2955,25 +2979,41 @@
+ 
+ static int Lua_Fog_Get_Active(lua_State *L)
+ {
++#ifdef HAVE_OPENGL
+ 	lua_pushboolean(L, OGL_GetFogData(Lua_Fog::Index(L, 1))->IsPresent);
++#else
++	fprintf(stderr, "Fog not supported in software rendering mode.");
++#endif
+ 	return 1;
+ }
+ 
+ static int Lua_Fog_Get_Affects_Landscapes(lua_State *L)
+ {
++#ifdef HAVE_OPENGL
+ 	lua_pushboolean(L, OGL_GetFogData(Lua_Fog::Index(L, 1))->AffectsLandscapes);
++#else
++	fprintf(stderr, "Fog not supported in software rendering mode.");
++#endif
+ 	return 1;
+ }
+ 
+ static int Lua_Fog_Get_Color(lua_State *L)
+ {
++#ifdef HAVE_OPENGL
+ 	Lua_Fog_Color::Push(L, Lua_Fog::Index(L, 1));
++#else
++	fprintf(stderr, "Fog not supported in software rendering mode.");
++#endif
+ 	return 1;
+ }
+ 
+ static int Lua_Fog_Get_Depth(lua_State *L)
+ {
++#ifdef HAVE_OPENGL
+ 	lua_pushnumber(L, OGL_GetFogData(Lua_Fog::Index(L, 1))->Depth);
++#else
++	fprintf(stderr, "Fog not supported in software rendering mode.");
++#endif
+ 	return 1;
+ }
+ 
+@@ -2991,7 +3031,11 @@
+ 	if (!lua_isboolean(L, 2))
+ 		return luaL_error(L, "active: incorrect argument type");
+ 	
++#ifdef HAVE_OPENGL
+ 	OGL_GetFogData(Lua_Fog::Index(L, 1))->IsPresent = static_cast<bool>(lua_toboolean(L, 2));
++#else
++	fprintf(stderr, "Fog not supported in software rendering mode.");
++#endif
+ 	return 0;
+ }
+ 
+@@ -3000,7 +3044,11 @@
+ 	if (!lua_isboolean(L, 2))
+ 		return luaL_error(L, "affects_landscapes: incorrect argument type");
+ 	
++#ifdef HAVE_OPENGL
+ 	OGL_GetFogData(Lua_Fog::Index(L, 1))->AffectsLandscapes = static_cast<bool>(lua_toboolean(L, 2));
++#else
++	fprintf(stderr, "Fog not supported in software rendering mode.");
++#endif
+ 	return 0;
+ }
+ 
+@@ -3009,7 +3057,11 @@
+ 	if (!lua_isnumber(L, 2))
+ 		return luaL_error(L, "depth: incorrect argument type");
+ 
++#ifdef HAVE_OPENGL
+ 	OGL_GetFogData(Lua_Fog::Index(L, 1))->Depth = static_cast<float>(lua_tonumber(L, 2));
++#else
++	fprintf(stderr, "Fog not supported in software rendering mode.");
++#endif
+ 	return 0;
+ }
+ 
+Index: Source_Files/RenderMain/shapes.cpp
+===================================================================
+--- Source_Files/RenderMain/shapes.cpp	(revision 4524)
++++ Source_Files/RenderMain/shapes.cpp	(working copy)
+@@ -1536,7 +1536,9 @@
+ 		{
+ 			unload_collection(header);
+ 		}
++#ifdef HAVE_OPENGL
+ 		OGL_UnloadModelsImages(collection_index);
++#endif
+ 	}
+ }
+ 
+@@ -1829,7 +1831,9 @@
+ 			{
+ 				unload_collection(header);
+ 			}
++#ifdef HAVE_OPENGL
+ 			OGL_UnloadModelsImages(collection_index);
++#endif
+ 			SW_Texture_Extras::instance()->Unload(collection_index);
+ 		}
+ 		else
+Index: Source_Files/RenderMain/Makefile.am
+===================================================================
+--- Source_Files/RenderMain/Makefile.am	(revision 4524)
++++ Source_Files/RenderMain/Makefile.am	(working copy)
+@@ -3,30 +3,34 @@
+ noinst_LIBRARIES = librendermain.a
+ 
+ if MAKE_OPENGL
+-OPENGL_SOURCES = Rasterizer_Shader.cpp RenderRasterize_Shader.cpp
++OPENGL_SOURCES = Rasterizer_Shader.h RenderRasterize_Shader.h		\
++  Rasterizer_OGL.h OGL_Faders.h OGL_Headers.h OGL_Model_Def.h           \
++  OGL_Render.h OGL_Subst_Texture_Def.h OGL_Texture_Def.h OGL_Textures.h	\
++  OGL_Setup.h OGL_Shader.h						\
++									\
++  Rasterizer_Shader.cpp RenderRasterize_Shader.cpp OGL_Faders.cpp	\
++  OGL_Model_Def.cpp OGL_Render.cpp OGL_Setup.cpp			\
++  OGL_Subst_Texture_Def.cpp OGL_Textures.cpp OGL_Shader.cpp
+ else
+ OPENGL_SOURCES = 
+ endif
+ 
+ librendermain_a_SOURCES = AnimatedTextures.h collection_definition.h	\
+-  Crosshairs.h DDS.h ImageLoader.h low_level_textures.h OGL_Faders.h	\
+-  OGL_Headers.h OGL_Model_Def.h OGL_Render.h OGL_Setup.h		\
+-  OGL_Subst_Texture_Def.h OGL_Texture_Def.h OGL_Textures.h		\
+-  Rasterizer.h Rasterizer_OGL.h Rasterizer_Shader.h Rasterizer_SW.h	\
+-  render.h RenderPlaceObjs.h RenderRasterize.h				\
+-  RenderRasterize_Shader.h RenderSortPoly.h RenderVisTree.h		\
+-  scottish_textures.h shape_definitions.h shape_descriptors.h		\
+-  SW_Texture_Extras.h textures.h OGL_Shader.h vec3.h			\
++  Crosshairs.h DDS.h ImageLoader.h low_level_textures.h Rasterizer.h	\
++  Rasterizer_SW.h render.h RenderPlaceObjs.h RenderRasterize.h		\
++  RenderSortPoly.h RenderVisTree.h scottish_textures.h			\
++  shape_definitions.h shape_descriptors.h SW_Texture_Extras.h		\
++  textures.h vec3.h							\
+ 									\
+   AnimatedTextures.cpp Crosshairs_SDL.cpp ImageLoader_Shared.cpp	\
+-  ImageLoader_SDL.cpp OGL_Faders.cpp OGL_Model_Def.cpp OGL_Render.cpp	\
+-  OGL_Setup.cpp OGL_Subst_Texture_Def.cpp OGL_Textures.cpp render.cpp	\
+-  RenderPlaceObjs.cpp $(OPENGL_SOURCES) RenderRasterize.cpp		\
+-  RenderSortPoly.cpp RenderVisTree.cpp scottish_textures.cpp		\
+-  shapes.cpp SW_Texture_Extras.cpp textures.cpp OGL_Shader.cpp
++  render.cpp RenderPlaceObjs.cpp RenderRasterize.cpp RenderSortPoly.cpp	\
++  RenderVisTree.cpp scottish_textures.cpp shapes.cpp $(OPENGL_SOURCES)	\
++  SW_Texture_Extras.cpp textures.cpp ImageLoader_SDL.cpp
+ 
+-EXTRA_librendermain_a_SOURCES = Rasterizer_Shader.cpp	\
+-RenderRasterize_Shader.cpp
++EXTRA_librendermain_a_SOURCES = Rasterizer_Shader.cpp			\
++  RenderRasterize_Shader.cpp OGL_Faders.cpp OGL_Model_Def.cpp		\
++  OGL_Render.cpp OGL_Setup.cpp OGL_Subst_Texture_Def.cpp		\
++  OGL_Textures.cpp OGL_Shader.cpp
+ 
+ INCLUDES = -I$(top_srcdir)/Source_Files/CSeries -I$(top_srcdir)/Source_Files/Files \
+   -I$(top_srcdir)/Source_Files/GameWorld -I$(top_srcdir)/Source_Files/Input \
+Index: Source_Files/shell.cpp
+===================================================================
+--- Source_Files/shell.cpp	(revision 4524)
++++ Source_Files/shell.cpp	(working copy)
+@@ -1060,12 +1060,16 @@
+ 		}
+ 		else if (key == SDLK_F3) // Resolution toggle
+ 		{
++#ifdef HAVE_OPENGL
+ 			if (!OGL_IsActive()) {
++#endif
+ 				PlayInterfaceButtonSound(Sound_ButtonSuccess());
+ 				graphics_preferences->screen_mode.high_resolution = !graphics_preferences->screen_mode.high_resolution;
+ 				changed_screen_mode = changed_prefs = true;
++#ifdef HAVE_OPENGL
+ 			} else
+ 				PlayInterfaceButtonSound(Sound_ButtonFailure());
++#endif
+ 		}
+ 		else if (key == SDLK_F4)		// Reset OpenGL textures
+ 		{
+Index: Source_Files/Misc/preferences.cpp
+===================================================================
+--- Source_Files/Misc/preferences.cpp	(revision 4524)
++++ Source_Files/Misc/preferences.cpp	(working copy)
+@@ -2449,7 +2449,9 @@
+ 	
+ 	preferences->screen_mode.draw_every_other_line= false;
+ 	
++#ifdef HAVE_OPENGL
+ 	OGL_SetDefaults(preferences->OGL_Configure);
++#endif
+ 
+ 	preferences->double_corpse_limit= false;
+ 	preferences->hog_the_cpu = false;
+Index: Source_Files/Misc/interface.cpp
+===================================================================
+--- Source_Files/Misc/interface.cpp	(revision 4524)
++++ Source_Files/Misc/interface.cpp	(working copy)
+@@ -1003,7 +1003,9 @@
+ 	void)
+ {
+ 	stop_fade();
++#ifdef HAVE_OPENGL
+ 	if (!OGL_IsActive() || !(TEST_FLAG(Get_OGL_ConfigureData().Flags,OGL_Flag_Fader)))
++#endif
+ 		set_fade_effect(NONE);
+ 	darken_world_window();
+ 	set_keyboard_controller_status(false);
+@@ -1018,7 +1020,9 @@
+ #ifdef SDL
+ 	hide_cursor();
+ #endif
++#ifdef HAVE_OPENGL
+ 	if (!OGL_IsActive() || !(TEST_FLAG(Get_OGL_ConfigureData().Flags,OGL_Flag_Fader)))
++#endif
+ 		SetFadeEffectDelay(TICKS_PER_SECOND/2);
+ 	validate_world_window();
+ 	set_keyboard_controller_status(true);
+@@ -1341,7 +1345,9 @@
+ 						if(really_wants_to_quit)
+ 						{
+ 							// Rhys Hill fix for crash when quitting OpenGL
++#ifdef HAVE_OPENGL
+ 							if (!OGL_IsActive())
++#endif
+ 								render_screen(0); /* Get rid of hole.. */
+ /* If you want to quit on command-q while in the game.. */
+ #if 0
+@@ -1993,11 +1999,15 @@
+ 		L_Call_HUDInit();
+ 	
+ 	// LP: this is in case we are starting underneath a liquid
++#ifdef HAVE_OPENGL
+ 	if (!OGL_IsActive() || !(TEST_FLAG(Get_OGL_ConfigureData().Flags,OGL_Flag_Fader)))
+ 	{
++#endif
+ 		set_fade_effect(NONE);
+ 		SetFadeEffectDelay(TICKS_PER_SECOND/2);
++#ifdef HAVE_OPENGL
+ 	}
++#endif
+ 
+ 	// Screen should already be black! 
+ 	validate_world_window();
+Index: Source_Files/XML/XML_MakeRoot.cpp
+===================================================================
+--- Source_Files/XML/XML_MakeRoot.cpp	(revision 4524)
++++ Source_Files/XML/XML_MakeRoot.cpp	(working copy)
+@@ -93,7 +93,9 @@
+ 	MarathonParser.AddChild(View_GetParser());
+ 	MarathonParser.AddChild(Landscapes_GetParser());
+ 	MarathonParser.AddChild(Weapons_GetParser());
++#ifdef HAVE_OPENGL
+ 	MarathonParser.AddChild(OpenGL_GetParser());
++#endif
+ 	MarathonParser.AddChild(Cheats_GetParser());
+ 	MarathonParser.AddChild(TextureLoading_GetParser());
+ 	MarathonParser.AddChild(Keyboard_GetParser());

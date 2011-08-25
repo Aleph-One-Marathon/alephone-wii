@@ -1,18 +1,8 @@
 Index: Source_Files/shell.cpp
 ===================================================================
---- Source_Files/shell.cpp	(revision 4521)
+--- Source_Files/shell.cpp	(revision 4524)
 +++ Source_Files/shell.cpp	(working copy)
-@@ -116,6 +116,9 @@
- #include <shlobj.h>
- #endif
- 
-+#include <c:/devkitPro/libogc/include/network.h>
-+#include <debug.h>
-+
- #include "alephversion.h"
- 
- #include "Logging.h"
-@@ -167,6 +170,15 @@
+@@ -167,6 +167,11 @@
  void execute_timer_tasks(uint32 time);
  
  // Prototypes
@@ -20,24 +10,11 @@ Index: Source_Files/shell.cpp
 +vector<string> get_options_from_argv(int argc, char **argv);
 +bool check_option(const string& option, const string& shortName, const string& longName);
 +void parse_options(const string prg_name, const vector<string>& options);
-+void wait_before_exiting(int exit_code);
-+void wait(float seconds);
-+void message(const string& msg);
 +
-+static void initialize_remote_debug();
  static void initialize_application(void);
  void shutdown_application(void);
  static void initialize_marathon_music_handler(void);
-@@ -180,7 +192,7 @@
- #ifdef __WIN32__
- 	MessageBox(NULL, "Command line switches:\n\n"
- #else
--	printf("\nUsage: %s [options] [directory] [file]\n"
-+	printf_broadcast("\nUsage: %s [options] [directory] [file]\n"
- #endif
- 	  "\t[-h | --help]          Display this help message\n"
- 	  "\t[-v | --version]       Display the game version\n"
-@@ -193,11 +205,12 @@
+@@ -193,11 +198,12 @@
  #endif
  	  "\t[-s | --nosound]       Do not access the sound card\n"
  	  "\t[-m | --nogamma]       Disable gamma table effects (menu fades)\n"
@@ -52,21 +29,7 @@ Index: Source_Files/shell.cpp
  	  "\nYou can also use the ALEPHONE_DATA environment variable to specify\n"
  	  "the data directory.\n"
  #ifdef __WIN32__
-@@ -206,7 +219,7 @@
- 	  , prg_name
- #endif
- 	);
--	exit(0);
-+	wait_before_exiting(0);
- }
- 
- extern bool handle_open_replay(FileSpecifier& File);
-@@ -245,14 +258,134 @@
- 	default:
- 		break;
- 	}
--	
-+
+@@ -249,6 +255,122 @@
  	return done;
  }
  
@@ -75,10 +38,8 @@ Index: Source_Files/shell.cpp
 +	FileSpecifier ini_file_spec = optionFile.c_str();
 +
 +	if (ini_file_spec.Exists() && !ini_file_spec.IsDir()) {
-+        message("Option file found...");
 +		OpenedFile ini_file;
 +		if (ini_file_spec.Open(ini_file)) {
-+            message("Option file opened...");
 +			int file_length;
 +			ini_file.GetLength(file_length);
 +
@@ -86,7 +47,6 @@ Index: Source_Files/shell.cpp
 +			ini_file.Read(file_length, read_buffer);
 +			read_buffer[file_length] = '\0';
 +			string ini_file_content = read_buffer;
-+			message("Option file content : " + ini_file_content);
 +
 +			char options_separators[] = {' ', '\r', '\n', '\t', '\0'};
 +			size_t start_index = 0;
@@ -103,13 +63,12 @@ Index: Source_Files/shell.cpp
 +				}
 +				if (option.size() > 0) {
 +					argv.push_back(option);
-+					message("\t. " + option);
 +				}
 +			}
 +		}
 +	} else {
-+        message("Option file not found!");
-+    }
++		fprintf(stderr, "Option file not found!\n");
++	}
 +
 +	return argv;
 +}
@@ -120,27 +79,29 @@ Index: Source_Files/shell.cpp
 +		options.push_back(argv[i]);
 +	}
 +
++#ifndef HAVE_OPENGL
++	options.push_back("-g");
++#endif
++
 +#if defined(__WII__)
-+    message("Adding fake parameters to allow Wii version to start.");
++	fprintf(stdout, "Adding fake parameters to allow Wii version to start.\n");
++	options.push_back("-f");
 +	options.push_back("-F");
-+	options.push_back("sd:/apps/AlephOne/alephone.ini");
++	options.push_back("sd:/apps/AlephOne/AlephOne.ini");
 +#endif
 +
 +	return options;
 +}
 +
 +void parse_options(const string prg_name, const vector<string>& options) {
-+    printf_broadcast("Parsing options...\n");
 +	for (vector<string>::const_iterator it = options.begin(); it != options.end(); it++) {
 +		const string& argv = *it;
-+
-+		printf_broadcast("\t. %s\n", argv.c_str());
 +
 +		if (check_option(argv, "-h", "--help")) {
 +			usage(prg_name.c_str());
 +		} else if (check_option(argv, "-v", "--version")) {
-+			printf_broadcast("Aleph One " A1_VERSION_STRING "\n");
-+			wait_before_exiting(0);
++			fprintf(stdout, "Aleph One " A1_VERSION_STRING "\n");
++			exit(0);
 +		} else if (check_option(argv, "-f", "--fullscreen")) {
 +			force_fullscreen = true;
 +		} else if (check_option(argv, "-w", "--windowed")) {
@@ -163,7 +124,7 @@ Index: Source_Files/shell.cpp
 +				vector<string> iniFileOptions = get_options_from_ini_file(*it);
 +				parse_options(prg_name, iniFileOptions);
 +			} else {
-+				printf_broadcast("Missing value for option '%s'.\n", argv.c_str());
++				fprintf(stdout, "Missing value for option '%s'.\n", argv.c_str());
 +			}
 +		} else if (argv[0] != '-') {
 +			// if it's a directory, make it the default data dir
@@ -178,7 +139,7 @@ Index: Source_Files/shell.cpp
 +				arg_files.push_back(argv.c_str());
 +			}
 +		} else {
-+			printf_broadcast("Unrecognized argument '%s'.\n", argv.c_str());
++			printf("Unrecognized argument '%s'.\n", argv.c_str());
 +			usage(prg_name.c_str());
 +		}
 +	}
@@ -190,15 +151,8 @@ Index: Source_Files/shell.cpp
 +
  int main(int argc, char **argv)
  {
-+	initialize_remote_debug();
-+
  	// Print banner (don't bother if this doesn't appear when started from a GUI)
--	printf ("Aleph One " A1_VERSION_STRING "\n"
-+	printf_broadcast ("Aleph One " A1_VERSION_STRING "\n"
- 	  "http://marathon.sourceforge.net/\n\n"
- 	  "Original code by Bungie Software <http://www.bungie.com/>\n"
- 	  "Additional work by Loren Petrich, Chris Pruett, Rhys Hill et al.\n"
-@@ -280,58 +413,20 @@
+@@ -280,51 +402,10 @@
      );
  
  	// Parse arguments
@@ -248,103 +202,13 @@ Index: Source_Files/shell.cpp
 -	}
 -
 +	string prg_name = argv[0];
-+	message(string("Program name : ") + prg_name);
 +	vector<string> options = get_options_from_argv(argc - 1, argv + 1);
-+	message("Options fetched from argv. Parsing them now...");
 +	parse_options(prg_name, options);
- 	try {
--		
- 		// Initialize everything
-+		message("Initializing application");
- 		initialize_application();
- 
-+        message("Handling files to open");
- 		for (std::vector<std::string>::iterator it = arg_files.begin(); it != arg_files.end(); ++it)
- 		{
-+            message("\t. Handling : " + *it);
- 			if (handle_open_document(*it))
- 			{
- 				break;
-@@ -339,33 +434,76 @@
- 		}
- 
- 		// Run the main loop
-+		message("Entering main loop");
- 		main_event_loop();
- 
- 	} catch (exception &e) {
- 		try 
- 		{
-+		    message(string("Unhandled exception: ") + e.what());
- 			logFatal("Unhandled exception: %s", e.what());
- 		}
- 		catch (...) 
- 		{
- 		}
--		exit(1);
-+		wait_before_exiting(1);
- 	} catch (...) {
- 		try
- 		{
-+		    message("Unknown exception");
- 			logFatal("Unknown exception");
- 		}
- 		catch (...)
- 		{
- 		}
--		exit(1);
-+		wait_before_exiting(1);
- 	}
 +	
-+	message("Job done!");
- 
- 	return 0;
- }
- 
-+#include <time.h>
-+void wait_before_exiting(int exit_code) {
-+    wait(10000);
-+    exit(exit_code);
-+}
-+
-+void wait(float seconds) {
-+    clock_t endwait = (int)(clock() + seconds * CLOCKS_PER_SEC);
-+    while (clock() < endwait) {}
-+}
-+
-+void message(const string& msg) {
-+    printf_broadcast("%s\n", msg.c_str());
-+    wait(3);
-+}
-+
-+static void initialize_remote_debug() {
-+    char localip[16] = {0};
-+    char netmask[16] = {0};
-+    char gateway[16] = {0};
-+/*
-+	message("Configuring network ...");
-+	if (if_config(localip, netmask, gateway, true) >= 0) {
-+		message(string("Network initialized :\n\tip: ") + localip + "\n\tgateway: " + gateway + "\n\tnetmask: " + netmask);
-+		
-+		message("Initialize remote debug");
-+		DEBUG_Init(100, 5656);
-+
-+		message("Breaking now");
-+		_break();
-+	} else {
-+		message("Could not initialize network! Remote debug will not be possible.");
-+	}
-+*/
-+}
-+
- static void initialize_application(void)
- {
-+	_break();
-+
- #if defined(__WIN32__) && defined(__MINGW32__)
- 	if (LoadLibrary("exchndl.dll")) option_debug = true;
- #endif
-@@ -448,6 +586,11 @@
+ 	try {
+ 		
+ 		// Initialize everything
+@@ -448,6 +529,11 @@
  
  	log_dir = local_data_dir;
  
@@ -356,71 +220,3 @@ Index: Source_Files/shell.cpp
  #else
  	default_data_dir = "";
  	local_data_dir = "";
-@@ -534,8 +677,8 @@
- 
- 	// Check for presence of strings
- 	if (!TS_IsPresent(strERRORS) || !TS_IsPresent(strFILENAMES)) {
--		fprintf(stderr, "Can't find required text strings (missing MML?).\n");
--		exit(1);
-+		fprintf_broadcast(stderr, "Can't find required text strings (missing MML?).\n");
-+		wait_before_exiting(1);
- 	}
- 	
- 	// Check for presence of files (one last chance to change data_search_path)
-@@ -592,8 +735,8 @@
- 			      (option_debug ? SDL_INIT_NOPARACHUTE : 0));
- 	if (retval < 0)
- 	{
--		fprintf(stderr, "Couldn't initialize SDL (%s)\n", SDL_GetError());
--		exit(1);
-+		fprintf_broadcast(stderr, "Couldn't initialize SDL (%s)\n", SDL_GetError());
-+		wait_before_exiting(1);
- 	}
- 	SDL_WM_SetCaption("Aleph One", "Aleph One");
- 
-@@ -609,15 +752,15 @@
- #ifdef HAVE_SDL_NET
- 	// Initialize SDL_net
- 	if (SDLNet_Init () < 0) {
--		fprintf (stderr, "Couldn't initialize SDL_net (%s)\n", SDLNet_GetError());
--		exit(1);
-+		fprintf_broadcast (stderr, "Couldn't initialize SDL_net (%s)\n", SDLNet_GetError());
-+		wait_before_exiting(1);
- 	}
- #endif
- 
- #ifdef HAVE_SDL_TTF
- 	if (TTF_Init() < 0) {
--		fprintf (stderr, "Couldn't initialize SDL_ttf (%s)\n", TTF_GetError());
--		exit(1);
-+		fprintf_broadcast (stderr, "Couldn't initialize SDL_ttf (%s)\n", TTF_GetError());
-+		wait_before_exiting(1);
- 	}
- #endif
- 
-@@ -927,9 +1070,9 @@
- 					}
- 					else {
- #if defined(__APPLE__) && defined(__MACH__)
--						screen_printf("If you wish to quit, press Command-Q");
-+						screen_printf_broadcast("If you wish to quit, press Command-Q");
- #else
--						screen_printf("If you wish to quit, press Alt+Q.");
-+						screen_printf_broadcast("If you wish to quit, press Alt+Q.");
- #endif
- 					}
- 				}
-@@ -1365,11 +1508,11 @@
- #endif
- 		if (get_game_state() == _game_in_progress)
- 		{
--			sprintf(name, "%s_%04d.%s", to_alnum(static_world->level_name).c_str(), i, suffix);
-+			sprintf_broadcast(name, "%s_%04d.%s", to_alnum(static_world->level_name).c_str(), i, suffix);
- 		}
- 		else
- 		{
--			sprintf(name, "Screenshot_%04d.%s", i, suffix);
-+			sprintf_broadcast(name, "Screenshot_%04d.%s", i, suffix);
- 		}
- 
- 		file = screenshots_dir + name;
