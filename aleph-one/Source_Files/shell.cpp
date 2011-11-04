@@ -188,6 +188,10 @@ vector<string> get_options_from_platform_requirements();
 bool check_option(const string& option, const string& shortName, const string& longName);
 void parse_options(const string prg_name, const vector<string>& options);
 
+#if defined (__WII__)
+int init_network_subsystem();
+#endif
+
 static void initialize_application(void);
 void shutdown_application(void);
 static void initialize_marathon_music_handler(void);
@@ -480,6 +484,10 @@ int main(int argc, char **argv)
 
 static void initialize_application(void)
 {
+#if defined(__WII__)
+	init_network_subsystem();
+#endif
+
 #if defined(__WIN32__) && defined(__MINGW32__)
 	if (LoadLibrary("exchndl.dll")) option_debug = true;
 #endif
@@ -749,6 +757,36 @@ static void initialize_application(void)
 	load_environment_from_preferences();
 	initialize_game_state();
 }
+
+#if defined(__WII__)
+// TODO : remove hacky include due to file name collision
+#include <C:\devkitPro\libogc\include\network.h>
+int init_network_subsystem() {
+	const int maxTryCount = 5;
+	int result = -EAGAIN;
+	fprintf(stdout, "Initializing network...\n");
+	for (int i = 1; (i <= maxTryCount) && (result == -EAGAIN); i++) {
+		result = net_init();
+		if (result < 0) {
+			fprintf(stderr, "Unable to init network (try %d/%d) : %d\n", i, maxTryCount, result);
+		} else {
+			fprintf(stdout, "Network initialized\n", i, maxTryCount, result);
+		}
+	}
+
+	if (result >= 0) {
+		char ip[16];
+		result = if_config(ip, NULL, NULL, true);
+		if (result < 0) {
+			fprintf(stderr, "Unable to get network's configuration.\n");
+		} else {
+			fprintf(stdout, "Network ip : %.16s\n", ip);
+		}
+	}
+
+	return result;
+}
+#endif
 
 void shutdown_application(void)
 {
