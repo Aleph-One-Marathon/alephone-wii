@@ -2903,19 +2903,31 @@ typedef L_Class<Lua_Fog_Color_Name> Lua_Fog_Color;
 
 static int Lua_Fog_Color_Get_R(lua_State *L)
 {
+#ifdef HAVE_OPENGL
 	lua_pushnumber(L, (float) (OGL_GetFogData(Lua_Fog_Color::Index(L, 1))->Color.red) / 65535);
+#else
+	fprintf(stderr, "Fog not supported in software rendering mode.");
+#endif
 	return 1;
 }
 
 static int Lua_Fog_Color_Get_G(lua_State *L)
 {
+#ifdef HAVE_OPENGL
 	lua_pushnumber(L, (float) (OGL_GetFogData(Lua_Fog_Color::Index(L, 1))->Color.green) / 65535);
+#else
+	fprintf(stderr, "Fog not supported in software rendering mode.");
+#endif
 	return 1;
 }
 
 static int Lua_Fog_Color_Get_B(lua_State *L)
 {
+#ifdef HAVE_OPENGL
 	lua_pushnumber(L, (float) (OGL_GetFogData(Lua_Fog_Color::Index(L, 1))->Color.blue) / 65535);
+#else
+	fprintf(stderr, "Fog not supported in software rendering mode.");
+#endif
 	return 1;
 }
 
@@ -2925,7 +2937,11 @@ static int Lua_Fog_Color_Set_R(lua_State *L)
 		luaL_error(L, "r: incorrect argument type");
 
 	float color = static_cast<float>(lua_tonumber(L, 2));
+#ifdef HAVE_OPENGL
 	OGL_GetFogData(Lua_Fog_Color::Index(L, 1))->Color.red = PIN(int(65535 * color + 0.5), 0, 65535);
+#else
+	fprintf(stderr, "Fog not supported in software rendering mode.");
+#endif
 	return 0;
 }
 
@@ -2935,7 +2951,11 @@ static int Lua_Fog_Color_Set_G(lua_State *L)
 		luaL_error(L, "g: incorrect argument type");
 
 	float color = static_cast<float>(lua_tonumber(L, 2));
+#ifdef HAVE_OPENGL
 	OGL_GetFogData(Lua_Fog_Color::Index(L, 1))->Color.green = PIN(int(65535 * color + 0.5), 0, 65535);
+#else
+	fprintf(stderr, "Fog not supported in software rendering mode.");
+#endif
 	return 0;
 }
 
@@ -2945,7 +2965,11 @@ static int Lua_Fog_Color_Set_B(lua_State *L)
 		luaL_error(L, "b: incorrect argument type");
 
 	float color = static_cast<float>(lua_tonumber(L, 2));
+#ifdef HAVE_OPENGL
 	OGL_GetFogData(Lua_Fog_Color::Index(L, 1))->Color.blue = PIN(int(65535 * color + 0.5), 0, 65535);
+#else
+	fprintf(stderr, "Fog not supported in software rendering mode.");
+#endif
 	return 0;
 }
 
@@ -2968,25 +2992,41 @@ typedef L_Class<Lua_Fog_Name> Lua_Fog;
 
 static int Lua_Fog_Get_Active(lua_State *L)
 {
+#ifdef HAVE_OPENGL
 	lua_pushboolean(L, OGL_GetFogData(Lua_Fog::Index(L, 1))->IsPresent);
+#else
+	fprintf(stderr, "Fog not supported in software rendering mode.");
+#endif
 	return 1;
 }
 
 static int Lua_Fog_Get_Affects_Landscapes(lua_State *L)
 {
+#ifdef HAVE_OPENGL
 	lua_pushboolean(L, OGL_GetFogData(Lua_Fog::Index(L, 1))->AffectsLandscapes);
+#else
+	fprintf(stderr, "Fog not supported in software rendering mode.");
+#endif
 	return 1;
 }
 
 static int Lua_Fog_Get_Color(lua_State *L)
 {
+#ifdef HAVE_OPENGL
 	Lua_Fog_Color::Push(L, Lua_Fog::Index(L, 1));
+#else
+	fprintf(stderr, "Fog not supported in software rendering mode.");
+#endif
 	return 1;
 }
 
 static int Lua_Fog_Get_Depth(lua_State *L)
 {
+#ifdef HAVE_OPENGL
 	lua_pushnumber(L, OGL_GetFogData(Lua_Fog::Index(L, 1))->Depth);
+#else
+	fprintf(stderr, "Fog not supported in software rendering mode.");
+#endif
 	return 1;
 }
 
@@ -3004,7 +3044,11 @@ static int Lua_Fog_Set_Active(lua_State *L)
 	if (!lua_isboolean(L, 2))
 		return luaL_error(L, "active: incorrect argument type");
 	
+#ifdef HAVE_OPENGL
 	OGL_GetFogData(Lua_Fog::Index(L, 1))->IsPresent = static_cast<bool>(lua_toboolean(L, 2));
+#else
+	fprintf(stderr, "Fog not supported in software rendering mode.");
+#endif
 	return 0;
 }
 
@@ -3013,7 +3057,11 @@ static int Lua_Fog_Set_Affects_Landscapes(lua_State *L)
 	if (!lua_isboolean(L, 2))
 		return luaL_error(L, "affects_landscapes: incorrect argument type");
 	
+#ifdef HAVE_OPENGL
 	OGL_GetFogData(Lua_Fog::Index(L, 1))->AffectsLandscapes = static_cast<bool>(lua_toboolean(L, 2));
+#else
+	fprintf(stderr, "Fog not supported in software rendering mode.");
+#endif
 	return 0;
 }
 
@@ -3022,7 +3070,11 @@ static int Lua_Fog_Set_Depth(lua_State *L)
 	if (!lua_isnumber(L, 2))
 		return luaL_error(L, "depth: incorrect argument type");
 
+#ifdef HAVE_OPENGL
 	OGL_GetFogData(Lua_Fog::Index(L, 1))->Depth = static_cast<float>(lua_tonumber(L, 2));
+#else
+	fprintf(stderr, "Fog not supported in software rendering mode.");
+#endif
 	return 0;
 }
 
