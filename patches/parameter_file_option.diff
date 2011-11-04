@@ -1,0 +1,287 @@
+Index: Source_Files/shell.cpp
+===================================================================
+--- Source_Files/shell.cpp	(revision 4524)
++++ Source_Files/shell.cpp	(working copy)
+@@ -167,6 +167,17 @@
+ void execute_timer_tasks(uint32 time);
+
+ // Prototypes
++vector<string> get_options_from_ini_file();
++vector<string> get_options_from_argv(int argc, char **argv);
++vector<string> get_options_from_platform_requirements();
++
++bool check_option(const string& option, const string& shortName, const string& longName);
++void parse_options(const string prg_name, const vector<string>& options);
++
++#if defined (__WII__)
++int init_network_subsystem();
++#endif
++
+ static void initialize_application(void);
+ void shutdown_application(void);
+ static void initialize_marathon_music_handler(void);
+@@ -193,11 +204,12 @@
+ #endif
+ 	  "\t[-s | --nosound]       Do not access the sound card\n"
+ 	  "\t[-m | --nogamma]       Disable gamma table effects (menu fades)\n"
+-          "\t[-j | --nojoystick]    Do not initialize joysticks\n"
++	  "\t[-j | --nojoystick]    Do not initialize joysticks\n"
+ 	  // Documenting this might be a bad idea?
+ 	  // "\t[-i | --insecure_lua]  Allow Lua netscripts to take over your computer\n"
++	  "\t[-F | --options_file]  Load options from the given file\n"
+ 	  "\tdirectory              Directory containing scenario data files\n"
+-          "\tfile                   Saved game to load or film to play\n"
++	  "\tfile                   Saved game to load or film to play\n"
+ 	  "\nYou can also use the ALEPHONE_DATA environment variable to specify\n"
+ 	  "the data directory.\n"
+ #ifdef __WIN32__
+@@ -249,6 +261,128 @@
+ 	return done;
+ }
+
++vector<string> get_options_from_ini_file(const string& optionFile) {
++	vector<string> argv;
++	FileSpecifier ini_file_spec = optionFile.c_str();
++
++	if (ini_file_spec.Exists() && !ini_file_spec.IsDir()) {
++		OpenedFile ini_file;
++		if (ini_file_spec.Open(ini_file)) {
++			int file_length;
++			ini_file.GetLength(file_length);
++
++			char read_buffer[file_length + 1];
++			ini_file.Read(file_length, read_buffer);
++			read_buffer[file_length] = '\0';
++			string ini_file_content = read_buffer;
++
++			char options_separators[] = {' ', '\r', '\n', '\t', '\0'};
++			size_t start_index = 0;
++			while (start_index != string::npos) {
++				size_t end_index = ini_file_content.find_first_of(options_separators, start_index);
++
++				string option;
++				if (end_index == string::npos) {
++					option = ini_file_content.substr(start_index, end_index);
++					start_index = end_index;
++				} else {
++					option = ini_file_content.substr(start_index, end_index - start_index);
++					start_index = end_index + 1;
++				}
++				if (option.size() > 0) {
++					argv.push_back(option);
++				}
++			}
++		}
++	} else {
++		fprintf(stderr, "Option file not found!\n");
++	}
++
++	return argv;
++}
++
++vector<string> get_options_from_argv(int argc, char **argv) {
++	vector<string> options;
++	for (int i = 0; i < argc; i++) {
++		options.push_back(argv[i]);
++	}
++
++	return options;
++}
++
++vector<string> get_options_from_platform_requirements() {
++	vector<string> options;
++
++#ifndef HAVE_OPENGL
++	options.push_back("-g");
++#endif
++
++#if defined(__WII__)
++	fprintf(stdout, "Adding fake parameters to allow Wii version to start.\n");
++	options.push_back("-f");
++	options.push_back("-F");
++	options.push_back("sd:/apps/AlephOne/AlephOne.ini");
++#endif
++
++	return options;
++}
++
++void parse_options(const string prg_name, const vector<string>& options) {
++	for (vector<string>::const_iterator it = options.begin(); it != options.end(); it++) {
++		const string& argv = *it;
++
++		if (check_option(argv, "-h", "--help")) {
++			usage(prg_name.c_str());
++		} else if (check_option(argv, "-v", "--version")) {
++			fprintf(stdout, "Aleph One " A1_VERSION_STRING "\n");
++			exit(0);
++		} else if (check_option(argv, "-f", "--fullscreen")) {
++			force_fullscreen = true;
++		} else if (check_option(argv, "-w", "--windowed")) {
++			force_windowed = true;
++		} else if (check_option(argv, "-g", "--nogl")) {
++			option_nogl = true;
++		} else if (check_option(argv, "-s", "--nosound")) {
++			option_nosound = true;
++		} else if (check_option(argv, "-j", "--nojoystick")) {
++			option_nojoystick = true;
++		} else if (check_option(argv, "-m", "--nogamma")) {
++			option_nogamma = true;
++		} else if (check_option(argv, "-i", "--insecure_lua")) {
++			insecure_lua = true;
++		} else if (check_option(argv, "-d", "--debug")) {
++			option_debug = true;
++		} else if (check_option(argv, "-F", "--options-file")) {
++			if ((it + 1) != options.end()) {
++				it++;
++				vector<string> iniFileOptions = get_options_from_ini_file(*it);
++				parse_options(prg_name, iniFileOptions);
++			} else {
++				fprintf(stdout, "Missing value for option '%s'.\n", argv.c_str());
++			}
++		} else if (argv[0] != '-') {
++			// if it's a directory, make it the default data dir
++			// otherwise push it and handle it later
++			FileSpecifier f(argv.c_str());
++			if (f.IsDir())
++			{
++				arg_directory = argv.c_str();
++			}
++			else
++			{
++				arg_files.push_back(argv.c_str());
++			}
++		} else {
++			printf("Unrecognized argument '%s'.\n", argv.c_str());
++			usage(prg_name.c_str());
++		}
++	}
++}
++
++bool check_option(const string& option, const string& shortName, const string& longName) {
++	return (option == shortName) || (option == longName);
++}
++
+ int main(int argc, char **argv)
+ {
+ 	// Print banner (don't bother if this doesn't appear when started from a GUI)
+@@ -280,51 +414,16 @@
+     );
+
+ 	// Parse arguments
+-	char *prg_name = argv[0];
+-	argc--;
+-	argv++;
+-	while (argc > 0) {
+-		if (strcmp(*argv, "-h") == 0 || strcmp(*argv, "--help") == 0) {
+-			usage(prg_name);
+-		} else if (strcmp(*argv, "-v") == 0 || strcmp(*argv, "--version") == 0) {
+-			printf("Aleph One " A1_VERSION_STRING "\n");
+-			exit(0);
+-		} else if (strcmp(*argv, "-f") == 0 || strcmp(*argv, "--fullscreen") == 0) {
+-			force_fullscreen = true;
+-		} else if (strcmp(*argv, "-w") == 0 || strcmp(*argv, "--windowed") == 0) {
+-			force_windowed = true;
+-		} else if (strcmp(*argv, "-g") == 0 || strcmp(*argv, "--nogl") == 0) {
+-			option_nogl = true;
+-		} else if (strcmp(*argv, "-s") == 0 || strcmp(*argv, "--nosound") == 0) {
+-			option_nosound = true;
+-                } else if (strcmp(*argv, "-j") == 0 || strcmp(*argv, "--nojoystick") == 0) {
+-                        option_nojoystick = true;
+-		} else if (strcmp(*argv, "-m") == 0 || strcmp(*argv, "--nogamma") == 0) {
+-			option_nogamma = true;
+-		} else if (strcmp(*argv, "-i") == 0 || strcmp(*argv, "--insecure_lua") == 0) {
+-			insecure_lua = true;
+-		} else if (strcmp(*argv, "-d") == 0 || strcmp(*argv, "--debug") == 0) {
+-		  option_debug = true;
+-		} else if (*argv[0] != '-') {
+-			// if it's a directory, make it the default data dir
+-			// otherwise push it and handle it later
+-			FileSpecifier f(*argv);
+-			if (f.IsDir())
+-			{
+-				arg_directory = *argv;
+-			}
+-			else
+-			{
+-				arg_files.push_back(*argv);
+-			}
+-		} else {
+-			printf("Unrecognized argument '%s'.\n", *argv);
+-			usage(prg_name);
+-		}
+-		argc--;
+-		argv++;
++	string prg_name;
++	vector<string> options;
++	if (argc > 0) {
++		prg_name = argv[0];
++		options = get_options_from_argv(argc - 1, argv + 1);
+ 	}
+-
++	vector<string> requiredOptions = get_options_from_platform_requirements();
++	options.insert(options.end(), requiredOptions.begin(), requiredOptions.end());
++	parse_options(prg_name, options);
++
+ 	try {
+
+ 		// Initialize everything
+@@ -366,6 +465,10 @@
+
+ static void initialize_application(void)
+ {
++#if defined(__WII__)
++	init_network_subsystem();
++#endif
++
+ #if defined(__WIN32__) && defined(__MINGW32__)
+ 	if (LoadLibrary("exchndl.dll")) option_debug = true;
+ #endif
+@@ -448,6 +551,11 @@
+
+ 	log_dir = local_data_dir;
+
++#elif defined(__WII__)
++
++	default_data_dir = "sd:/AlephOne";
++	local_data_dir = default_data_dir;
++
+ #else
+ 	default_data_dir = "";
+ 	local_data_dir = "";
+@@ -646,6 +754,36 @@
+ 	initialize_game_state();
+ }
+
++#if defined(__WII__)
++// TODO : remove hacky include due to file name collision
++#include <C:\devkitPro\libogc\include\network.h>
++int init_network_subsystem() {
++	const int maxTryCount = 5;
++	int result = -EAGAIN;
++	fprintf(stdout, "Initializing network...\n");
++	for (int i = 1; (i <= maxTryCount) && (result == -EAGAIN); i++) {
++		result = net_init();
++		if (result < 0) {
++			fprintf(stderr, "Unable to init network (try %d/%d) : %d\n", i, maxTryCount, result);
++		} else {
++			fprintf(stdout, "Network initialized\n", i, maxTryCount, result);
++		}
++	}
++
++	if (result >= 0) {
++		char ip[16];
++		result = if_config(ip, NULL, NULL, true);
++		if (result < 0) {
++			fprintf(stderr, "Unable to get network's configuration.\n");
++		} else {
++			fprintf(stdout, "Network ip : %.16s\n", ip);
++		}
++	}
++
++	return result;
++}
++#endif
++
+ void shutdown_application(void)
+ {
+         // ZZZ: seem to be having weird recursive shutdown problems esp. with fullscreen modes...

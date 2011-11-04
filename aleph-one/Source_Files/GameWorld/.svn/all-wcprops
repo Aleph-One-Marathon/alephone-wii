@@ -1,0 +1,281 @@
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/svnroot/marathon/!svn/ver/4559/trunk/Source_Files/GameWorld
+END
+flood_map.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/flood_map.cpp
+END
+platforms.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svnroot/marathon/!svn/ver/4516/trunk/Source_Files/GameWorld/platforms.cpp
+END
+scenery.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/scenery.cpp
+END
+scenery_definitions.h
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/scenery_definitions.h
+END
+monsters.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/monsters.cpp
+END
+dynamic_limits.h
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/dynamic_limits.h
+END
+weapons.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/weapons.cpp
+END
+map.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/map.cpp
+END
+media.h
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/media.h
+END
+effects.h
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/effects.h
+END
+items.h
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/items.h
+END
+monster_definitions.h
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/monster_definitions.h
+END
+lightsource.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/lightsource.cpp
+END
+projectiles.h
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svnroot/marathon/!svn/ver/4559/trunk/Source_Files/GameWorld/projectiles.h
+END
+weapon_definitions.h
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/weapon_definitions.h
+END
+effect_definitions.h
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/effect_definitions.h
+END
+world.h
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/world.h
+END
+item_definitions.h
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/item_definitions.h
+END
+projectile_definitions.h
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/projectile_definitions.h
+END
+player.h
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/player.h
+END
+map_constructors.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/svnroot/marathon/!svn/ver/4458/trunk/Source_Files/GameWorld/map_constructors.cpp
+END
+dynamic_limits.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/dynamic_limits.cpp
+END
+flood_map.h
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/flood_map.h
+END
+placement.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/placement.cpp
+END
+platforms.h
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svnroot/marathon/!svn/ver/4516/trunk/Source_Files/GameWorld/platforms.h
+END
+scenery.h
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/scenery.h
+END
+monsters.h
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/monsters.h
+END
+media_definitions.h
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/media_definitions.h
+END
+media.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/media.cpp
+END
+effects.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/effects.cpp
+END
+items.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svnroot/marathon/!svn/ver/4457/trunk/Source_Files/GameWorld/items.cpp
+END
+weapons.h
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/weapons.h
+END
+physics.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/physics.cpp
+END
+map.h
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/svnroot/marathon/!svn/ver/4559/trunk/Source_Files/GameWorld/map.h
+END
+devices.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svnroot/marathon/!svn/ver/4559/trunk/Source_Files/GameWorld/devices.cpp
+END
+projectiles.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svnroot/marathon/!svn/ver/4559/trunk/Source_Files/GameWorld/projectiles.cpp
+END
+platform_definitions.h
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/platform_definitions.h
+END
+world.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/world.cpp
+END
+Makefile.am
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svnroot/marathon/!svn/ver/1725/trunk/Source_Files/GameWorld/Makefile.am
+END
+TickBasedCircularQueue.h
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/TickBasedCircularQueue.h
+END
+physics_models.h
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/physics_models.h
+END
+pathfinding.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/pathfinding.cpp
+END
+marathon2.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/marathon2.cpp
+END
+editor.h
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/editor.h
+END
+player.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/player.cpp
+END
+lightsource.h
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/GameWorld/lightsource.h
+END

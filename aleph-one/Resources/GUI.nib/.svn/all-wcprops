@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/svnroot/marathon/!svn/ver/2599/trunk/Resources/GUI.nib
+END
+info.nib
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svnroot/marathon/!svn/ver/2599/trunk/Resources/GUI.nib/info.nib
+END
+classes.nib
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svnroot/marathon/!svn/ver/1607/trunk/Resources/GUI.nib/classes.nib
+END
+objects.xib
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svnroot/marathon/!svn/ver/2599/trunk/Resources/GUI.nib/objects.xib
+END

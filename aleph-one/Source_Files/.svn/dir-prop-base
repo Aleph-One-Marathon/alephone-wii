@@ -1,0 +1,10 @@
+K 10
+svn:ignore
+V 52
+AlephOne.exe
+confpaths.h
+Makefile
+Makefile.in
+.deps
+
+END

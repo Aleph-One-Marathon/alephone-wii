@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svnroot/marathon/!svn/ver/2/trunk/Extras/demos
+END
+L01.demo
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svnroot/marathon/!svn/ver/2/trunk/Extras/demos/L01.demo
+END
+L05.demo
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svnroot/marathon/!svn/ver/2/trunk/Extras/demos/L05.demo
+END
+demos.resource
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svnroot/marathon/!svn/ver/2/trunk/Extras/demos/demos.resource
+END
+L00.demo
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svnroot/marathon/!svn/ver/2/trunk/Extras/demos/L00.demo
+END
