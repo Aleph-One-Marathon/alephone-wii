@@ -94,7 +94,11 @@ int32 VorbisDecoder::Decode(uint8* buffer, int32 max_length)
 	int current_section = 0;
 	while (total_bytes_read < max_length)
 	{
+#if defined(__WII__)
+		bytes_read = ov_read(&ov_file, (char *) &buffer[total_bytes_read], max_length - total_bytes_read, &current_section);
+#else
 		bytes_read = ov_read(&ov_file, (char *) &buffer[total_bytes_read], max_length - total_bytes_read, IsLittleEndian() ? 0 : 1, 2, 1, &current_section);
+#endif
 		if (bytes_read <= 0)
 			return total_bytes_read;
 		total_bytes_read += bytes_read;

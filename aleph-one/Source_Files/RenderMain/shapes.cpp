@@ -1541,7 +1541,9 @@ void unload_all_collections(
 		{
 			unload_collection(header);
 		}
+#ifdef HAVE_OPENGL
 		OGL_UnloadModelsImages(collection_index);
+#endif
 	}
 }
 
@@ -1834,7 +1836,9 @@ void load_collections(
 			{
 				unload_collection(header);
 			}
+#ifdef HAVE_OPENGL
 			OGL_UnloadModelsImages(collection_index);
+#endif
 			SW_Texture_Extras::instance()->Unload(collection_index);
 		}
 		else

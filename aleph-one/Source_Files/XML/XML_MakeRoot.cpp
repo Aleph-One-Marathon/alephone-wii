@@ -93,7 +93,9 @@ void SetupParseTree()
 	MarathonParser.AddChild(View_GetParser());
 	MarathonParser.AddChild(Landscapes_GetParser());
 	MarathonParser.AddChild(Weapons_GetParser());
+#ifdef HAVE_OPENGL
 	MarathonParser.AddChild(OpenGL_GetParser());
+#endif
 	MarathonParser.AddChild(Cheats_GetParser());
 	MarathonParser.AddChild(TextureLoading_GetParser());
 	MarathonParser.AddChild(Keyboard_GetParser());

@@ -1008,7 +1008,9 @@ void pause_game(
 	void)
 {
 	stop_fade();
+#ifdef HAVE_OPENGL
 	if (!OGL_IsActive() || !(TEST_FLAG(Get_OGL_ConfigureData().Flags,OGL_Flag_Fader)))
+#endif
 		set_fade_effect(NONE);
 	darken_world_window();
 	set_keyboard_controller_status(false);
@@ -1023,7 +1025,9 @@ void resume_game(
 #ifdef SDL
 	hide_cursor();
 #endif
+#ifdef HAVE_OPENGL
 	if (!OGL_IsActive() || !(TEST_FLAG(Get_OGL_ConfigureData().Flags,OGL_Flag_Fader)))
+#endif
 		SetFadeEffectDelay(TICKS_PER_SECOND/2);
 	validate_world_window();
 	set_keyboard_controller_status(true);
@@ -1368,7 +1372,9 @@ void do_menu_item_command(
 						if(really_wants_to_quit)
 						{
 							// Rhys Hill fix for crash when quitting OpenGL
+#ifdef HAVE_OPENGL
 							if (!OGL_IsActive())
+#endif
 								render_screen(0); /* Get rid of hole.. */
 /* If you want to quit on command-q while in the game.. */
 #if 0
@@ -2144,11 +2150,15 @@ static void start_game(
 		L_Call_HUDInit();
 	
 	// LP: this is in case we are starting underneath a liquid
+#ifdef HAVE_OPENGL
 	if (!OGL_IsActive() || !(TEST_FLAG(Get_OGL_ConfigureData().Flags,OGL_Flag_Fader)))
 	{
+#endif
 		set_fade_effect(NONE);
 		SetFadeEffectDelay(TICKS_PER_SECOND/2);
+#ifdef HAVE_OPENGL
 	}
+#endif
 
 	// Screen should already be black! 
 	validate_world_window();
