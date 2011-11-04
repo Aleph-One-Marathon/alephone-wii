@@ -27,7 +27,12 @@
 #include "cseries.h"
 #include "Decoder.h"
 #ifdef HAVE_VORBISFILE
-#include <vorbis/vorbisfile.h>
+
+#if defined(__WII__)
+# include <tremor/ivorbisfile.h>
+#else
+# include <vorbis/vorbisfile.h>
+#endif
 
 class VorbisDecoder : public StreamDecoder
 {
