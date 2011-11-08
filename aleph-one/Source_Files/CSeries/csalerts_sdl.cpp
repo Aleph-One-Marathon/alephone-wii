@@ -123,7 +123,9 @@ extern void system_launch_url_in_browser(const char *url);
 #else
 void system_launch_url_in_browser(const char *url)
 {
-#if defined(__WIN32__)
+#if defined(__WII__)
+	fprintf(stderr, "Unsupported : tried to open a browser with URL : %s\n", url);
+#elif defined(__WIN32__)
 	ShellExecute(NULL, "open", url, NULL, NULL, SW_SHOWNORMAL);
 #else
 	pid_t pid = fork();
