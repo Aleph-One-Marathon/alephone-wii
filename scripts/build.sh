@@ -8,12 +8,13 @@ source setup-paths.sh
 silentPushd ${BUILD_PATH}
 #make && make install
 make
-silentPopd
 
-
-if [ $? ]; then
-	silentPushd ${BIN_PATH}/${APPS_DIR}/${ALEPH_DIR}
-	cp Source_Files/alephone ${BIN_PATH}/${APPS_DIR}/${ALEPH_DIR}/alephone.elf
-    ${ELF2DOL} alephone.elf boot.dol
-	silentPopd
+if [ $? == 0 ]; then
+	ALEPH_PATH=${BIN_PATH}/${APPS_DIR}/${ALEPH_DIR}
+	
+	mkdir -p ${ALEPH_PATH}
+	mv Source_Files/alephone ${ALEPH_PATH}/alephone.elf
+	${ELF2DOL} ${ALEPH_PATH}/alephone.elf ${ALEPH_PATH}/boot.dol
 fi
+
+silentPopd
