@@ -1,0 +1,143 @@
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svnroot/marathon/!svn/ver/4577/trunk/Source_Files/XML
+END
+XML_ResourceFork.h
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/XML/XML_ResourceFork.h
+END
+ShapesParser.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/XML/ShapesParser.cpp
+END
+DamageParser.h
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/XML/DamageParser.h
+END
+ColorParser.h
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/XML/ColorParser.h
+END
+XML_Configure.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/XML/XML_Configure.cpp
+END
+XML_MakeRoot.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/XML/XML_MakeRoot.cpp
+END
+XML_DataBlock.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/XML/XML_DataBlock.cpp
+END
+ShapesParser.h
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/XML/ShapesParser.h
+END
+XML_Configure.h
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/XML/XML_Configure.h
+END
+XML_DataBlock.h
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/XML/XML_DataBlock.h
+END
+XML_LevelScript.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/XML/XML_LevelScript.cpp
+END
+Plugins.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/svnroot/marathon/!svn/ver/4577/trunk/Source_Files/XML/Plugins.cpp
+END
+XML_LevelScript.h
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/XML/XML_LevelScript.h
+END
+XML_ParseTreeRoot.h
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/XML/XML_ParseTreeRoot.h
+END
+XML_ElementParser.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/XML/XML_ElementParser.cpp
+END
+Plugins.h
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svnroot/marathon/!svn/ver/4577/trunk/Source_Files/XML/Plugins.h
+END
+Makefile.am
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/svnroot/marathon/!svn/ver/3974/trunk/Source_Files/XML/Makefile.am
+END
+XML_Loader_SDL.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/XML/XML_Loader_SDL.cpp
+END
+XML_ResourceFork.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/XML/XML_ResourceFork.cpp
+END
+XML_ElementParser.h
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svnroot/marathon/!svn/ver/4558/trunk/Source_Files/XML/XML_ElementParser.h
+END
+DamageParser.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/XML/DamageParser.cpp
+END
+ColorParser.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/XML/ColorParser.cpp
+END
+XML_Loader_SDL.h
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/XML/XML_Loader_SDL.h
+END

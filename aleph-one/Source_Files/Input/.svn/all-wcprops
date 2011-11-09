@@ -1,0 +1,53 @@
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/Input
+END
+joystick_sdl.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/Input/joystick_sdl.cpp
+END
+joystick.h
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/Input/joystick.h
+END
+ISp_Support.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/Input/ISp_Support.cpp
+END
+Makefile.am
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/svnroot/marathon/!svn/ver/3773/trunk/Source_Files/Input/Makefile.am
+END
+mouse.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/Input/mouse.cpp
+END
+mouse_sdl.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/Input/mouse_sdl.cpp
+END
+ISp_Support.h
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/Input/ISp_Support.h
+END
+mouse.h
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svnroot/marathon/!svn/ver/4455/trunk/Source_Files/Input/mouse.h
+END

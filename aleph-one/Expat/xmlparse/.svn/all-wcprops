@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svnroot/marathon/!svn/ver/2/trunk/Expat/xmlparse
+END
+hashtable.h
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svnroot/marathon/!svn/ver/2/trunk/Expat/xmlparse/hashtable.h
+END
+xmlparse.h
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/svnroot/marathon/!svn/ver/2/trunk/Expat/xmlparse/xmlparse.h
+END
+hashtable.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svnroot/marathon/!svn/ver/2/trunk/Expat/xmlparse/hashtable.cpp
+END
+xmlparse.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svnroot/marathon/!svn/ver/2/trunk/Expat/xmlparse/xmlparse.cpp
+END

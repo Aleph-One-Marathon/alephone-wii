@@ -1,0 +1,107 @@
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/svnroot/marathon/!svn/ver/4327/trunk/Source_Files/LibNAT
+END
+os_win.c
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/svnroot/marathon/!svn/ver/2615/trunk/Source_Files/LibNAT/os_win.c
+END
+os_common.h
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/svnroot/marathon/!svn/ver/2636/trunk/Source_Files/LibNAT/os_common.h
+END
+error.h
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/svnroot/marathon/!svn/ver/2615/trunk/Source_Files/LibNAT/error.h
+END
+utility.c
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svnroot/marathon/!svn/ver/2615/trunk/Source_Files/LibNAT/utility.c
+END
+utility.h
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svnroot/marathon/!svn/ver/2615/trunk/Source_Files/LibNAT/utility.h
+END
+ssdp.c
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svnroot/marathon/!svn/ver/3693/trunk/Source_Files/LibNAT/ssdp.c
+END
+libnat.c
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/svnroot/marathon/!svn/ver/2615/trunk/Source_Files/LibNAT/libnat.c
+END
+ssdp.h
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svnroot/marathon/!svn/ver/2615/trunk/Source_Files/LibNAT/ssdp.h
+END
+libnat.h
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/svnroot/marathon/!svn/ver/2618/trunk/Source_Files/LibNAT/libnat.h
+END
+http.c
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svnroot/marathon/!svn/ver/3693/trunk/Source_Files/LibNAT/http.c
+END
+upnp.c
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svnroot/marathon/!svn/ver/3332/trunk/Source_Files/LibNAT/upnp.c
+END
+os_unix.c
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svnroot/marathon/!svn/ver/2615/trunk/Source_Files/LibNAT/os_unix.c
+END
+http.h
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svnroot/marathon/!svn/ver/2615/trunk/Source_Files/LibNAT/http.h
+END
+os.h
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svnroot/marathon/!svn/ver/2615/trunk/Source_Files/LibNAT/os.h
+END
+Makefile.am
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/svnroot/marathon/!svn/ver/2617/trunk/Source_Files/LibNAT/Makefile.am
+END
+os_common.c
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/svnroot/marathon/!svn/ver/4039/trunk/Source_Files/LibNAT/os_common.c
+END
+error.c
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/svnroot/marathon/!svn/ver/2615/trunk/Source_Files/LibNAT/error.c
+END

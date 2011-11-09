@@ -1,0 +1,86 @@
+.\" manual page for the Debian GNU/Linux system originally written by
+.\" sam@robots.org.uk Sam Morris
+.\" define fallback URL and MTO macros 
+.de URL
+\\$2 \(laURL: \\$1 \(ra\\$3
+..
+.\" the www.tmac package will provide better macros which will override those
+.\" above if it is present
+.if \n[.g] .mso www.tmac
+.TH alephone 6 2010-12-07 source.bungie.org Games
+.SH NAME
+alephone \- game engine based on Marathon 2
+.SH SYNOPSIS
+.B alephone
+[
+.I options
+]
+[
+.I directory
+]
+.SH DESCRIPTION
+Aleph One is an open-source descendant of Bungie's Marathon 2 first-person
+3D shooting game.
+Aleph One runs Marathon 2, Marathon Infinity, and 3rd-party content
+on a wide variety of platforms, with (optional) OpenGL rendering,
+Internet play, Lua scripting, and more.
+.SH OPTIONS
+.TP
+.B \-h, \-\-help
+Show summary of options.
+.TP
+.B \-v, \-\-version
+Show version of program.
+.TP
+.B \-d, \-\-debug
+Allow saving of core files after crashes.
+.TP
+.B \-f, \-\-fullscreen
+Run the game fullscreen.
+.TP
+.B \-w, \-\-windowed
+Run the game in a window.
+.TP
+.B \-g, \-\-nogl
+Do not use OpenGL.
+.TP
+.B \-s, \-\-nosound
+Do not access the sound card.
+.TP
+.B \-m, \-\-nogamma
+Disable gamma table effects (menu fades).
+.TP
+.B \-j, \-\-nojoystick
+Do not initialize joysticks.
+.TP
+.I directory
+Directory containing the data files of a scenario (map file, scripts, etc.)
+.SH ENVIRONMENT
+.TP
+.B ALEPHONE_DATA
+Directories that are searched for data files.
+This is a colon-separated list.
+Entries
+.I later
+in the list have precedence over entries earlier in the list.
+.SH FILES
+.TP
+.I ~/.alephone
+Aleph One personalization directory.
+Alephone stores preferences, game recordings, saved games, and screen
+shots there.
+If
+.B ALEPHONE_DATA
+is not set,
+.B alephone
+searches this directory for data files after searching the directory
+given as its argument.
+.SH BUGS
+If
+.B ALEPHONE_DATA
+is set, the
+.I directory
+argument is ignored.
+.SH "SEE ALSO"
+The latest news regarding engine and scenario development can be found at
+.URL "http://source.bungie.org/" "the project web site" "."
