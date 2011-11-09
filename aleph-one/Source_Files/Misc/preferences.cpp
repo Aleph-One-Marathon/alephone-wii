@@ -937,7 +937,7 @@ static void graphics_dialog(void *arg)
 
 #ifndef HAVE_OPENGL
 	
-	placer->dual_add(new w_static_text(expand_app_variables("This copy of $appName$ was built without OpenGL support.")), d);
+	placer->dual_add(new w_static_text(expand_app_variables("This copy of $appName$ was built without OpenGL support.").c_str()), d);
 #endif
 	placer->add(new w_spacer(), true);
 
