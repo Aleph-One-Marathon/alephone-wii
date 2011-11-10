@@ -6,6 +6,10 @@ source utils.sh
 ALEPH_DIR=AlephOne
 APPS_DIR=apps
 
-SOURCES_PATH=$(getAbsolutePath ../aleph-one)
+PROJECTS_PATH=$(getAbsolutePath ../projects)
+
 BUILD_PATH=$(getAbsolutePath ../build)
-BIN_PATH=$(getAbsolutePath ../bin)
+INCLUDE_PATH=${BUILD_PATH}/include
+LIB_PATH=${BUILD_PATH}/lib
+
+BIN_PATH=$(getAbsolutePath ../wii/sd)
