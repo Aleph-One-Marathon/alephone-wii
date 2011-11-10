@@ -5,7 +5,7 @@ source setup-build-env.sh
 ALEPH_ONE_BUILD_PATH=${BUILD_PATH}/aleph-one
 
 
-silentPushd ${ALEPH_ONE_BUILD_PATH}/aleph-one
+silentPushd ${ALEPH_ONE_BUILD_PATH}
 make && make install
 #make
 
