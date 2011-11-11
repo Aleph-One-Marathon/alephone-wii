@@ -1,0 +1,78 @@
+Index: SDL_image/Makefile
+===================================================================
+--- SDL_image/Makefile	(revision 99)
++++ SDL_image/Makefile	(working copy)
+@@ -80,7 +80,7 @@
+ 
+ # Compilation flags.
+ COMMON_FLAGS	:= -g -O3 -mrvl -Wall $(MACHDEP)
+-INCLUDES		:= -Iinclude -I$(LIBOGC_INC) -I$(LIBOGC_INC)/SDL -I$(LIBOGC_INC)/jpeg
++INCLUDES		:= -Iinclude -I$(LIBOGC_INC) -I$(INSTALL_HEADER_DIR)/SDL -I$(LIBOGC_INC)/jpeg
+ # -I$(DEVKITPRO)/libpng/include
+ DEFINES			:= -DGEKKO -DDEBUG_ERROR -DDEBUG_TIMERS -DDEBUG_THREADS -DDEBUG_BUILD -DDEBUG_CONVERT -DLOAD_BMP -DLOAD_JPG -DLOAD_GIF -DLOAD_LBM -DLOAD_PCX -DLOAD_PNM -DLOAD_TGA -DLOAD_XCF -DLOAD_XPM -DLOAD_XV -DLOAD_PNG
+ # 
+Index: SDL_mixer/Makefile
+===================================================================
+--- SDL_mixer/Makefile	(revision 99)
++++ SDL_mixer/Makefile	(working copy)
+@@ -81,7 +81,7 @@
+ 
+ # Compilation flags.
+ COMMON_FLAGS	:= -g -O3 -mrvl -Wall $(MACHDEP)
+-INCLUDES		:= -Iinclude -I$(LIBOGC_INC) -I$(LIBOGC_INC)/SDL -I$(LIBOGC_INC)/mpeg -I$(DEVKITPRO)/libsmpeg/include -Isrc/mikmod -Isrc/timidity
++INCLUDES		:= -Iinclude -I$(LIBOGC_INC) -I$(INSTALL_HEADER_DIR)/SDL -I$(INSTALL_HEADER_DIR)/mpeg -I$(DEVKITPRO)/libsmpeg/include -Isrc/mikmod -Isrc/timidity
+ # -include sys/wait.h 
+ # -include sys/syslimits.h
+ # -Isrc/native_midi
+Index: SDL_gfx/Makefile
+===================================================================
+--- SDL_gfx/Makefile	(revision 99)
++++ SDL_gfx/Makefile	(working copy)
+@@ -58,7 +58,7 @@
+ 
+ # Compilation flags.
+ COMMON_FLAGS	:= -g -O3 -mrvl -Wall $(MACHDEP)
+-INCLUDES		:= -Iinclude -I$(LIBOGC_INC) -I$(LIBOGC_INC)/SDL
++INCLUDES		:= -Iinclude -I$(LIBOGC_INC) -I$(INSTALL_HEADER_DIR)/SDL
+ DEFINES			:= -DGEKKO -DDEBUG_ERROR -DDEBUG_TIMERS -DDEBUG_THREADS -DDEBUG_BUILD -DDEBUG_CONVERT
+ CFLAGS			:= $(COMMON_FLAGS) $(INCLUDES) $(DEFINES)
+ 
+Index: SDL_net/Makefile
+===================================================================
+--- SDL_net/Makefile	(revision 99)
++++ SDL_net/Makefile	(working copy)
+@@ -56,7 +56,7 @@
+ 
+ # Compilation flags.
+ COMMON_FLAGS	:= -g -O3 -mrvl -Wall $(MACHDEP)
+-INCLUDES		:= -Iinclude -I$(LIBOGC_INC) -I$(LIBOGC_INC)/SDL
++INCLUDES		:= -Iinclude -I$(LIBOGC_INC) -I$(INSTALL_HEADER_DIR)/SDL
+ # -include sys/wait.h 
+ # -include sys/syslimits.h
+ 
+Index: SDL_ttf/Makefile
+===================================================================
+--- SDL_ttf/Makefile	(revision 99)
++++ SDL_ttf/Makefile	(working copy)
+@@ -80,7 +80,7 @@
+ 
+ # Compilation flags.
+ COMMON_FLAGS	:= -g -O3 -mrvl -Wall $(MACHDEP)
+-INCLUDES		:= -Iinclude -I$(LIBOGC_INC) -I$(LIBOGC_INC)/SDL -I$(LIBOGC_INC)/freetype
++INCLUDES		:= -Iinclude -I$(LIBOGC_INC) -I$(INSTALL_HEADER_DIR)/SDL -I$(LIBOGC_INC)/freetype
+ DEFINES			:= -DGEKKO -DDEBUG_ERROR -DDEBUG_TIMERS -DDEBUG_THREADS -DDEBUG_BUILD -DDEBUG_CONVERT 
+ CFLAGS			:= -L$(PORTLIBS)/lib -I$(PORTLIBS)/include -I$(PORTLIBS)/include/freetype2 $(COMMON_FLAGS) $(INCLUDES) $(DEFINES)
+ 
+Index: smpeg/Makefile
+===================================================================
+--- smpeg/Makefile	(revision 99)
++++ smpeg/Makefile	(working copy)
+@@ -89,7 +89,7 @@
+ export INCLUDE	:=	$(foreach dir,$(INCLUDES), -iquote $(CURDIR)/$(dir)) \
+ 					$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
+ 					-I$(CURDIR)/$(BUILD) \
+-					-I$(LIBOGC_INC) -I$(LIBOGC_INC)/SDL
++					-I$(LIBOGC_INC) -I$(INSTALL_HEADER_DIR)/SDL
+ 
+ #---------------------------------------------------------------------------------
+ # build a list of library paths

@@ -1,11 +1,12 @@
 #!/bin/sh
 
-source utils.sh
 source setup-build-env.sh
-source setup-paths.sh
+
+ALEPH_ONE_SOURCES_PATH=${PROJECTS_PATH}/aleph-one
+ALEPH_ONE_BUILD_PATH=${BUILD_PATH}/aleph-one
 
 
-silentPushd ${SOURCES_PATH}
+silentPushd ${ALEPH_ONE_SOURCES_PATH}
 export NO_CONFIGURE="true"
 autogen.sh
 silentPopd
@@ -14,10 +15,10 @@ silentPopd
 if [ $? == 0 ]; then
     mkdir -p ${BIN_PATH}/${ALEPH_DIR}
     mkdir -p ${BIN_PATH}/${APPS_DIR}
-    mkdir -p ${BUILD_PATH}
+    mkdir -p ${ALEPH_ONE_BUILD_PATH}
 
-    silentPushd ${BUILD_PATH}
-    configureFile=${SOURCES_PATH}/configure
+    silentPushd ${ALEPH_ONE_BUILD_PATH}
+    configureFile=${ALEPH_ONE_SOURCES_PATH}/configure
     dataDir=${BIN_PATH}
     binDir=${BIN_PATH}/${APPS_DIR}/${ALEPH_DIR}
 
