@@ -8,4 +8,4 @@
 ^projects/sdl-wii
 ^projects/netport
 ^build
-^bin
+^wii

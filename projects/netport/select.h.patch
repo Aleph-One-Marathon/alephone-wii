@@ -1,0 +1,22 @@
+Index: include/sys/select.h
+===================================================================
+--- include/sys/select.h	(revision 6)
++++ include/sys/select.h	(working copy)
+@@ -21,7 +21,7 @@
+ 
+ /* Get definition of sigset_t. */
+ #include <signal.h>
+-
++/*
+ #undef  FD_SETSIZE
+ #define FD_SETSIZE		16
+ #define FD_SET(n, p)		((p)->fd_bits[(n)/8] |=  (1 << ((n) & 7)))
+@@ -32,7 +32,7 @@
+ typedef struct fd_set {
+ 	u8 fd_bits [(FD_SETSIZE+7)/8];
+ } fd_set;
+-
++*/
+ int  pselect(int, fd_set *__restrict__, fd_set *__restrict__, fd_set *__restrict__,
+          const struct timespec *__restrict__, const sigset_t *__restrict__);
+ int  select(int, fd_set *__restrict__, fd_set *__restrict__, fd_set *__restrict__,
