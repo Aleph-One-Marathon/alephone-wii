@@ -7,7 +7,7 @@ export LIBOGC_INC="${DEVKITPRO}/libogc/include"
 export LIBOGC_LIB="${DEVKITPRO}/libogc/lib/wii"
 export PORTLIBS="${DEVKITPRO}/portlibs/ppc"
 
-export PATH="${PORTLIBS}/bin:$PATH"
+export PATH="${BUILD_PATH}/bin:$PATH"
 
 PREFIX=${DEVKITPPC}/bin/powerpc-eabi-
 export AS=${PREFIX}as
