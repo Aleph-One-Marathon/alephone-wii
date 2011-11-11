@@ -30,6 +30,7 @@ svn checkout -r ${NETPORT_VERSION} http://diiscent.googlecode.com/svn/trunk/netp
 if [ $? == 0 ]; then
 	silentPushd ${NETPORT_PATH}
 	patch -p0 -s -N -i select.h.patch
+	echo "Building netport library..."
 	make
 	if [ $? == 0 ]; then
 		silentPushd include
@@ -54,6 +55,7 @@ if [ $? == 0 ]; then
 	patch -p0 -s -N -i makefiles.patch
 	export INSTALL_HEADER_DIR=${INCLUDE_PATH}
 	export INSTALL_LIB_DIR=${LIB_PATH}
+	echo "Building sdl-wii library..."
 	make install
 	silentPopd
 fi
