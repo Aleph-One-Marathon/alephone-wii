@@ -29,7 +29,6 @@ echo "Getting netport (revision ${NETPORT_VERSION})..."
 svn checkout -r ${NETPORT_VERSION} http://diiscent.googlecode.com/svn/trunk/netport ${NETPORT_PATH}
 if [ $? == 0 ]; then
 	silentPushd ${NETPORT_PATH}
-	patch -p0 -s -N -i select.h.patch
 	echo "Building netport library..."
 	make
 	if [ $? == 0 ]; then
@@ -37,7 +36,7 @@ if [ $? == 0 ]; then
 		find . -name '*.h' -exec cp --parents {} ${INCLUDE_PATH}/ \;
 	    silentPopd
 	    
-	    cp 'lib/*.a' ${LIB_PATH}/
+	    cp lib/*.a ${LIB_PATH}/
 	fi
 	silentPopd
 fi
