@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/ba
+sh
 
 source setup-build-env.sh
 

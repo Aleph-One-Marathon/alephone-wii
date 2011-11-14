@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 function silentPushd {
     pushd $1 > /dev/null

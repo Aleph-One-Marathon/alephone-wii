@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 source setup-build-env.sh
 
@@ -8,7 +8,7 @@ ALEPH_ONE_BUILD_PATH=${BUILD_PATH}/aleph-one
 
 silentPushd ${ALEPH_ONE_SOURCES_PATH}
 export NO_CONFIGURE="true"
-autogen.sh
+./autogen.sh
 silentPopd
 
 
