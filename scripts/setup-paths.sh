@@ -12,4 +12,6 @@ BUILD_PATH=$(getAbsolutePath ../build)
 INCLUDE_PATH=${BUILD_PATH}/include
 LIB_PATH=${BUILD_PATH}/lib
 
-BIN_PATH=$(getAbsolutePath ../wii/sd)
+TARGET_PATH=$(getAbsolutePath ../target)
+BIN_PATH=${TARGET_PATH}/wii/sd
+

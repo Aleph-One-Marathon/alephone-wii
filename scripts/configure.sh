@@ -19,9 +19,10 @@ if [ $? == 0 ]; then
 
     silentPushd ${ALEPH_ONE_BUILD_PATH}
     configureFile=${ALEPH_ONE_SOURCES_PATH}/configure
+    prefix=${TARGET_PATH}
     dataDir=${BIN_PATH}
     binDir=${BIN_PATH}/${APPS_DIR}/${ALEPH_DIR}
 
-    ${configureFile} --datadir=${dataDir} --bindir=${binDir} --host=powerpc-eabi --build=powerpc-eabi-gnu --disable-opengl --disable-speex --disable-zzip
+    ${configureFile} --prefix=${prefix} --datadir=${dataDir} --bindir=${binDir} --host=powerpc-eabi --build=powerpc-eabi-gnu --disable-opengl --disable-speex --disable-zzip
     silentPopd
 fi
