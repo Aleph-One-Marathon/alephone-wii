@@ -3,6 +3,24 @@
 source setup-build-env.sh
 
 
+function failOnMissingDependency() {
+	if [ $? != 0 ]; then
+		local dependencyName=$1
+		echo "You will need $dependencyName to compile external libraries. Try installing it with :"
+		echo "sudo apt-get update"
+		echo "sudo apt-get install $dependencyName"
+		echo
+		exit -1
+	fi
+}
+
+patch --version > /dev/null 2>&1
+failOnMissingDependency "patch"
+
+svn --version > /dev/null 2>&1
+failOnMissingDependency "subversion"
+
+
 BOOST_VERSION="1.47.0"
 NETPORT_VERSION="6"
 SDL_WII_VERSION="99"
