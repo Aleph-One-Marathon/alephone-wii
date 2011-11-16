@@ -759,8 +759,8 @@ static void initialize_application(void)
 }
 
 #if defined(__WII__)
-// TODO : remove hacky include due to file name collision
-#include <C:\devkitPro\libogc\include\network.h>
+#include <ogc_network.h>
+
 int init_network_subsystem() {
 	const int maxTryCount = 5;
 	int result = -EAGAIN;
