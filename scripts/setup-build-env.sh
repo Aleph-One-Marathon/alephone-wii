@@ -5,9 +5,9 @@ source setup-paths.sh
 
 export LIBOGC_INC="${DEVKITPRO}/libogc/include"
 export LIBOGC_LIB="${DEVKITPRO}/libogc/lib/wii"
-export PORTLIBS="${DEVKITPRO}/portlibs/ppc"
+export PORTLIBS="${DEVKITPRO}/portlibs"
 
-export PATH="${BUILD_PATH}/bin:$PATH"
+export SDL_CONFIG="${PORTLIBS}/wii/bin/sdl-config"
 
 PREFIX=${DEVKITPPC}/bin/powerpc-eabi-
 export AS=${PREFIX}as
@@ -30,13 +30,14 @@ export LIBS="-lSDL_net -lSDL_ttf -lSDL_gfx -lSDL_mixer -lSDL_image -lsmpeg \
 export CFLAGS="${MACHDEP} ${OPTIMS} ${DEFS}"
 export CXXFLAGS="${CFLAGS}"
 export CPPFLAGS="-I${LIBOGC_INC} \
- -I${PORTLIBS}/include \
+ -I${PORTLIBS}/ppc/include \
  -I${INCLUDE_PATH} \
  -I${INCLUDE_PATH}/SDL"
 export LDFLAGS="${MACHDEP} \
  -L${LIBOGC_LIB} \
- -L${PORTLIBS}/lib \
+ -L${PORTLIBS}/ppc/lib \
  -L${LIB_PATH}"
+export ACLOCAL_FLAGS="-I${PORTLIBS}/wii/share/aclocal"
 
 export ZZIP_CFLAGS=" "
 export ZZIP_LIBS=" "
