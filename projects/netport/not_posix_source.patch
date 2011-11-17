@@ -33,26 +33,34 @@ Index: src/netdb.cpp
 ===================================================================
 --- src/netdb.cpp	(revision 6)
 +++ src/netdb.cpp	(working copy)
-@@ -3,10 +3,7 @@
+@@ -3,22 +3,18 @@
     netport
  */
  
 -#include <sys/ioctl.h>
- #include <sys/socket.h>
+-#include <sys/socket.h>
 -#include <sys/select.h>
--#include <netdb.h>
+ #include <netdb.h>
++#include <sys/socket.h>
  
- namespace wii
- {
-@@ -15,7 +12,7 @@
+-namespace wii
+-{
+-#include <network.h>
+-};
++extern "C" struct hostent *net_gethostbyname(const char *addrString);
  
  struct hostent *gethostbyname(const char *addrString)
  {
 -	return (struct hostent   *)wii::net_gethostbyname((char *)addrString);
-+	return (struct hostent*)wii::net_gethostbyname(addrString);
++	return net_gethostbyname(addrString);
  }
  
- struct servent   *getservbyname(const char *, const char *)
+-struct servent   *getservbyname(const char *, const char *)
++struct servent *getservbyname(const char *, const char *)
+ {
+ 	return 0;
+ }
++
 Index: Makefile
 ===================================================================
 --- Makefile	(revision 6)
