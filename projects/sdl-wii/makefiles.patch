@@ -1,3 +1,16 @@
+Index: SDL_ttf/Makefile
+===================================================================
+--- SDL_ttf/Makefile	(revision 99)
++++ SDL_ttf/Makefile	(working copy)
+@@ -80,7 +80,7 @@
+ 
+ # Compilation flags.
+ COMMON_FLAGS	:= -g -O3 -mrvl -Wall $(MACHDEP)
+-INCLUDES		:= -Iinclude -I$(LIBOGC_INC) -I$(LIBOGC_INC)/SDL -I$(LIBOGC_INC)/freetype
++INCLUDES		:= -Iinclude -I$(LIBOGC_INC) -I$(INSTALL_HEADER_DIR)/SDL -I$(LIBOGC_INC)/freetype
+ DEFINES			:= -DGEKKO -DDEBUG_ERROR -DDEBUG_TIMERS -DDEBUG_THREADS -DDEBUG_BUILD -DDEBUG_CONVERT 
+ CFLAGS			:= -L$(PORTLIBS)/lib -I$(PORTLIBS)/include -I$(PORTLIBS)/include/freetype2 $(COMMON_FLAGS) $(INCLUDES) $(DEFINES)
+ 
 Index: SDL_image/Makefile
 ===================================================================
 --- SDL_image/Makefile	(revision 99)
@@ -20,7 +33,7 @@ Index: SDL_mixer/Makefile
  # Compilation flags.
  COMMON_FLAGS	:= -g -O3 -mrvl -Wall $(MACHDEP)
 -INCLUDES		:= -Iinclude -I$(LIBOGC_INC) -I$(LIBOGC_INC)/SDL -I$(LIBOGC_INC)/mpeg -I$(DEVKITPRO)/libsmpeg/include -Isrc/mikmod -Isrc/timidity
-+INCLUDES		:= -Iinclude -I$(LIBOGC_INC) -I$(INSTALL_HEADER_DIR)/SDL -I$(INSTALL_HEADER_DIR)/mpeg -I$(DEVKITPRO)/libsmpeg/include -Isrc/mikmod -Isrc/timidity
++INCLUDES		:= -Iinclude -I$(LIBOGC_INC) -I$(INSTALL_HEADER_DIR)/SDL -I$(INSTALL_HEADER_DIR)/smpeg -I$(DEVKITPRO)/libsmpeg/include -Isrc/mikmod -Isrc/timidity
  # -include sys/wait.h 
  # -include sys/syslimits.h
  # -Isrc/native_midi
@@ -50,19 +63,6 @@ Index: SDL_net/Makefile
  # -include sys/wait.h 
  # -include sys/syslimits.h
  
-Index: SDL_ttf/Makefile
-===================================================================
---- SDL_ttf/Makefile	(revision 99)
-+++ SDL_ttf/Makefile	(working copy)
-@@ -80,7 +80,7 @@
- 
- # Compilation flags.
- COMMON_FLAGS	:= -g -O3 -mrvl -Wall $(MACHDEP)
--INCLUDES		:= -Iinclude -I$(LIBOGC_INC) -I$(LIBOGC_INC)/SDL -I$(LIBOGC_INC)/freetype
-+INCLUDES		:= -Iinclude -I$(LIBOGC_INC) -I$(INSTALL_HEADER_DIR)/SDL -I$(LIBOGC_INC)/freetype
- DEFINES			:= -DGEKKO -DDEBUG_ERROR -DDEBUG_TIMERS -DDEBUG_THREADS -DDEBUG_BUILD -DDEBUG_CONVERT 
- CFLAGS			:= -L$(PORTLIBS)/lib -I$(PORTLIBS)/include -I$(PORTLIBS)/include/freetype2 $(COMMON_FLAGS) $(INCLUDES) $(DEFINES)
- 
 Index: smpeg/Makefile
 ===================================================================
 --- smpeg/Makefile	(revision 99)
@@ -76,3 +76,15 @@ Index: smpeg/Makefile
  
  #---------------------------------------------------------------------------------
  # build a list of library paths
+@@ -115,9 +115,9 @@
+ 	
+ install: $(BUILD)
+ 	@mkdir -p $(INSTALL_HEADER_DIR) $(INSTALL_LIB_DIR)
+-	@mkdir -p $(INSTALL_HEADER_DIR)/mpeg
++	@mkdir -p $(INSTALL_HEADER_DIR)/smpeg
+ 	@cp -frv $(LIB_DIR)/*.* $(INSTALL_LIB_DIR)
+-	@cp -frv include/*.* $(INSTALL_HEADER_DIR)/mpeg
++	@cp -frv include/*.* $(INSTALL_HEADER_DIR)/smpeg
+ 
+ #---------------------------------------------------------------------------------
+ run:
