@@ -1,0 +1,68 @@
+Index: include/sys/select.h
+===================================================================
+--- include/sys/select.h	(revision 6)
++++ include/sys/select.h	(working copy)
+@@ -13,26 +13,13 @@
+ 
+ /* Get fd_set, and macros like FD_SET */
+ #include <sys/types.h>
+-#include <gctypes.h>
+ 
+ /* Get definition of timeval.  */
+ #include <sys/time.h>
+-#include <time.h>
+ 
+ /* Get definition of sigset_t. */
+ #include <signal.h>
+ 
+-#undef  FD_SETSIZE
+-#define FD_SETSIZE		16
+-#define FD_SET(n, p)		((p)->fd_bits[(n)/8] |=  (1 << ((n) & 7)))
+-#define FD_CLR(n, p)		((p)->fd_bits[(n)/8] &= ~(1 << ((n) & 7)))
+-#define FD_ISSET(n,p)		((p)->fd_bits[(n)/8] &   (1 << ((n) & 7)))
+-#define FD_ZERO(p)		memset((void*)(p),0,sizeof(*(p)))
+-
+-typedef struct fd_set {
+-	u8 fd_bits [(FD_SETSIZE+7)/8];
+-} fd_set;
+-
+ int  pselect(int, fd_set *__restrict__, fd_set *__restrict__, fd_set *__restrict__,
+          const struct timespec *__restrict__, const sigset_t *__restrict__);
+ int  select(int, fd_set *__restrict__, fd_set *__restrict__, fd_set *__restrict__,
+Index: src/netdb.cpp
+===================================================================
+--- src/netdb.cpp	(revision 6)
++++ src/netdb.cpp	(working copy)
+@@ -3,10 +3,7 @@
+    netport
+ */
+ 
+-#include <sys/ioctl.h>
+ #include <sys/socket.h>
+-#include <sys/select.h>
+-#include <netdb.h>
+ 
+ namespace wii
+ {
+@@ -15,7 +12,7 @@
+ 
+ struct hostent *gethostbyname(const char *addrString)
+ {
+-	return (struct hostent   *)wii::net_gethostbyname((char *)addrString);
++	return (struct hostent*)wii::net_gethostbyname(addrString);
+ }
+ 
+ struct servent   *getservbyname(const char *, const char *)
+Index: Makefile
+===================================================================
+--- Makefile	(revision 6)
++++ Makefile	(working copy)
+@@ -25,7 +25,7 @@
+ # options for code generation
+ #---------------------------------------------------------------------------------
+ 
+-CFLAGS	= -save-temps -g -O2 $(MACHDEP) $(INCLUDE) -DSCP_WII -DUSE_OPENAL -DSCP_UNIX -D_POSIX_SOURCE 
++CFLAGS	= -save-temps -g -O2 $(MACHDEP) $(INCLUDE) -DSCP_WII -DUSE_OPENAL -DSCP_UNIX
+ CXXFLAGS	=	$(CFLAGS)
+ 
+ LDFLAGS	=	-g $(MACHDEP) -Wl,-Map,$(notdir $@).map

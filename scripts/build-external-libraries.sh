@@ -48,6 +48,7 @@ svn checkout -r ${NETPORT_VERSION} http://diiscent.googlecode.com/svn/trunk/netp
 if [ $? == 0 ]; then
 	silentPushd ${NETPORT_PATH}
 	echo "Building netport library..."
+	patch -p0 -r - -s -N -i not_posix_source.patch
 	make
 	if [ $? == 0 ]; then
 		silentPushd include
@@ -69,7 +70,7 @@ echo "Getting sdl-wii (revision ${SDL_WII_VERSION})..."
 svn checkout -r ${SDL_WII_VERSION} http://sdl-wii.googlecode.com/svn/trunk ${SDL_WII_PATH}
 if [ $? == 0 ]; then
 	silentPushd ${SDL_WII_PATH}
-	patch -p0 -s -N -i makefiles.patch
+	patch -p0 -r - -s -N -i makefiles.patch
 	export INSTALL_HEADER_DIR=${INCLUDE_PATH}
 	export INSTALL_LIB_DIR=${LIB_PATH}
 	echo "Building sdl-wii library..."
