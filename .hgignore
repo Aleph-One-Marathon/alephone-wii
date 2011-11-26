@@ -7,5 +7,8 @@
 ^projects/aleph-one/missing$
 ^projects/sdl-wii
 ^projects/netport
+^projects/SDL-1.2
 ^build
 ^target
+^scripts/.*.log$
+
