@@ -3,17 +3,6 @@
 source setup-build-env.sh
 
 
-function failOnMissingDependency() {
-	if [ $? != 0 ]; then
-		local dependencyName=$1
-		echo "You will need $dependencyName to compile external libraries. Try installing it with :"
-		echo "sudo apt-get update"
-		echo "sudo apt-get install $dependencyName"
-		echo
-		exit -1
-	fi
-}
-
 patch --version > /dev/null 2>&1
 failOnMissingDependency "patch"
 
@@ -35,6 +24,8 @@ SDL_WII_VERSION="99"
 
 LOG_FILE=$(getAbsolutePath $0.log)
 echo "Logging build errors to ${LOG_FILE}"
+rm -f ${LOG_FILE}
+
 echo
 
 
@@ -44,95 +35,101 @@ BOOST_PATH=${PPC_INCLUDE_PATH}/boost
 BOOST_SVN_TAG=Boost_$(echo ${BOOST_VERSION} | sed -E 's|\.|_|g')
 BOOST_URL="http://svn.boost.org/svn/boost/tags/release/${BOOST_SVN_TAG}/boost"
 
-echo "Getting boost ${BOOST_VERSION} from ${BOOST_URL} ..."
-svn checkout ${BOOST_URL} ${BOOST_PATH} > /dev/null
-if [ $? != 0 ]; then
-	echo "Unable to download boost's source code."
-	exit -1
+if [ ! -x ${BOOST_PATH} ]; then
+	echo "Getting boost ${BOOST_VERSION} from ${BOOST_URL} ..."
+	svn export ${BOOST_URL} ${BOOST_PATH} > /dev/null
+	if [ $? != 0 ]; then
+		rm -rf ${BOOST_PATH}
+		echo "Unable to download boost's source code."
+		echo
+		exit -1
+	fi
 fi
+
 echo
 
 
 ###############
 # Build netport
-NETPORT_PATH=${PROJECTS_PATH}/netport
+NETPORT_PATH=${SUB_PROJECTS_PATH}/netport
 NETPORT_URL="http://diiscent.googlecode.com/svn/trunk/netport"
 
 echo "Getting netport revision ${NETPORT_VERSION} from ${NETPORT_URL} ..."
 svn checkout -r ${NETPORT_VERSION} ${NETPORT_URL} ${NETPORT_PATH} > /dev/null
-if [ $? == 0 ]; then
-	silentPushd ${NETPORT_PATH}
-	echo "Building netport library..."
-	patch -p0 -r - -s -N -i not_posix_source.patch > /dev/null 2>>${LOG_FILE}
-	make > /dev/null 2>>${LOG_FILE}
-	if [ $? == 0 ]; then
-		silentPushd include
-		mkdir -p ${BUILD_INCLUDE_PATH}
-		find . -name '*.h' -exec cp --parents {} ${BUILD_INCLUDE_PATH}/ \;
-		silentPopd
+failOnError "Unable to download netport's source code."
 
-		mkdir -p ${BUILD_LIB_PATH}
-		cp lib/*.a ${BUILD_LIB_PATH}/
-	else
-		echo "Unable to build netport library."
-		exit -1
-	fi
-	silentPopd
-else
-	echo "Unable to download netport's source code."
-	exit -1
-fi
+echo "Building netport library..."
+silentPushd ${NETPORT_PATH}
+patch -p0 -r - -s -N -i not_posix_source.patch > /dev/null 2>>${LOG_FILE}
+make > /dev/null 2>>${LOG_FILE}
+failOnError "Unable to build netport library."
+
+silentPushd include
+mkdir -p ${PROJECT_INCLUDE_PATH}
+find . -name '*.h' -exec cp --parents {} ${PROJECT_INCLUDE_PATH}/ \;
+silentPopd
+
+mkdir -p ${PROJECT_LIB_PATH}
+cp lib/*.a ${PROJECT_LIB_PATH}/
+silentPopd
+
 echo
 
 
-#######################################################################################
-# Build devkitPro's SDL (Because it contains configure scripts, while sdl-wii does not)
-DEVKITPRO_SDL_PATH=${PROJECTS_PATH}/SDL-${DEVKITPRO_SDL_VERSION}
+############################################################################################
+# Configure devkitPro's SDL (Because it generates configure scripts, while sdl-wii does not)
+# Don't actually build it because the generated library does not work as expected
+DEVKITPRO_SDL_PATH=${SUB_PROJECTS_PATH}/SDL-${DEVKITPRO_SDL_VERSION}
 DEVKITPRO_SDL_FILE=SDL-${DEVKITPRO_SDL_VERSION}-wii.tar.bz2
 DEVKITPRO_SDL_URL="http://sourceforge.net/projects/devkitpro/files/misc/${DEVKITPRO_SDL_FILE}/download"
+DEVKITPRO_SDL_BUILD_PATH=${BUILD_PATH}/SDL-${DEVKITPRO_SDL_VERSION}
+configureScript=${DEVKITPRO_SDL_PATH}/configure
 
-silentPushd ${PROJECTS_PATH}
 echo "Getting devkitPro's SDL from ${DEVKITPRO_SDL_URL} ..."
+silentPushd ${SUB_PROJECTS_PATH}
 wget ${DEVKITPRO_SDL_URL} -O ${DEVKITPRO_SDL_FILE} > /dev/null 2>&1
+failOnError "Unable to download devkitPro's SDL's source code."
 
-if [ $? == 0 ]; then
-	echo "Extracting devkitPro's SDL..."
-	tar -xvf ${DEVKITPRO_SDL_FILE} > /dev/null
-	rm -f ${DEVKITPRO_SDL_FILE}
-
-	if [ $? == 0 ]; then
-		silentPushd ${DEVKITPRO_SDL_PATH}
-		echo "Building devkitPro's SDL library..."
-		silentPopd
-	else
-		echo "Unable to extract devkitPro's SDL's source code."
-		exit -1
-	fi
-else
-	echo "Unable to download devkitPro's SDL's source code."
-	exit -1
-fi
+echo "Extracting devkitPro's SDL..."
+tar -xvf ${DEVKITPRO_SDL_FILE} > /dev/null && rm -f ${DEVKITPRO_SDL_FILE}
+failOnError "Unable to extract devkitPro's SDL's source code."
 silentPopd
+
+echo "Configuring devkitPro's SDL library..."
+mkdir -p ${DEVKITPRO_SDL_BUILD_PATH}
+silentPushd ${DEVKITPRO_SDL_BUILD_PATH}
+${configureScript} --prefix=${PORTLIBS_WII} \
+		   --host=powerpc-eabi --build=powerpc-eabi-gnu \
+		   --disable-shared --enable-static > /dev/null 2>>${LOG_FILE}
+failOnError "Unable to configure devkitPro's SDL library's build process."
+make install-bin > /dev/null 2>>${LOG_FILE}
+failOnError "Unable to install devkitPro's SDL binaries."
+make install-data > /dev/null 2>>${LOG_FILE}
+failOnError "Unable to install devkitPro's SDL data."
+make install-man > /dev/null 2>>${LOG_FILE}
+failOnError "Unable to install devkitPro's SDL manual."
+silentPopd
+
 echo
 
 
-##########################################################################################
-# Build sdl-wii (Because it contains sibling SDL projects, while devkitPro's SDL does not)
-SDL_WII_PATH=${PROJECTS_PATH}/sdl-wii
+###############
+# Build sdl-wii
+SDL_WII_PATH=${SUB_PROJECTS_PATH}/sdl-wii
 SDL_WII_URL="http://sdl-wii.googlecode.com/svn/trunk"
 
 echo "Getting sdl-wii revision ${SDL_WII_VERSION} from ${SDL_WII_URL} ..."
 svn checkout -r ${SDL_WII_VERSION} ${SDL_WII_URL} ${SDL_WII_PATH} > /dev/null
-if [ $? == 0 ]; then
-	silentPushd ${SDL_WII_PATH}
-	patch -p0 -r - -s -N -i makefiles.patch > /dev/null 2>>${LOG_FILE}
-	export INSTALL_HEADER_DIR=${WII_INCLUDE_PATH}
-	export INSTALL_LIB_DIR=${WII_LIB_PATH}
-	echo "Building sdl-wii library..."
-	make install > /dev/null 2>>${LOG_FILE}
-	silentPopd
-else
-	echo "Unable to download wii-sdl's source code."
-fi
+failOnError "Unable to download wii-sdl's source code."
+
+echo "Building sdl-wii library..."
+silentPushd ${SDL_WII_PATH}
+patch -p0 -r - -s -N -i makefiles.patch > /dev/null 2>>${LOG_FILE}
+export INSTALL_HEADER_DIR=${WII_INCLUDE_PATH}
+export INSTALL_LIB_DIR=${WII_LIB_PATH}
+make install > /dev/null 2>>${LOG_FILE}
+failOnError "Unable to build sdl-wii library."
+silentPopd
+
 echo
 

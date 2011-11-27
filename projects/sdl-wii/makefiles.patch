@@ -11,6 +11,33 @@ Index: SDL_ttf/Makefile
  DEFINES			:= -DGEKKO -DDEBUG_ERROR -DDEBUG_TIMERS -DDEBUG_THREADS -DDEBUG_BUILD -DDEBUG_CONVERT 
  CFLAGS			:= -L$(PORTLIBS)/lib -I$(PORTLIBS)/include -I$(PORTLIBS)/include/freetype2 $(COMMON_FLAGS) $(INCLUDES) $(DEFINES)
  
+Index: SDL/Makefile
+===================================================================
+--- SDL/Makefile	(revision 99)
++++ SDL/Makefile	(working copy)
+@@ -49,8 +49,10 @@
+ # Library object files.
+ SDL_OBJS	:= $(subst $(SDL_SRC_DIR),$(SDL_OBJ_DIR),$(SDL_SRCS:.c=.o))
+ 
++SDLMAIN_OBJS	:= $(SDL_OBJ_DIR)/main/wii/SDL_wii_main.o
++
+ # What's a full build?
+-all: $(LIB_DIR)/libSDL.a
++all: $(LIB_DIR)/libSDL.a $(LIB_DIR)/libSDLmain.a
+ 
+ # How to delete the intermediate files.
+ clean:
+@@ -79,6 +81,10 @@
+ 	powerpc-eabi-ar crs $@ $(SDL_OBJS)
+ 	@echo ----
+ 
++$(LIB_DIR)/libSDLmain.a): $(SDLMAIN_OBJS)
++	$(AR) cru $@ $(SDLMAIN_OBJS)
++	$(RANLIB) $@
++
+ # How to build a DOL.
+ $(BIN_DIR)/%.dol: $(TEST_OBJ_DIR)/%.elf
+ 	@echo Creating DOL $@
 Index: SDL_image/Makefile
 ===================================================================
 --- SDL_image/Makefile	(revision 99)
