@@ -63,8 +63,8 @@ svn checkout -r ${NETPORT_VERSION} ${NETPORT_URL} ${NETPORT_PATH} > /dev/null
 if [ $? == 0 ]; then
 	silentPushd ${NETPORT_PATH}
 	echo "Building netport library..."
-	patch -p0 -r - -s -N -i not_posix_source.patch > /dev/null 2>${LOG_FILE}
-	make > /dev/null 2>${LOG_FILE}
+	patch -p0 -r - -s -N -i not_posix_source.patch > /dev/null 2>>${LOG_FILE}
+	make > /dev/null 2>>${LOG_FILE}
 	if [ $? == 0 ]; then
 		silentPushd include
 		mkdir -p ${BUILD_INCLUDE_PATH}
@@ -125,11 +125,11 @@ echo "Getting sdl-wii revision ${SDL_WII_VERSION} from ${SDL_WII_URL} ..."
 svn checkout -r ${SDL_WII_VERSION} ${SDL_WII_URL} ${SDL_WII_PATH} > /dev/null
 if [ $? == 0 ]; then
 	silentPushd ${SDL_WII_PATH}
-	patch -p0 -r - -s -N -i makefiles.patch > /dev/null 2>${LOG_FILE}
+	patch -p0 -r - -s -N -i makefiles.patch > /dev/null 2>>${LOG_FILE}
 	export INSTALL_HEADER_DIR=${WII_INCLUDE_PATH}
 	export INSTALL_LIB_DIR=${WII_LIB_PATH}
 	echo "Building sdl-wii library..."
-	make install > /dev/null 2>${LOG_FILE}
+	make install > /dev/null 2>>${LOG_FILE}
 	silentPopd
 else
 	echo "Unable to download wii-sdl's source code."
