@@ -1,6 +1,7 @@
 #!/bin/bash
 
-./build-external-libraries.sh
-./configure.sh
-./make.sh
-
+./install-boost.sh && \
+./build-netport.sh && \
+./build-sdl.sh && \
+./configure-aleph-one.sh && \
+./make-aleph-one.sh
