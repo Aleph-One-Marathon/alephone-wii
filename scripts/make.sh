@@ -6,7 +6,9 @@ ALEPH_ONE_BUILD_PATH=${BUILD_PATH}/aleph-one
 
 # Patch to fix include order mess due to libogc's network.h \
 # file being included after Aleph One's one
-ln -s ${LIBOGC_INC}/network.h ${INCLUDE_PATH}/ogc_network.h
+mkdir -p ${BUILD_INCLUDE_PATH}
+ln -s ${LIBOGC_INCLUDE_PATH}/network.h ${BUILD_INCLUDE_PATH}/ogc_network.h
+
 
 silentPushd ${ALEPH_ONE_BUILD_PATH}
 make && make install
@@ -19,3 +21,4 @@ if [ $? == 0 ]; then
 fi
 
 silentPopd
+

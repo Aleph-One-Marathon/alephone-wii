@@ -1,6 +1,4 @@
 #!/bin/bash
 
-./build-external-libraries.sh
-./configure.sh
-./make.sh
+./build-external-libraries.sh && ./configure.sh && ./make.sh
 

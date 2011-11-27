@@ -33,9 +33,6 @@ DEVKITPRO_SDL_VERSION="1.2"
 SDL_WII_VERSION="99"
 
 
-mkdir -p ${INCLUDE_PATH}
-mkdir -p ${LIB_PATH}
-
 LOG_FILE=$(getAbsolutePath $0.log)
 echo "Logging build errors to ${LOG_FILE}"
 echo
@@ -43,7 +40,7 @@ echo
 
 ##############
 # Import boost
-BOOST_PATH=${INCLUDE_PATH}/boost
+BOOST_PATH=${PPC_INCLUDE_PATH}/boost
 BOOST_SVN_TAG=Boost_$(echo ${BOOST_VERSION} | sed -E 's|\.|_|g')
 BOOST_URL="http://svn.boost.org/svn/boost/tags/release/${BOOST_SVN_TAG}/boost"
 
@@ -70,10 +67,12 @@ if [ $? == 0 ]; then
 	make > /dev/null 2>${LOG_FILE}
 	if [ $? == 0 ]; then
 		silentPushd include
-		find . -name '*.h' -exec cp --parents {} ${INCLUDE_PATH}/ \;
+		mkdir -p ${BUILD_INCLUDE_PATH}
+		find . -name '*.h' -exec cp --parents {} ${BUILD_INCLUDE_PATH}/ \;
 		silentPopd
-	    
-		cp lib/*.a ${LIB_PATH}/
+
+		mkdir -p ${BUILD_LIB_PATH}
+		cp lib/*.a ${BUILD_LIB_PATH}/
 	else
 		echo "Unable to build netport library."
 		exit -1
@@ -127,8 +126,8 @@ svn checkout -r ${SDL_WII_VERSION} ${SDL_WII_URL} ${SDL_WII_PATH} > /dev/null
 if [ $? == 0 ]; then
 	silentPushd ${SDL_WII_PATH}
 	patch -p0 -r - -s -N -i makefiles.patch > /dev/null 2>${LOG_FILE}
-	export INSTALL_HEADER_DIR=${INCLUDE_PATH}
-	export INSTALL_LIB_DIR=${LIB_PATH}
+	export INSTALL_HEADER_DIR=${WII_INCLUDE_PATH}
+	export INSTALL_LIB_DIR=${WII_LIB_PATH}
 	echo "Building sdl-wii library..."
 	make install > /dev/null 2>${LOG_FILE}
 	silentPopd
