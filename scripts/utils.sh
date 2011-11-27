@@ -33,4 +33,3 @@ function failOnError() {
 		exit -1
 	fi
 }
-

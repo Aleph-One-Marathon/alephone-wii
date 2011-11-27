@@ -23,4 +23,3 @@ SUB_PROJECTS_PATH=$(getAbsolutePath ../projects)
 BUILD_PATH=$(getAbsolutePath ../build)
 TARGET_PATH=$(getAbsolutePath ../target)
 BIN_PATH=${TARGET_PATH}/wii/sd
-

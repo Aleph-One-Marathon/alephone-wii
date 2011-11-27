@@ -34,4 +34,3 @@ ${configureScript} --prefix=${prefix} --datadir=${dataDir} --bindir=${binDir} \
 		   --disable-opengl --disable-speex --disable-zzip
 failOnError "Unable to configure aleph-one's build process."
 silentPopd
-

@@ -18,4 +18,3 @@ failOnError "Unable to build aleph-wone"
 mv ${ALEPH_PATH}/alephone ${ALEPH_PATH}/alephone.elf
 ${ELF2DOL} ${ALEPH_PATH}/alephone.elf ${ALEPH_PATH}/boot.dol
 silentPopd
-

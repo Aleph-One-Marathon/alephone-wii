@@ -42,4 +42,3 @@ export VORBISFILE_LIBS=" "
 
 export ACLOCAL_FLAGS="-I${PORTLIBS_WII}/share/aclocal"
 export SDL_CONFIG="${PORTLIBS_WII}/bin/sdl-config"
-

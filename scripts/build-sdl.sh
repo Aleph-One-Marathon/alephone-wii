@@ -16,62 +16,13 @@ tar --version > /dev/null 2>&1
 failOnMissingDependency "tar"
 
 
-BOOST_VERSION="1.47.0"
-NETPORT_VERSION="6"
 DEVKITPRO_SDL_VERSION="1.2"
 SDL_WII_VERSION="99"
 
 
-LOG_FILE=$(getAbsolutePath $0.log)
+LOG_FILE=${BUILD_PATH}/$0.log
 echo "Logging build errors to ${LOG_FILE}"
 rm -f ${LOG_FILE}
-
-echo
-
-
-##############
-# Import boost
-BOOST_PATH=${PPC_INCLUDE_PATH}/boost
-BOOST_SVN_TAG=Boost_$(echo ${BOOST_VERSION} | sed -E 's|\.|_|g')
-BOOST_URL="http://svn.boost.org/svn/boost/tags/release/${BOOST_SVN_TAG}/boost"
-
-if [ ! -x ${BOOST_PATH} ]; then
-	echo "Getting boost ${BOOST_VERSION} from ${BOOST_URL} ..."
-	svn export ${BOOST_URL} ${BOOST_PATH} > /dev/null
-	if [ $? != 0 ]; then
-		rm -rf ${BOOST_PATH}
-		echo "Unable to download boost's source code."
-		echo
-		exit -1
-	fi
-fi
-
-echo
-
-
-###############
-# Build netport
-NETPORT_PATH=${SUB_PROJECTS_PATH}/netport
-NETPORT_URL="http://diiscent.googlecode.com/svn/trunk/netport"
-
-echo "Getting netport revision ${NETPORT_VERSION} from ${NETPORT_URL} ..."
-svn checkout -r ${NETPORT_VERSION} ${NETPORT_URL} ${NETPORT_PATH} > /dev/null
-failOnError "Unable to download netport's source code."
-
-echo "Building netport library..."
-silentPushd ${NETPORT_PATH}
-patch -p0 -r - -s -N -i not_posix_source.patch > /dev/null 2>>${LOG_FILE}
-make > /dev/null 2>>${LOG_FILE}
-failOnError "Unable to build netport library."
-
-silentPushd include
-mkdir -p ${PROJECT_INCLUDE_PATH}
-find . -name '*.h' -exec cp --parents {} ${PROJECT_INCLUDE_PATH}/ \;
-silentPopd
-
-mkdir -p ${PROJECT_LIB_PATH}
-cp lib/*.a ${PROJECT_LIB_PATH}/
-silentPopd
 
 echo
 
@@ -132,4 +83,3 @@ failOnError "Unable to build sdl-wii library."
 silentPopd
 
 echo
-
