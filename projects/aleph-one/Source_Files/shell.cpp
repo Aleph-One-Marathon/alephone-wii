@@ -2,7 +2,7 @@
 
 	Copyright (C) 1991-2001 and beyond by Bungie Studios, Inc.
 	and the "Aleph One" developers.
- 
+
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation; either version 3 of the License, or
@@ -189,7 +189,11 @@ bool check_option(const string& option, const string& shortName, const string& l
 void parse_options(const string prg_name, const vector<string>& options);
 
 #if defined (__WII__)
-int init_network_subsystem();
+namespace wii {
+static int init_subsystems();
+static int init_fat();
+static int init_network();
+}
 #endif
 
 static void initialize_application(void);
@@ -271,7 +275,7 @@ bool handle_open_document(const std::string& filename)
 	default:
 		break;
 	}
-	
+
 	return done;
 }
 
@@ -399,6 +403,10 @@ bool check_option(const string& option, const string& shortName, const string& l
 
 int main(int argc, char **argv)
 {
+#if defined(__WII__)
+	wii::init_subsystems();
+#endif
+
 	// Print banner (don't bother if this doesn't appear when started from a GUI)
 	char app_name_version[256];
 	expand_app_variables(app_name_version, "Aleph One $appLongVersion$");
@@ -414,7 +422,7 @@ int main(int argc, char **argv)
 	  "\nThis is free software with ABSOLUTELY NO WARRANTY.\n"
 	  "You are welcome to redistribute it under certain conditions.\n"
 	  "For details, see the file COPYING.\n"
-#if defined(__BEOS__) || defined(__WIN32__) 
+#if defined(__BEOS__) || defined(__WIN32__)
 	  // BeOS and Windows are statically linked against SDL, so we have to include this:
 	  "\nSimple DirectMedia Layer (SDL) Library included under the terms of the\n"
 	  "GNU Library General Public License.\n"
@@ -444,7 +452,7 @@ int main(int argc, char **argv)
 	parse_options(prg_name, options);
 
 	try {
-		
+
 		// Initialize everything
 		initialize_application();
 
@@ -460,11 +468,11 @@ int main(int argc, char **argv)
 		main_event_loop();
 
 	} catch (exception &e) {
-		try 
+		try
 		{
 			logFatal("Unhandled exception: %s", e.what());
 		}
-		catch (...) 
+		catch (...)
 		{
 		}
 		exit(1);
@@ -484,10 +492,6 @@ int main(int argc, char **argv)
 
 static void initialize_application(void)
 {
-#if defined(__WII__)
-	init_network_subsystem();
-#endif
-
 #if defined(__WIN32__) && defined(__MINGW32__)
 	if (LoadLibrary("exchndl.dll")) option_debug = true;
 #endif
@@ -515,7 +519,7 @@ static void initialize_application(void)
 		default_data_dir = buf;
 		free(buf);
 	}
-	
+
 	log_dir = app_log_directory;
 	preferences_dir = app_preferences_directory;
 	local_data_dir = app_support_directory;
@@ -544,7 +548,7 @@ static void initialize_application(void)
 	DirectorySpecifier legacy_data_dir = file_name;
 	legacy_data_dir += "Prefs";
 	legacy_data_dir += login;
-	
+
 	SHGetFolderPath(NULL,
 			CSIDL_PERSONAL | CSIDL_FLAG_CREATE,
 			NULL,
@@ -571,11 +575,11 @@ static void initialize_application(void)
 #else
 #define LIST_SEP ':'
 #endif
-	
+
 	// in case we need to redo search path later:
 	size_t dsp_insert_pos = data_search_path.size();
 	size_t dsp_delete_pos = (size_t)-1;
-	
+
 	if (arg_directory != "")
 	{
 		dsp_delete_pos = data_search_path.size();
@@ -615,8 +619,8 @@ static void initialize_application(void)
 	DirectorySpecifier legacy_preferences_dir = local_data_dir;
 #elif defined(__WIN32__)
 	DirectorySpecifier legacy_preferences_dir = legacy_data_dir;
-	SHGetFolderPath(NULL, 
-			CSIDL_LOCAL_APPDATA | CSIDL_FLAG_CREATE, 
+	SHGetFolderPath(NULL,
+			CSIDL_LOCAL_APPDATA | CSIDL_FLAG_CREATE,
 			NULL,
 			0,
 			file_name);
@@ -624,7 +628,7 @@ static void initialize_application(void)
 	preferences_dir += "AlephOne";
 #else
 	preferences_dir = local_data_dir;
-#endif	
+#endif
 	saved_games_dir = local_data_dir + "Saved Games";
 	recordings_dir = local_data_dir + "Recordings";
 	screenshots_dir = local_data_dir + "Screenshots";
@@ -649,7 +653,7 @@ static void initialize_application(void)
 		fprintf(stderr, "Can't find required text strings (missing MML?).\n");
 		exit(1);
 	}
-	
+
 	// Check for presence of files (one last chance to change data_search_path)
 	if (!have_default_files()) {
 		char chosen_dir[256];
@@ -659,7 +663,7 @@ static void initialize_application(void)
 				data_search_path.erase(data_search_path.begin() + dsp_delete_pos);
 			// add selected directory where command-line argument would go
 			data_search_path.insert(data_search_path.begin() + dsp_insert_pos, chosen_dir);
-			
+
 			// Parse MML files again, now that we have a new dir to search
 			SetupParseTree();
 			LoadBaseMMLScripts();
@@ -667,8 +671,8 @@ static void initialize_application(void)
 	}
 
 	initialize_fonts();
-	Plugins::instance()->enumerate();			
-	
+	Plugins::instance()->enumerate();
+
 #if defined(__WIN32__) || (defined(__MACH__) && defined(__APPLE__))
 	preferences_dir.CreateDirectory();
 	transition_preferences(legacy_preferences_dir);
@@ -698,7 +702,7 @@ static void initialize_application(void)
 	SDL_putenv(const_cast<char*>("SDL_VIDEO_ALLOW_SCREENSAVER=1"));
 
 	// Initialize SDL
-	int retval = SDL_Init(SDL_INIT_VIDEO | 
+	int retval = SDL_Init(SDL_INIT_VIDEO |
 			      (option_nosound ? 0 : SDL_INIT_AUDIO) |
                               (option_nojoystick ? 0 : SDL_INIT_JOYSTICK) |
 			      (option_debug ? SDL_INIT_NOPARACHUTE : 0));
@@ -760,8 +764,34 @@ static void initialize_application(void)
 
 #if defined(__WII__)
 #include <ogc_network.h>
+#include <SDL_rwops.h>
 
-int init_network_subsystem() {
+namespace wii {
+static int init_subsystems() {
+    int err;
+
+    if ((err = init_fat()) != 0) {
+        return err;
+    }
+
+    if ((err = init_network()) != 0) {
+        return err;
+    }
+
+    return 0;
+}
+
+static int init_fat() {
+    fprintf(stdout, "Forcing fat initialization by trying to open a dummy file using SDL...\n");
+    SDL_RWops* fileContext = SDL_RWFromFile("dummy.file", "r");
+    if (fileContext != NULL) {
+        return SDL_RWclose(fileContext);
+    }
+
+    return 0;
+}
+
+static int init_network() {
 	const int maxTryCount = 5;
 	int result = -EAGAIN;
 	fprintf(stdout, "Initializing network...\n");
@@ -786,6 +816,8 @@ int init_network_subsystem() {
 
 	return result;
 }
+}
+
 #endif
 
 void shutdown_application(void)
@@ -794,9 +826,9 @@ void shutdown_application(void)
         static bool already_shutting_down = false;
         if(already_shutting_down)
                 return;
-        
+
         already_shutting_down = true;
-        
+
 	restore_gamma();
 #if defined(HAVE_SDL_IMAGE) && (SDL_IMAGE_PATCHLEVEL >= 8)
 	IMG_Quit();
@@ -833,7 +865,7 @@ bool quit_without_saving(void)
 	placer->dual_add (new w_static_text("Are you sure you wish to"), d);
 	placer->dual_add (new w_static_text("cancel the game in progress?"), d);
 	placer->add (new w_spacer(), true);
-	
+
 	horizontal_placer *button_placer = new horizontal_placer;
 	w_button *default_button = new w_button("YES", dialog_ok, &d);
 	button_placer->dual_add (default_button, d);
@@ -935,7 +967,7 @@ static void main_event_loop(void)
 			  if (Console::instance()->input_active() || cur_time - last_event_poll >= TICKS_BETWEEN_EVENT_POLL) {
 					poll_event = true;
 					last_event_poll = cur_time;
-			  } else {				  
+			  } else {
 					SDL_PumpEvents ();	// This ensures a responsive keyboard control
 			  }
 				break;
@@ -991,7 +1023,7 @@ static void main_event_loop(void)
 		idle_game_state(SDL_GetTicks());
 
 #ifndef __MACOS__
-		if (game_state == _game_in_progress && !graphics_preferences->hog_the_cpu && (TICKS_PER_SECOND - (SDL_GetTicks() - cur_time)) > 10) 
+		if (game_state == _game_in_progress && !graphics_preferences->hog_the_cpu && (TICKS_PER_SECOND - (SDL_GetTicks() - cur_time)) > 10)
 		{
 			SDL_Delay(1);
 		}
@@ -1133,7 +1165,7 @@ static void handle_game_key(const SDL_Event &event)
 				Console::instance()->activate_input(InGameChatCallbacks::SendChatMessage, InGameChatCallbacks::prompt());
 #endif
 				PlayInterfaceButtonSound(Sound_ButtonSuccess());
-			} 
+			}
 			else if (Console::instance()->use_lua_console())
 			{
 				PlayInterfaceButtonSound(Sound_ButtonSuccess());
@@ -1143,7 +1175,7 @@ static void handle_game_key(const SDL_Event &event)
 			{
 				PlayInterfaceButtonSound(Sound_ButtonFailure());
 			}
-		} 
+		}
 		else if (key == input_preferences->shell_keycodes[_key_show_scores])
 		{
 			PlayInterfaceButtonSound(Sound_ButtonSuccess());
@@ -1151,7 +1183,7 @@ static void handle_game_key(const SDL_Event &event)
 				extern bool ShowScores;
 				ShowScores = !ShowScores;
 			}
-		}	
+		}
 		else if (key == SDLK_F1) // Decrease screen size
 		{
 			if (!graphics_preferences->screen_mode.hud)
@@ -1287,7 +1319,7 @@ static void handle_game_key(const SDL_Event &event)
 				set_game_state(_close_game);
 		}
 	}
-	
+
 	if (changed_screen_mode) {
 		screen_mode_data temp_screen_mode = graphics_preferences->screen_mode;
 		temp_screen_mode.fullscreen = get_screen_mode()->fullscreen;
@@ -1304,9 +1336,9 @@ static void process_game_key(const SDL_Event &event)
 	switch (get_game_state()) {
 	case _game_in_progress:
 #if defined(__APPLE__) && defined(__MACH__)
-		if ((event.key.keysym.mod & KMOD_META)) 
+		if ((event.key.keysym.mod & KMOD_META))
 #else
-		if ((event.key.keysym.mod & KMOD_ALT) || (event.key.keysym.mod & KMOD_META)) 
+		if ((event.key.keysym.mod & KMOD_ALT) || (event.key.keysym.mod & KMOD_META))
 #endif
 		{
 			int item = -1;
@@ -1367,7 +1399,7 @@ static void process_game_key(const SDL_Event &event)
 	case _displaying_network_game_dialogs:
 		break;
 
-	case _display_main_menu: 
+	case _display_main_menu:
 	{
 		if (!interface_fade_finished())
 			stop_interface_fade();
@@ -1433,7 +1465,7 @@ static void process_event(const SDL_Event &event)
 {
 	switch (event.type) {
 	case SDL_MOUSEBUTTONDOWN:
-		if (get_game_state() == _game_in_progress) 
+		if (get_game_state() == _game_in_progress)
 		{
 			if (event.button.button == 4 || event.button.button == 5)
 			{
@@ -1449,15 +1481,15 @@ static void process_event(const SDL_Event &event)
 		else
 			process_screen_click(event);
 		break;
-		
+
 	case SDL_KEYDOWN:
 		process_game_key(event);
 		break;
-		
+
 	case SDL_QUIT:
 		set_game_state(_quit_game);
 		break;
-		
+
 	case SDL_ACTIVEEVENT:
 		if (event.active.state & SDL_APPINPUTFOCUS) {
 			if (!event.active.gain && !(SDL_GetAppState() & SDL_APPINPUTFOCUS)) {
@@ -1480,7 +1512,7 @@ static void process_event(const SDL_Event &event)
 #endif
 		break;
 	}
-	
+
 }
 
 #ifdef HAVE_PNG
@@ -1536,7 +1568,7 @@ void dump_screen(void)
 
 	time_t rawtime;
 	time(&rawtime);
-	
+
 	char time_string[32];
 	strftime(time_string, 32,"%d %b %Y %H:%M:%S +0000", gmtime(&rawtime));
 	metadata["Creation Time"] = time_string;
@@ -1643,7 +1675,7 @@ void LoadBaseMMLScripts()
 		}
 	}
 }
-			   
+
 const char *get_application_name(void)
 {
    return application_name;
