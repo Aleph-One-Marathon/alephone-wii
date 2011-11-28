@@ -707,8 +707,8 @@ static bool need_mode_change(int width, int height, int depth, bool nogl)
 static void change_screen_mode(int width, int height, int depth, bool nogl)
 {
 
-	int vmode_height = (screen_mode.fullscreen && !screen_mode.fill_the_screen) ? desktop_height : height;
-	int vmode_width = (screen_mode.fullscreen && !screen_mode.fill_the_screen) ? desktop_width : width;
+	int vmode_height = (screen_mode.fullscreen && !screen_mode.fill_the_screen && desktop_height) ? desktop_height : height;
+	int vmode_width = (screen_mode.fullscreen && !screen_mode.fill_the_screen && desktop_width) ? desktop_width : width;
 	uint32 flags = (screen_mode.fullscreen ? SDL_FULLSCREEN : 0);
 	
 	if (need_mode_change(width, height, depth, nogl)) {
