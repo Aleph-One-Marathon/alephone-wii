@@ -561,8 +561,9 @@ static void initialize_application(void)
 
 #elif defined(__WII__)
 
-	default_data_dir = "sd:/AlephOne";
+	default_data_dir = arg_directory;
 	local_data_dir = default_data_dir;
+	log_dir = local_data_dir;
 
 #else
 	default_data_dir = "";
