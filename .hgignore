@@ -12,5 +12,4 @@
 ^target
 ^include
 ^lib
-^scripts/.*.log$
 

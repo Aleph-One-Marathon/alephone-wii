@@ -21,7 +21,8 @@ SDL_WII_VERSION="99"
 
 
 LOG_FILE=${BUILD_PATH}/$0.log
-echo "Logging build errors to ${LOG_FILE}"
+echo "Outputting messages to ${LOG_FILE}"
+mkdir -p ${BUILD_PATH}
 rm -f ${LOG_FILE}
 
 echo
@@ -38,11 +39,11 @@ configureScript=${DEVKITPRO_SDL_PATH}/configure
 
 echo "Getting devkitPro's SDL from ${DEVKITPRO_SDL_URL} ..."
 silentPushd ${SUB_PROJECTS_PATH}
-wget ${DEVKITPRO_SDL_URL} -O ${DEVKITPRO_SDL_FILE} > /dev/null 2>&1
+wget ${DEVKITPRO_SDL_URL} -O ${DEVKITPRO_SDL_FILE} >> ${LOG_FILE} 2>&1
 failOnError "Unable to download devkitPro's SDL's source code."
 
 echo "Extracting devkitPro's SDL..."
-tar -xvf ${DEVKITPRO_SDL_FILE} > /dev/null && rm -f ${DEVKITPRO_SDL_FILE}
+tar -xvf ${DEVKITPRO_SDL_FILE} >> ${LOG_FILE} 2>&1 && rm -f ${DEVKITPRO_SDL_FILE}
 failOnError "Unable to extract devkitPro's SDL's source code."
 silentPopd
 
@@ -51,13 +52,13 @@ mkdir -p ${DEVKITPRO_SDL_BUILD_PATH}
 silentPushd ${DEVKITPRO_SDL_BUILD_PATH}
 ${configureScript} --prefix=${PORTLIBS_WII} \
 		   --host=powerpc-eabi --build=powerpc-eabi-gnu \
-		   --disable-shared --enable-static > /dev/null 2>>${LOG_FILE}
+		   --disable-shared --enable-static >> ${LOG_FILE} 2>&1
 failOnError "Unable to configure devkitPro's SDL library's build process."
-make install-bin > /dev/null 2>>${LOG_FILE}
+make install-bin >> ${LOG_FILE} 2>&1
 failOnError "Unable to install devkitPro's SDL binaries."
-make install-data > /dev/null 2>>${LOG_FILE}
+make install-data >> ${LOG_FILE} 2>&1
 failOnError "Unable to install devkitPro's SDL data."
-make install-man > /dev/null 2>>${LOG_FILE}
+make install-man >> ${LOG_FILE} 2>&1
 failOnError "Unable to install devkitPro's SDL manual."
 silentPopd
 
@@ -70,15 +71,15 @@ SDL_WII_PATH=${SUB_PROJECTS_PATH}/sdl-wii
 SDL_WII_URL="http://sdl-wii.googlecode.com/svn/trunk"
 
 echo "Getting sdl-wii revision ${SDL_WII_VERSION} from ${SDL_WII_URL} ..."
-svn checkout -r ${SDL_WII_VERSION} ${SDL_WII_URL} ${SDL_WII_PATH} > /dev/null
+svn checkout -r ${SDL_WII_VERSION} ${SDL_WII_URL} ${SDL_WII_PATH} >> ${LOG_FILE} 2>&1
 failOnError "Unable to download wii-sdl's source code."
 
 echo "Building sdl-wii library..."
 silentPushd ${SDL_WII_PATH}
-patch -p0 -r - -s -N -i makefiles.patch > /dev/null 2>>${LOG_FILE}
+patch -p0 -r - -i makefiles.patch >> ${LOG_FILE} 2>&1
 export INSTALL_HEADER_DIR=${WII_INCLUDE_PATH}
 export INSTALL_LIB_DIR=${WII_LIB_PATH}
-make install > /dev/null 2>>${LOG_FILE}
+make install >> ${LOG_FILE} 2>&1
 failOnError "Unable to build sdl-wii library."
 silentPopd
 
