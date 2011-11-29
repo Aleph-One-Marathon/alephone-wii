@@ -1,16 +1,3 @@
-Index: SDL_ttf/Makefile
-===================================================================
---- SDL_ttf/Makefile	(revision 99)
-+++ SDL_ttf/Makefile	(working copy)
-@@ -80,7 +80,7 @@
- 
- # Compilation flags.
- COMMON_FLAGS	:= -g -O3 -mrvl -Wall $(MACHDEP)
--INCLUDES		:= -Iinclude -I$(LIBOGC_INC) -I$(LIBOGC_INC)/SDL -I$(LIBOGC_INC)/freetype
-+INCLUDES		:= -Iinclude -I$(LIBOGC_INC) -I$(INSTALL_HEADER_DIR)/SDL -I$(LIBOGC_INC)/freetype
- DEFINES			:= -DGEKKO -DDEBUG_ERROR -DDEBUG_TIMERS -DDEBUG_THREADS -DDEBUG_BUILD -DDEBUG_CONVERT 
- CFLAGS			:= -L$(PORTLIBS)/lib -I$(PORTLIBS)/include -I$(PORTLIBS)/include/freetype2 $(COMMON_FLAGS) $(INCLUDES) $(DEFINES)
- 
 Index: SDL/Makefile
 ===================================================================
 --- SDL/Makefile	(revision 99)
@@ -38,6 +25,19 @@ Index: SDL/Makefile
  # How to build a DOL.
  $(BIN_DIR)/%.dol: $(TEST_OBJ_DIR)/%.elf
  	@echo Creating DOL $@
+Index: SDL_ttf/Makefile
+===================================================================
+--- SDL_ttf/Makefile	(revision 99)
++++ SDL_ttf/Makefile	(working copy)
+@@ -80,7 +80,7 @@
+ 
+ # Compilation flags.
+ COMMON_FLAGS	:= -g -O3 -mrvl -Wall $(MACHDEP)
+-INCLUDES		:= -Iinclude -I$(LIBOGC_INC) -I$(LIBOGC_INC)/SDL -I$(LIBOGC_INC)/freetype
++INCLUDES		:= -Iinclude -I$(LIBOGC_INC) -I$(INSTALL_HEADER_DIR)/SDL -I$(LIBOGC_INC)/freetype
+ DEFINES			:= -DGEKKO -DDEBUG_ERROR -DDEBUG_TIMERS -DDEBUG_THREADS -DDEBUG_BUILD -DDEBUG_CONVERT 
+ CFLAGS			:= -L$(PORTLIBS)/lib -I$(PORTLIBS)/include -I$(PORTLIBS)/include/freetype2 $(COMMON_FLAGS) $(INCLUDES) $(DEFINES)
+ 
 Index: SDL_image/Makefile
 ===================================================================
 --- SDL_image/Makefile	(revision 99)
