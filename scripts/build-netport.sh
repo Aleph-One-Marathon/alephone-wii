@@ -37,7 +37,7 @@ make >> ${LOG_FILE} 2>&1
 failOnError "Unable to build netport library."
 
 silentPushd include
-for HEADER_FILE in $(ls -C */*.h)
+for HEADER_FILE in $(ls -C *.h) $(ls -C */*.h)
 do
     TARGET_DIR=${PROJECT_INCLUDE_PATH}/$(dirname ${HEADER_FILE})
     mkdir -p ${TARGET_DIR}
