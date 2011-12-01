@@ -1,0 +1,4 @@
+/* Localized versions of Info.plist keys */
+
+CFBundleName = "Marathon Infinity";
+NSHumanReadableCopyright = "Bungie and Aleph One developers";

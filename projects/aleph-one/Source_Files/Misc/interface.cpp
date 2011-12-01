@@ -1580,6 +1580,8 @@ void paint_window_black(
 	_restore_port();
 }
 
+static LoadedResource SoundRsrc;
+
 /* --------------------- static code */
 
 static void display_introduction(
@@ -1600,6 +1602,13 @@ static void display_introduction(
 		game_state.phase= screen_data->duration;
 		game_state.last_ticks_on_idle= machine_tick_count();
 		display_screen(screen_data->screen_base);
+
+		Mixer::instance()->StopSoundResource();
+		SoundRsrc.Unload();
+		if (get_sound_resource_from_images(screen_data->screen_base, SoundRsrc))
+		{
+			Mixer::instance()->PlaySoundResource(SoundRsrc);
+		}
 	}
 	else
 	{
@@ -1718,6 +1727,23 @@ static void display_about_dialog()
 	authors_placer->add(new w_spacer, true);
 
 	std::vector<std::string> authors;
+	authors.push_back("Joey Adams");
+	authors.push_back("Michael Adams (mdmkolbe)");
+	authors.push_back("Falko Axmann");
+	authors.push_back("Christian Bauer");
+	authors.push_back("Mike Benonis");
+	authors.push_back("Steven Bytnar");
+	authors.push_back("Glen Ditchfield");
+	authors.push_back("Will Dyson");
+	authors.push_back("Carl Gherardi");
+	authors.push_back("Thomas Herzog");
+	authors.push_back("Peter Hessler");
+	authors.push_back("Matthew Hielscher");
+	authors.push_back("Rhys Hill");
+	authors.push_back("Alan Jenkins");
+	authors.push_back("Richard Jenkins (Solra Bizna)");
+	authors.push_back("Jeremy, the MSVC guy");
+	authors.push_back("Mark Levin");
 	authors.push_back("Bo Lindbergh");
 	authors.push_back("Chris Lovell");
 	authors.push_back("Jesse Luehrs");
@@ -2427,6 +2453,15 @@ static void next_game_screen(
 			game_state.phase= data->duration;
 			game_state.last_ticks_on_idle= machine_tick_count();
 			display_screen(data->screen_base);
+			if (game_state.state == _display_intro_screens)
+			{
+				Mixer::instance()->StopSoundResource();
+				SoundRsrc.Unload();
+				if (get_sound_resource_from_images(pict_resource_number, SoundRsrc))
+				{
+					Mixer::instance()->PlaySoundResource(SoundRsrc);
+				}
+			}
 		}
 		else
 		{
@@ -2832,6 +2867,7 @@ void interface_fade_out(
 		
 		if(fade_music) 
 		{
+			Mixer::instance()->StopSoundResource();
 			while(Music::instance()->Playing()) 
 				Music::instance()->Idle();
 

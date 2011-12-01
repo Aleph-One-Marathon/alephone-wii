@@ -1,0 +1,11 @@
+--- Source_Files/shell.cpp	(révision 4578)
++++ Source_Files/shell.cpp	(copie de travail)
+@@ -519,7 +629,7 @@
+ 		default_data_dir = buf;
+ 		free(buf);
+ 	}
+-	
++
+ 	log_dir = app_log_directory;
+ 	preferences_dir = app_preferences_directory;
+ 	local_data_dir = app_support_directory;
