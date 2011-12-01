@@ -28,7 +28,7 @@
 #include "Decoder.h"
 #ifdef HAVE_VORBISFILE
 
-#if defined(__WII__)
+#if defined(__wii__)
 # include <tremor/ivorbisfile.h>
 #else
 # include <vorbis/vorbisfile.h>

@@ -375,7 +375,7 @@ void w_button_base::click(int /*x*/, int /*y*/)
 
 void w_hyperlink::prochandler(void *arg)
 {
-#if defined(__WII__)
+#if defined(__wii__)
 	toggle_fullscreen(false);
 	launch_url_in_browser(static_cast<const char *>(arg));
 #endif

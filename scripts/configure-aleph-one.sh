@@ -25,8 +25,6 @@ SDL_LIBS="-lSDL_net -lSDL_ttf -lSDL_gfx -lSDL_mixer -lSDL_image -lsmpeg -lSDL"
 export LIBS="${SDL_LIBS} ${LIBS} -ljpeg -lpng -lfreetype -lvorbisidec -lz -lnetport"
 export CPPFLAGS="${CPPFLAGS} -I${WII_INCLUDE_PATH}/SDL -I${PROJECT_INCLUDE_PATH}"
 export LDFLAGS="${LDFLAGS} -L${PROJECT_LIB_PATH}"
-export CFLAGS="${CFLAGS} -D__WII__"
-export CXXFLAGS="${CXXFLAGS} -D__WII__"
 
 silentPushd ${ALEPH_ONE_BUILD_PATH}
 ${configureScript} --prefix=${prefix} --datadir=${dataDir} --bindir=${binDir} \

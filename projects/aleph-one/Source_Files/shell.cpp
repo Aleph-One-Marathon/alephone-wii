@@ -197,7 +197,7 @@ vector<string> get_options_from_platform_requirements();
 bool check_option(const string& option, const string& shortName, const string& longName);
 void parse_options(const string prg_name, const vector<string>& options);
 
-#if defined (__WII__)
+#if defined (__wii__)
 namespace wii {
 static int init_subsystems();
 static int init_fat();
@@ -344,7 +344,7 @@ vector<string> get_options_from_platform_requirements() {
 	options.push_back("-g");
 #endif
 
-#if defined(__WII__)
+#if defined(__wii__)
 	fprintf(stdout, "Adding fake parameters to allow Wii version to start.\n");
 	options.push_back("-f");
 	options.push_back("-F");
@@ -412,7 +412,7 @@ bool check_option(const string& option, const string& shortName, const string& l
 
 int main(int argc, char **argv)
 {
-#if defined(__WII__)
+#if defined(__wii__)
 	wii::init_subsystems();
 #endif
 
@@ -569,7 +569,7 @@ static void initialize_application(void)
 
 	log_dir = local_data_dir;
 
-#elif defined(__WII__)
+#elif defined(__wii__)
 
 	default_data_dir = arg_directory;
 	local_data_dir = default_data_dir;
@@ -773,7 +773,7 @@ static void initialize_application(void)
 	initialize_game_state();
 }
 
-#if defined(__WII__)
+#if defined(__wii__)
 #include <ogc_network.h>
 #include <SDL_rwops.h>
 

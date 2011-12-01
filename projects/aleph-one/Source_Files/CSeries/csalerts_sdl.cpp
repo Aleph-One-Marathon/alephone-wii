@@ -125,7 +125,7 @@ extern void system_launch_url_in_browser(const char *url);
 #else
 void system_launch_url_in_browser(const char *url)
 {
-#if defined(__WII__)
+#if defined(__wii__)
 	fprintf(stderr, "Unsupported : tried to open a browser with URL : %s\n", url);
 #elif defined(__WIN32__)
 	ShellExecute(NULL, "open", url, NULL, NULL, SW_SHOWNORMAL);
