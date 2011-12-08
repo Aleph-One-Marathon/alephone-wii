@@ -213,7 +213,7 @@ static void load_terminal_data(uint8 *data, size_t length);
 
 /* Final three calls, must be in this order! */
 static void recalculate_redundant_map(void);
-static void scan_and_add_platforms(uint8 *platform_static_data, size_t count, short version);
+static void scan_and_add_platforms(uint8 *platform_static_data, size_t count);
 static void complete_loading_level(short *_map_indexes, size_t map_index_count, 
 	uint8 *_platform_data, size_t platform_data_count,
 	uint8 *actual_platform_data, size_t actual_platform_data_count, short version);
@@ -387,7 +387,7 @@ void complete_loading_level(
 	/* Add the platforms. */
 	if(_platform_data || (_platform_data==NULL && actual_platform_data==NULL))
 	{
-		scan_and_add_platforms(_platform_data, platform_data_count, version);
+		scan_and_add_platforms(_platform_data, platform_data_count);
 	} else {
 		assert(actual_platform_data);
 		PlatformList.resize(actual_platform_data_count);
@@ -405,7 +405,7 @@ void complete_loading_level(
 	{
 		short loop;
 		
-		for(loop= 0; loop<dynamic_world->side_count; ++loop)
+		for(loop= 0; loop<dynamic_world->polygon_count; ++loop)
 		{
 			guess_side_lightsource_indexes(loop);
 		}
@@ -1444,8 +1444,7 @@ bool save_game_file(FileSpecifier& File)
 /* -------- static functions */
 static void scan_and_add_platforms(
 	uint8 *platform_static_data,
-	size_t count,
-	short version)
+	size_t count)
 {
 	struct polygon_data *polygon;
 	short loop;
@@ -1469,7 +1468,7 @@ static void scan_and_add_platforms(
 			{
 				if (static_platforms[platform_static_data_index].polygon_index == loop)
 				{
-					new_platform(&static_platforms[platform_static_data_index], loop, version);
+					new_platform(&static_platforms[platform_static_data_index], loop);
 					break;
 				}
 			}
@@ -1478,7 +1477,7 @@ static void scan_and_add_platforms(
 			if(platform_static_data_index==count)
 			{
 				polygon->permutation= 1;
-				new_platform(get_defaults_for_platform_type(polygon->permutation), loop, version);
+				new_platform(get_defaults_for_platform_type(polygon->permutation), loop);
 			}	
 		}
 		++polygon;
