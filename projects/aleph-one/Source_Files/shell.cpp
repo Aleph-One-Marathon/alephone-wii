@@ -202,6 +202,7 @@ namespace wii {
 static int init_subsystems();
 static int init_fat();
 static int init_network();
+static void init_wiimote(int16 wiimote_id);
 }
 #endif
 
@@ -771,22 +772,28 @@ static void initialize_application(void)
 	initialize_images_manager();
 	load_environment_from_preferences();
 	initialize_game_state();
+	
+#if defined(__wii__)
+	wii::init_wiimote(0);
+#endif
 }
 
 #if defined(__wii__)
 #include <ogc_network.h>
 #include <SDL_rwops.h>
+#include <joystick.h>
 
 namespace wii {
 static int init_subsystems() {
     int err;
 
     if ((err = init_fat()) != 0) {
+		printf("File system not available. Cannot launch the game without it.\n");
         return err;
     }
 
     if ((err = init_network()) != 0) {
-        return err;
+        printf("Network not available.\n");
     }
 
     return 0;
@@ -826,6 +833,11 @@ static int init_network() {
 	}
 
 	return result;
+}
+
+static void init_wiimote(int16 wiimote_id) {
+	enter_joystick(wiimote_id);
+	lock_joystick();
 }
 }
 
