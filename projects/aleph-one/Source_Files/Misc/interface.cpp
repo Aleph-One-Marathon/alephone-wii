@@ -1267,6 +1267,13 @@ static void ForceRepaintMenuDisplay()
 			display_screen(MAIN_MENU_BASE);
 	}
 #endif
+
+#ifdef __wii__
+	if (get_game_state() == _display_main_menu) {
+		short pict_resource_number = MAIN_MENU_BASE + game_state.current_screen;
+		draw_full_screen_pict_resource_from_images(pict_resource_number);
+	}
+#endif
 }
 
 
@@ -1467,6 +1474,12 @@ void do_menu_item_command(
 					break;
 		
 				case iQuit:
+#ifdef __wii__
+					if (!wii::confirm_quit()) {
+						ForceRepaintMenuDisplay();
+						break;
+					}
+#endif
 					display_quit_screens();
 					break;
 				case iAbout:

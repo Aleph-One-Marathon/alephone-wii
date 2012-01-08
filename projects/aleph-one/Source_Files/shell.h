@@ -41,6 +41,10 @@ Dec 29, 2000 (Loren Petrich):
 
 class FileSpecifier;
 
+#if defined (__wii__)
+#include "shell_wii.h"
+#endif
+
 /* ---------- constants */
 
 #include "XML_ElementParser.h"
@@ -147,6 +151,5 @@ void load_environment_from_preferences(void);
 // LP: displays a text message on the screen in "printf" fashion
 // Implemented in the "screen" routines
 void screen_printf(const char *format, ...);
-
 
 #endif
