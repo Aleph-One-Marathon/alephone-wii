@@ -2,9 +2,9 @@
 
 source setup-build-env.sh
 
+
 ALEPH_ONE_BUILD_PATH=${BUILD_PATH}/aleph-one
 ALEPH_PATH=${BIN_PATH}/${APPS_DIR}/${ALEPH_DIR}
-
 
 # Patch to fix include order mess due to libogc's network.h file \
 # being included after Aleph One's one

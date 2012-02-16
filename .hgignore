@@ -5,11 +5,12 @@
 ^projects/aleph-one/depcomp$
 ^projects/aleph-one/install-sh$
 ^projects/aleph-one/missing$
-^projects/sdl-wii
 ^projects/netport
-^projects/SDL-1.2
 ^build
 ^target
 ^include
 ^lib
+.cproject
+.project
+.settings/
 
