@@ -13,4 +13,4 @@
 .cproject
 .project
 .settings/
-
+^scripts/install.sh$
