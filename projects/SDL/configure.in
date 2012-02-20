@@ -1372,26 +1372,28 @@ CheckWii()
   ])
   AC_MSG_RESULT($wii_hardware)
   if test x$wii_hardware = xyes; then
-    ARCH=wii
+    ARCH=eabi
 
     SDLMAIN_SOURCES="$srcdir/src/main/wii/*.c"
     SOURCES="$SOURCES $srcdir/src/file/wii/*.c"
-    SDL_LIBS="-lSDLmain $SDL_LIBS -lfat -lwiiuse -lbte -lasnd -laesnd -logc -lwiikeyboard"
+    
+    SDL_LIBS="-lSDLmain $SDL_LIBS -lfat -lwiikeyboard"
     WII_CFLAGS="-DGEKKO -DHW_RVL -Dmain=SDL_main -mcpu=750 -meabi -mhard-float -mrvl"
     SDL_CFLAGS="$SDL_CFLAGS $WII_CFLAGS"
     EXTRA_CFLAGS="$EXTRA_CFLAGS $WII_CFLAGS"
-    EXTRA_LDFLAGS="$EXTRA_LDFLAGS $WII_CFLAGS"
 	
     # Set up files for the audio library
     if test x$enable_audio = xyes; then
       AC_DEFINE(SDL_AUDIO_DRIVER_WII)
       SOURCES="$SOURCES $srcdir/src/audio/wii/*.c"
+      SDL_LIBS="$SDL_LIBS -lasnd -laesnd"
       have_audio=yes
     fi
     # Set up files for the joystick library
     if test x$enable_joystick = xyes; then
       AC_DEFINE(SDL_JOYSTICK_WII)
       SOURCES="$SOURCES $srcdir/src/joystick/wii/*.c"
+      SDL_LIBS="$SDL_LIBS -lwiiuse -lbte"
       have_joystick=yes
     fi
     # Set up files for the timer library
@@ -1412,6 +1414,8 @@ CheckWii()
       SOURCES="$SOURCES $srcdir/src/video/wii/*.c"
       have_video=yes
     fi
+
+    SDL_LIBS="$SDL_LIBS -logc"
   fi
 }
 

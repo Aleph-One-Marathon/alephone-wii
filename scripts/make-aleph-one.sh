@@ -3,4 +3,4 @@
 source setup-build-env.sh
 
 
-./build "${SUB_PROJECTS_PATH}/aleph-hone" -v -C=no
+./build "${SUB_PROJECTS_PATH}/aleph-one" -v -C=no

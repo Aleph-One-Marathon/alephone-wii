@@ -5,7 +5,7 @@
 #include "sdl_dialogs.h"
 #include "sdl_widgets.h"
 
-#include </opt/devkitpro/libogc/include/ogc_network.h>
+#include </opt/devkitpro/libogc/include/network.h>
 #include <SDL_rwops.h>
 #include <joystick.h>
 
