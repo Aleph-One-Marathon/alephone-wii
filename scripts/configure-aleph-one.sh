@@ -20,6 +20,6 @@ prefix=${TARGET_PATH}
 dataDir=${BIN_PATH}
 binDir=${BIN_PATH}/${APPS_DIR}/${ALEPH_DIR}
 
-./build "${SUB_PROJECTS_PATH}/aleph-hone" -v -M=no --prefix=${prefix} --datadir=${dataDir} --bindir=${binDir} \
+./build "${SUB_PROJECTS_PATH}/aleph-one" -v -M=no --prefix=${prefix} --datadir=${dataDir} --bindir=${binDir} \
 --prefix=${PORTLIBS_WII} --with-sdl-prefix=${PORTLIBS_WII} \
 --disable-opengl --disable-speex --disable-zzip
