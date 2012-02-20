@@ -13,4 +13,5 @@
 .cproject
 .project
 .settings/
+.cache/
 ^scripts/install.sh$

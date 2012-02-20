@@ -1376,10 +1376,11 @@ CheckWii()
 
     SDLMAIN_SOURCES="$srcdir/src/main/wii/*.c"
     SOURCES="$SOURCES $srcdir/src/file/wii/*.c"
-    SDL_LIBS="-lSDLmain $SDL_LIBS -lfat -lwiiuse -lbte -lasnd -laesnd -logc -lm -lwiikeyboard"
-    WII_CFLAGS="-DGEKKO -DHW_RVL -Dmain=SDL_main -mcpu=750 -meabi -msdata=eabi -mhard-float -mrvl"
+    SDL_LIBS="-lSDLmain $SDL_LIBS -lfat -lwiiuse -lbte -lasnd -laesnd -logc -lwiikeyboard"
+    WII_CFLAGS="-DGEKKO -DHW_RVL -Dmain=SDL_main -mcpu=750 -meabi -mhard-float -mrvl"
     SDL_CFLAGS="$SDL_CFLAGS $WII_CFLAGS"
     EXTRA_CFLAGS="$EXTRA_CFLAGS $WII_CFLAGS"
+    EXTRA_LDFLAGS="$EXTRA_LDFLAGS $WII_CFLAGS"
 	
     # Set up files for the audio library
     if test x$enable_audio = xyes; then
