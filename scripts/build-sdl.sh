@@ -29,3 +29,4 @@ export PKG_CONFIG=`which pkg-config`
 
 ./build "${SUB_PROJECTS_PATH}/SDL_ttf" --prefix=${PORTLIBS_WII} --with-sdl-prefix=${PORTLIBS_WII} --with-freetype-prefix=${PORTLIBS_PPC} \
     --without-x
+
