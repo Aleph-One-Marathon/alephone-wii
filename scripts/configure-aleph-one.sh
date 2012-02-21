@@ -2,33 +2,19 @@
 
 source setup-build-env.sh
 
-ALEPH_ONE_SOURCES_PATH=${SUB_PROJECTS_PATH}/aleph-one
-ALEPH_ONE_BUILD_PATH=${BUILD_PATH}/aleph-one
 
+export LIBS="${LIBS} -ljpeg -lpng -lfreetype -lvorbisidec -lz -lnetport"
+export LDFLAGS="${LDFLAGS} -mcpu=750 -meabi -mhard-float -mrvl -msdata=eabi"
 
-silentPushd ${ALEPH_ONE_SOURCES_PATH}
-export NO_CONFIGURE="true"
-./autogen.sh
-failOnError "Unable to create aleph'one's configure scripts."
-silentPopd
+export PNG_CFLAGS=" "
+export PNG_LIBS=" "
+export VORBISFILE_CFLAGS=" "
+export VORBISFILE_LIBS=" "
 
-mkdir -p ${BIN_PATH}/${ALEPH_DIR}
-mkdir -p ${BIN_PATH}/${APPS_DIR}
-mkdir -p ${ALEPH_ONE_BUILD_PATH}
-
-configureScript=${ALEPH_ONE_SOURCES_PATH}/configure
 prefix=${TARGET_PATH}
 dataDir=${BIN_PATH}
 binDir=${BIN_PATH}/${APPS_DIR}/${ALEPH_DIR}
 
-SDL_LIBS="-lSDL_net -lSDL_ttf -lSDL_gfx -lSDL_mixer -lSDL_image -lsmpeg -lSDL"
-export LIBS="${SDL_LIBS} ${LIBS} -ljpeg -lpng -lfreetype -lvorbisidec -lz -lnetport"
-export CPPFLAGS="${CPPFLAGS} -I${WII_INCLUDE_PATH}/SDL -I${PROJECT_INCLUDE_PATH}"
-export LDFLAGS="${LDFLAGS} -L${PROJECT_LIB_PATH}"
-
-silentPushd ${ALEPH_ONE_BUILD_PATH}
-${configureScript} --prefix=${prefix} --datadir=${dataDir} --bindir=${binDir} \
-		   --host=powerpc-eabi --build=powerpc-eabi-gnu \
-		   --disable-opengl --disable-speex --disable-zzip
-failOnError "Unable to configure aleph-one's build process."
-silentPopd
+./build "${SUB_PROJECTS_PATH}/aleph-one" -M=no --prefix=${prefix} --datadir=${dataDir} --bindir=${binDir} \
+--with-sdl-prefix=${PORTLIBS_WII} --program-prefix="" --program-suffix=".elf" --program-transform-name="" \
+--disable-opengl --disable-speex --disable-zzip

@@ -20,7 +20,6 @@ function failOnMissingDependency() {
 		echo "You will need $dependencyName to compile external libraries. Try installing it with :"
 		echo "sudo apt-get update"
 		echo "sudo apt-get install $dependencyName"
-		echo
 		exit -1
 	fi
 }
@@ -29,7 +28,6 @@ function failOnError() {
 	if [ $? != 0 ]; then
 		local message=$1
 		echo ${message}
-		echo
 		exit -1
 	fi
 }
