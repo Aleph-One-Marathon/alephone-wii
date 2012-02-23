@@ -49,7 +49,7 @@ static _fixed snapshot_delta_scrollwheel;
 
 void enter_mouse(short type)
 {
-	if (type != _keyboard_or_game_pad) {
+	if (!mouse_active) {
 #ifndef DEBUG
 		SDL_WM_GrabInput(SDL_GRAB_ON);
 #endif
@@ -69,7 +69,7 @@ void enter_mouse(short type)
 
 void exit_mouse(short type)
 {
-	if (type != _keyboard_or_game_pad) {
+	if (mouse_active) {
 #ifndef DEBUG
 		SDL_WM_GrabInput(SDL_GRAB_OFF);
 #endif
