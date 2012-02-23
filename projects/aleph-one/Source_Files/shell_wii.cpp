@@ -16,12 +16,12 @@ int init_subsystems(void) {
     int err;
 
     if ((err = init_fat()) != 0) {
-		printf("File system not available. Cannot launch the game without it.\n");
+		fprintf(stderr, "File system not available. Cannot launch the game without it.\n");
         return err;
     }
 
     if ((err = init_network()) != 0) {
-        printf("Network not available.\n");
+        fprintf(stdout, "Network not available.\n");
     }
 
     return 0;
