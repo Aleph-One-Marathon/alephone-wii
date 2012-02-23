@@ -56,7 +56,7 @@ void PumpEvents()
 	WPADData *wd = WPAD_Data(WPAD_CHAN_0);
 	if (wd && wd->exp.type != WPAD_EXP_CLASSIC && wd->ir.valid) {
 		// use SDL_BUTTON_X2 to signal that this is the wiimote acting as a mouse
-		Uint8 Buttons = SDL_GetMouseState(NULL, NULL)|SDL_BUTTON_X2MASK;
+		Uint8 Buttons = SDL_GetMouseState(NULL, NULL) | SDL_BUTTON_X2MASK;
 		if (wd->ir.x < vresx/8)
 			wd->ir.x = vresx/8;
 		else if (wd->ir.x > (vresx + vresx/8))
@@ -69,6 +69,16 @@ void PumpEvents()
 		// most apps will ignore this (hopefully)
 		posted += SDL_PrivateMouseButton(SDL_RELEASED, SDL_BUTTON_X2, 0, 0);
 		wd->ir.valid = 0;
+		
+		int changedButtons = wd->btns_d | wd->btns_u;
+		if (changedButtons & WPAD_BUTTON_A) {
+			int aButtonState = (wd->btns_d & WPAD_BUTTON_A) ? SDL_PRESSED : SDL_RELEASED;
+			SDL_PrivateMouseButton(aButtonState, WPAD_BUTTON_A, 0, 0);
+		}
+		if (changedButtons & WPAD_BUTTON_B) {
+			int bButtonState = (wd->btns_d & WPAD_BUTTON_B) ? SDL_PRESSED : SDL_RELEASED;
+			SDL_PrivateMouseButton(bButtonState, WPAD_BUTTON_B, 0, 0);
+		}
 	}
 
 	stat = KEYBOARD_GetEvent(&ke);
