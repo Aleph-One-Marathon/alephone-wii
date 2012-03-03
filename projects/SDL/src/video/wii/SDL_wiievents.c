@@ -42,6 +42,8 @@ extern bool TerminateRequested;
 extern void Terminate();
 extern int vresx, vresy;
 
+void processMouseButton(int button, int wiiId, int sdlId, bool pressed);
+
 void PumpEvents()
 {
 	s32 stat;
@@ -55,8 +57,6 @@ void PumpEvents()
 	// this will only work if Joystick 0 has been opened and has been polled
 	WPADData *wd = WPAD_Data(WPAD_CHAN_0);
 	if (wd && wd->exp.type != WPAD_EXP_CLASSIC && wd->ir.valid) {
-		// use SDL_BUTTON_X2 to signal that this is the wiimote acting as a mouse
-		Uint8 Buttons = SDL_GetMouseState(NULL, NULL) | SDL_BUTTON_X2MASK;
 		if (wd->ir.x < vresx/8)
 			wd->ir.x = vresx/8;
 		else if (wd->ir.x > (vresx + vresx/8))
@@ -65,19 +65,17 @@ void PumpEvents()
 			wd->ir.y = vresy/8;
 		else if (wd->ir.y > (vresy + vresy/8))
 			wd->ir.y = vresy + vresy/8;
-		posted += SDL_PrivateMouseMotion(Buttons, 0, wd->ir.x - vresx/8, wd->ir.y - vresy/8);
-		// most apps will ignore this (hopefully)
-		posted += SDL_PrivateMouseButton(SDL_RELEASED, SDL_BUTTON_X2, 0, 0);
+		posted += SDL_PrivateMouseMotion(SDL_GetMouseState(NULL, NULL), 0, wd->ir.x - vresx/8, wd->ir.y - vresy/8);
 		wd->ir.valid = 0;
 		
 		int changedButtons = wd->btns_d | wd->btns_u;
 		if (changedButtons & WPAD_BUTTON_A) {
 			int aButtonState = (wd->btns_d & WPAD_BUTTON_A) ? SDL_PRESSED : SDL_RELEASED;
-			SDL_PrivateMouseButton(aButtonState, WPAD_BUTTON_A, 0, 0);
+			posted += SDL_PrivateMouseButton(aButtonState, SDL_BUTTON_LEFT, 0, 0);
 		}
 		if (changedButtons & WPAD_BUTTON_B) {
 			int bButtonState = (wd->btns_d & WPAD_BUTTON_B) ? SDL_PRESSED : SDL_RELEASED;
-			SDL_PrivateMouseButton(bButtonState, WPAD_BUTTON_B, 0, 0);
+			posted += SDL_PrivateMouseButton(bButtonState, SDL_BUTTON_RIGHT, 0, 0);
 		}
 	}
 
@@ -101,26 +99,9 @@ void PumpEvents()
 
 		posted += SDL_PrivateMouseMotion(0, 1, me.rx*2, me.ry*2);
 
-		if (button & 0x1) {
-			if (!(mouse_state & SDL_BUTTON_LMASK))
-				posted += SDL_PrivateMouseButton(SDL_PRESSED, SDL_BUTTON_LEFT, 0, 0);
-		}
-		else if (mouse_state & SDL_BUTTON_LMASK)
-			posted += SDL_PrivateMouseButton(SDL_RELEASED, SDL_BUTTON_LEFT, 0, 0);
-
-		if (button & 0x2) {
-			if (!(mouse_state & SDL_BUTTON_RMASK))
-				posted += SDL_PrivateMouseButton(SDL_PRESSED, SDL_BUTTON_RIGHT, 0, 0);
-		}
-		else if (mouse_state & SDL_BUTTON_RMASK)
-			posted += SDL_PrivateMouseButton(SDL_RELEASED, SDL_BUTTON_RIGHT, 0, 0);
-
-		if (button & 0x4) {
-			if (!(mouse_state & SDL_BUTTON_MMASK))
-				posted += SDL_PrivateMouseButton(SDL_PRESSED, SDL_BUTTON_MIDDLE, 0, 0);
-		}
-		else if (mouse_state & SDL_BUTTON_MMASK)
-			posted += SDL_PrivateMouseButton(SDL_RELEASED, SDL_BUTTON_MIDDLE, 0, 0);
+		processMouseButton(button, 0x1, SDL_BUTTON_LEFT, mouse_state & SDL_BUTTON_LMASK);
+		processMouseButton(button, 0x2, SDL_BUTTON_RIGHT, mouse_state & SDL_BUTTON_RMASK);
+		processMouseButton(button, 0x4, SDL_BUTTON_MIDDLE, mouse_state & SDL_BUTTON_MMASK);
 
 		// mouse wheel actions are single events (rz==1(up) or rz==-1(down))
 		// send SDL_PRESSED immediately followed by SDL_RELEASED
@@ -132,6 +113,16 @@ void PumpEvents()
 			posted += SDL_PrivateMouseButton(SDL_PRESSED, SDL_BUTTON_WHEELDOWN, 0, 0);
 			posted += SDL_PrivateMouseButton(SDL_RELEASED, SDL_BUTTON_WHEELDOWN, 0, 0);
 		}
+	}
+}
+
+void processMouseButton(int button, int wiiId, int sdlId, bool pressed) {
+	if (button & wiiId) {
+		if (!pressed) {
+			posted += SDL_PrivateMouseButton(SDL_PRESSED, sdlId, 0, 0);
+		}
+	} else if (pressed) {
+		posted += SDL_PrivateMouseButton(SDL_RELEASED, sdlId, 0, 0);
 	}
 }
 
