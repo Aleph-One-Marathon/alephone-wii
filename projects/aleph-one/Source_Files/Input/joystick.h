@@ -32,12 +32,8 @@ May 18, 2009 (Eric Peterson):
 // keys resume at key 91, so that's room for 18 joystick buttons
 #define NUM_SDL_JOYSTICK_BUTTONS 18
 
-void enter_joystick(int16 joystick_id);
 void enter_joystick(void);
 void exit_joystick(void);
-
-void lock_joystick(void);
-void unlock_joystick(void);
 
 void joystick_buttons_become_keypresses(Uint8* ioKeyMap);
 int process_joystick_axes(int flags, int tick);
