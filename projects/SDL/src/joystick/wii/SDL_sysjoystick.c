@@ -554,7 +554,7 @@ void SDL_SYS_JoystickUpdate(SDL_Joystick *joystick)
 		case 1:
 		if(__jspad_enabled)
 		_HandleGCJoystickUpdate(joystick);
-		//break;
+		break;
 		default:
 		break;
 	}
