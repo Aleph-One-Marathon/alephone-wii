@@ -6,8 +6,8 @@
 #include "sdl_widgets.h"
 
 #include </opt/devkitpro/libogc/include/network.h>
+#include <SDL.h>
 #include <SDL_rwops.h>
-#include <joystick.h>
 
 
 namespace wii {
@@ -46,7 +46,7 @@ int init_network(void) {
 		if (result < 0) {
 			fprintf(stderr, "Unable to init network (try %d/%d) : %d\n", i, maxTryCount, result);
 		} else {
-			fprintf(stdout, "Network initialized\n", i, maxTryCount, result);
+			fprintf(stdout, "Network initialized\n");
 		}
 	}
 
@@ -64,8 +64,8 @@ int init_network(void) {
 }
 
 void init_wiimote(int16 wiimote_id) {
-	enter_joystick(wiimote_id);
-	lock_joystick();
+	SDL_JoystickOpen(wiimote_id);
+	SDL_JoystickEventState(SDL_ENABLE);
 }
 
 bool is_home_button(Uint8 button_id) {
