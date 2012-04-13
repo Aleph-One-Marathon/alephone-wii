@@ -728,14 +728,14 @@ static void initialize_application(void)
 #ifdef HAVE_SDL_NET
 	// Initialize SDL_net
 	if (SDLNet_Init () < 0) {
-		fprintf (stderr, "Couldn't initialize SDL_net (%s)\n", SDLNet_GetError());
+		fprintf(stderr, "Couldn't initialize SDL_net (%s)\n", SDLNet_GetError());
 		exit(1);
 	}
 #endif
 
 #ifdef HAVE_SDL_TTF
 	if (TTF_Init() < 0) {
-		fprintf (stderr, "Couldn't initialize SDL_ttf (%s)\n", TTF_GetError());
+		fprintf(stderr, "Couldn't initialize SDL_ttf (%s)\n", TTF_GetError());
 		exit(1);
 	}
 #endif
