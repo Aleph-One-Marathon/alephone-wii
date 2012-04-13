@@ -4,7 +4,8 @@ source setup-build-env.sh
 
 
 export LIBS="${LIBS} -ljpeg -lpng -lfreetype -lvorbisidec -lz -lnetport"
-export LDFLAGS="${LDFLAGS} -mcpu=750 -meabi -mhard-float -mrvl -msdata=eabi"
+#export LDFLAGS="${LDFLAGS} -mcpu=750 -meabi -mhard-float -mrvl -msdata=eabi"
+export LDFLAGS="${LDFLAGS} -mcpu=750 -meabi -mhard-float -mrvl"
 
 export PNG_CFLAGS=" "
 export PNG_LIBS=" "
