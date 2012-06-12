@@ -745,7 +745,7 @@ WII_InitVideoSystem()
 
 	/* Set up the video system with the chosen mode */
 	if (vmode == &TVPal528IntDf)
-		vmode = &TVPal574IntDfScale;
+		vmode = &TVPal576IntDfScale;
 
 	VIDEO_Configure(vmode);
 
