@@ -1,0 +1,64 @@
+#!/bin/bash
+
+function printUsage {
+	echo
+	echo "Usage : `basename $0` [option]"
+	echo
+	echo "Options (default values inside brackets) :"
+	echo "    -V, --version=version_name        Game version to DEPLOY [m2]"
+	echo "    -h, --help                        Display this help message"
+	echo
+}
+
+function deployGame {
+	local DEST_PATH=$1
+	local DEST_RESOURCES_PATH=${DEST_PATH}/AlephOne/${GAME_VERSION}
+	local DEST_APPLICATION_PATH=${DEST_PATH}/apps/${GAME_VERSION}
+
+	rm -rf ${DEST_RESOURCES_PATH}/*
+	rm -rf ${DEST_APPLICATION_PATH}/*
+
+	mkdir -p ${DEST_RESOURCES_PATH}
+	cp -r ${ALEPH_ONE_PATH}/AlephOne/* ${DEST_RESOURCES_PATH}/
+	cp -r ${RESOURCES_PATH}/AlephOne/* ${DEST_RESOURCES_PATH}/
+
+	mkdir -p ${DEST_APPLICATION_PATH}
+	cp -r ${ALEPH_ONE_PATH}/apps/AlephOne/* ${DEST_APPLICATION_PATH}/
+	cp -r ${RESOURCES_PATH}/apps/AlephOne/* ${DEST_APPLICATION_PATH}/
+}
+
+GAME_VERSION="m2"
+
+while test $# -gt 0; do
+	case $1 in
+		-*=*) optarg=`echo "$1" | LC_ALL="C" sed 's/[-_a-zA-Z0-9]*=//'` ;;
+		*) optarg= ;;
+	esac
+
+	case $1 in
+		-V=* | --version=*) GAME_VERSION="$optarg" ;;
+		-h | --help) printUsage; exit 0 ;;
+		*) printUsage; exit 0 ;;
+	esac
+	shift
+done
+
+RESOURCES_PATH="../resources/${GAME_VERSION}"
+ALEPH_ONE_PATH="../target/wii/sd"
+
+DEPLOY_PATH="../deployed"
+DOLPHIN_PATH="${DEPLOY_PATH}/Dolphin"
+SD_CARD_PATH="${DEPLOY_PATH}/sd"
+DIST_PATH="${DEPLOY_PATH}/dist"
+
+mkdir -p ${DOLPHIN_PATH} && sudo mount -t vboxsf Dolphin ${DOLPHIN_PATH}
+mkdir -p ${SD_CARD_PATH} && sudo mount -t vfat -o loop,user ${DOLPHIN_PATH}/User/Wii/sd.raw ${SD_CARD_PATH}
+mkdir -p ${DIST_PATH} && sudo mount -t vboxsf AlephOne-dist ${DIST_PATH}
+
+deployGame ${SD_CARD_PATH}
+deployGame ${DIST_PATH}
+
+sudo umount ${DIST_PATH}
+sudo umount ${SD_CARD_PATH}
+sudo umount ${DOLPHIN_PATH}
+
