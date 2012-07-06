@@ -340,7 +340,7 @@ vector<string> get_options_from_platform_requirements() {
 	fprintf(stdout, "Adding fake parameters to allow Wii version to start.\n");
 	options.push_back("-f");
 	options.push_back("-F");
-	options.push_back("sd:/apps/AlephOne/AlephOne.ini");
+	options.push_back("sd:/apps/m2/AlephOne.ini");
 #endif
 
 	return options;
