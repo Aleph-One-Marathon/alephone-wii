@@ -33,7 +33,7 @@ failOnError "Unable to download netport's source code."
 echo "Building netport library..."
 silentPushd ${NETPORT_PATH}
 patch -p0 -r - -s -N -i not_posix_source.patch >> ${LOG_FILE} 2>&1
-make >> ${LOG_FILE} 2>&1
+make -j5 >> ${LOG_FILE} 2>&1
 failOnError "Unable to build netport library."
 
 silentPushd include

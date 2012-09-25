@@ -122,7 +122,7 @@ if [ ${RUN_MAKE} == "true" ]; then
 	echo "Building ${PROJECT_NAME}..."
 	silentPushd ${PROJECT_BUILD_PATH}
 
-	eval "make install ${LOGGING_REDIRECTION}"
+	eval "make -j5 install ${LOGGING_REDIRECTION}"
 
 	failOnError "Unable to build ${PROJECT_NAME}."
 	silentPopd
