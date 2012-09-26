@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <app version="1.0b2">
-    <name>Marathon 2</name>
+    <name>Marathon</name>
     <coder>Bungie Software Corporation</coder>
     <version>1.0 beta 3</version>
     <release_date>201209260000</release_date>
-    <short_description>Bungie's Marathon 2 for Wii</short_description>
+    <short_description>Bungie's Marathon for Wii</short_description>
     <long_description>
-Aleph One ported to the Wii, bundled with Marathon 2 resources.
+Aleph One ported to the Wii, bundled with Marathon 1 resources.
 Compiled by Mathieu Deletrain.
 
 Aleph One/SDL
