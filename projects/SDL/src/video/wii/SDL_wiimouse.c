@@ -19,15 +19,48 @@
     Sam Lantinga
     slouken@libsdl.org
 */
-#include "SDL_config.h"
 
-#include "SDL_mouse.h"
-#include "../../events/SDL_events_c.h"
-
+#include "SDL_wiivideo.h"
 #include "SDL_wiimouse_c.h"
 
 
 /* The implementation dependent data for the window manager cursor */
 struct WMcursor {
-	int unused;
+	WiiCursor wii_cursor;
 };
+
+void WII_FreeWMCursor(_THIS, WMcursor *cursor) {
+	if (cursor != NULL) {
+		SDL_free(cursor);
+	}
+}
+
+WMcursor *WII_CreateWMCursor(_THIS, Uint8 *data, Uint8 *mask, int w, int h, int hot_x, int hot_y) {
+	WMcursor *cursor = (WMcursor*) SDL_malloc(sizeof(WMcursor));
+	if ( cursor == NULL ) {
+		SDL_OutOfMemory();
+		return(NULL);
+	}
+	SDL_memset(cursor, 0, sizeof(*cursor));
+
+	cursor->wii_cursor.size.width = w;
+	cursor->wii_cursor.size.height = h;
+	cursor->wii_cursor.hotSpot.x = hot_x;
+	cursor->wii_cursor.hotSpot.y = hot_y;
+
+	return cursor;
+}
+
+int WII_ShowWMCursor(_THIS, WMcursor *cursor) {
+	if (cursor == NULL) {
+		this->hidden->cursorInfo.cursor = NULL;
+	} else {
+		this->hidden->cursorInfo.cursor = &cursor->wii_cursor;
+	}
+	return 1;
+}
+
+void WII_MoveWMCursor(_THIS, int x, int y) {
+	this->hidden->cursorInfo.pos.x = x;
+	this->hidden->cursorInfo.pos.y = y;
+}

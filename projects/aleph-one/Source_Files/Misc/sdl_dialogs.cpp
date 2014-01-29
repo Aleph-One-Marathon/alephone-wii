@@ -2651,7 +2651,7 @@ int dialog::finish(bool play_sound)
 
 	// Hide cursor
 	if (!cursor_was_visible)
-		SDL_ShowCursor(false);
+		SDL_ShowCursor(SDL_DISABLE);
 
 	// Clear dialog surface
 	SDL_FillRect(dialog_surface, NULL, get_theme_color(DIALOG_FRAME, DEFAULT_STATE, BACKGROUND_COLOR));

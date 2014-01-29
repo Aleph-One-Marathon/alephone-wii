@@ -19,8 +19,9 @@
     Sam Lantinga
     slouken@libsdl.org
 */
-#include "SDL_config.h"
-
-#include "SDL_wiivideo.h"
 
 /* Functions to be exported */
+extern void WII_FreeWMCursor(_THIS, WMcursor *cursor);
+extern WMcursor *WII_CreateWMCursor(_THIS, Uint8 *data, Uint8 *mask, int w, int h, int hot_x, int hot_y);
+extern int WII_ShowWMCursor(_THIS, WMcursor *cursor);
+extern void WII_MoveWMCursor(_THIS, int x, int y);

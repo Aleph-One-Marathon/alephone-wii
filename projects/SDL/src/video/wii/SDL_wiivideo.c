@@ -36,6 +36,7 @@
 #include <wiiuse/wpad.h>
 #include "SDL_wiivideo.h"
 #include "SDL_wiievents_c.h"
+#include "SDL_wiimouse_c.h"
 
 static const char	WIIVID_DRIVER_NAME[] = "wii";
 static lwp_t videothread = LWP_THREAD_NULL;
@@ -179,9 +180,29 @@ draw_square ()
 	GX_End();
 }
 
+static inline void
+draw_cursor (struct CursorInfo *cursorInfo) {
+	WiiCursor *cursor = cursorInfo->cursor;
+
+	GX_Begin(GX_POINTS, GX_VTXFMT0, 1);
+//	GX_SetPointSize(16 * cursor->size.width, 0);
+//	GX_Color3u8(255, 255, 0);
+	GX_Position2s16(cursorInfo->pos.x - cursor->hotSpot.x,
+					cursorInfo->pos.y - cursor->hotSpot.y);
+	GX_End();
+
+//	GX_Begin(GX_POINTS, GX_VTXFMT0, 1);
+//	GX_SetPointSize(16, 0);
+//	GX_Color3u8(255, 0, 255);
+//	GX_Position2s16(cursorInfo->pos.x, cursorInfo->pos.y);
+//	GX_End();
+}
+
 static void * flip_thread (void *arg)
 {
-	u32 *tex = (u32*)arg;
+	SDL_VideoDevice* device = (SDL_VideoDevice*)arg;
+	struct SDL_PrivateVideoData* privateData = device->hidden;
+	u32 *tex = (u32*)privateData->texturemem;
 
 	GX_SetCurrentGXThread();
 
@@ -194,6 +215,10 @@ static void * flip_thread (void *arg)
 		// clear texture objects
 		GX_InvalidateTexAll();
 		draw_square(); // render textured quad
+
+		if (privateData->cursorInfo.cursor != NULL) {
+			draw_cursor(&privateData->cursorInfo);
+		}
 
 		VIDEO_WaitVSync();
 		GX_CopyDisp(xfb, GX_TRUE);
@@ -251,7 +276,7 @@ static void WII_VideoStart(_THIS)
 {
 	SetupGX();
 	draw_init(this->hidden->palette, this->hidden->texturemem);
-	StartVideoThread(&this->hidden->texturemem);
+	StartVideoThread(&this);
 	WPAD_SetVRes(WPAD_CHAN_0, vresx+vresx/4, vresy+vresy/4);
 }
 
@@ -716,6 +741,10 @@ static SDL_VideoDevice *WII_CreateDevice(int devindex)
 	device->UnlockHWSurface = WII_UnlockHWSurface;
 	device->FlipHWSurface = WII_FlipHWSurface;
 	device->FreeHWSurface = WII_FreeHWSurface;
+	device->FreeWMCursor = WII_FreeWMCursor;
+	device->CreateWMCursor = WII_CreateWMCursor;
+	device->ShowWMCursor = WII_ShowWMCursor;
+	device->MoveWMCursor = WII_MoveWMCursor;
 	device->InitOSKeymap = WII_InitOSKeymap;
 	device->PumpEvents = WII_PumpEvents;
 	device->input_grab = SDL_GRAB_ON;

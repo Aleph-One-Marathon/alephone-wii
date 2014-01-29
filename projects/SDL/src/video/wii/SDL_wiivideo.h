@@ -32,6 +32,17 @@
 /* Hidden "this" pointer for the video functions */
 #define _THIS	SDL_VideoDevice *this
 
+typedef struct {
+	struct {
+		u8 width;
+		u8 height;
+	} size;
+	struct {
+		s16 x;
+		s16 y;
+	} hotSpot;
+} WiiCursor;
+
 /* Private display data */
 struct SDL_PrivateVideoData
 {
@@ -41,6 +52,14 @@ struct SDL_PrivateVideoData
 
 	Uint8*					texturemem;
 	size_t					texturemem_size;
+
+	struct CursorInfo {
+		struct {
+			s16 x;
+			s16 y;
+		} pos;
+		WiiCursor*			cursor;
+	} cursorInfo;
 
 	int						width;
 	int						height;
