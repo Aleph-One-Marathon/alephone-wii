@@ -15,5 +15,5 @@
 .settings/
 .cache/
 ^scripts/install.sh$
-^dist/
+^dist
 ^resources/*/.*
