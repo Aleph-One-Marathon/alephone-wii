@@ -197,14 +197,6 @@ vector<string> get_options_from_platform_requirements();
 bool check_option(const string& option, const string& shortName, const string& longName);
 void parse_options(const string prg_name, const vector<string>& options);
 
-#if defined (__wii__)
-namespace wii {
-static int init_subsystems();
-static int init_fat();
-static int init_network();
-}
-#endif
-
 static void initialize_application(void);
 void shutdown_application(void);
 static void initialize_marathon_music_handler(void);
@@ -348,7 +340,7 @@ vector<string> get_options_from_platform_requirements() {
 	fprintf(stdout, "Adding fake parameters to allow Wii version to start.\n");
 	options.push_back("-f");
 	options.push_back("-F");
-	options.push_back("sd:/apps/AlephOne/AlephOne.ini");
+	options.push_back("sd:/apps/m2/AlephOne.ini");
 #endif
 
 	return options;
@@ -736,14 +728,14 @@ static void initialize_application(void)
 #ifdef HAVE_SDL_NET
 	// Initialize SDL_net
 	if (SDLNet_Init () < 0) {
-		fprintf (stderr, "Couldn't initialize SDL_net (%s)\n", SDLNet_GetError());
+		fprintf(stderr, "Couldn't initialize SDL_net (%s)\n", SDLNet_GetError());
 		exit(1);
 	}
 #endif
 
 #ifdef HAVE_SDL_TTF
 	if (TTF_Init() < 0) {
-		fprintf (stderr, "Couldn't initialize SDL_ttf (%s)\n", TTF_GetError());
+		fprintf(stderr, "Couldn't initialize SDL_ttf (%s)\n", TTF_GetError());
 		exit(1);
 	}
 #endif
@@ -771,65 +763,11 @@ static void initialize_application(void)
 	initialize_images_manager();
 	load_environment_from_preferences();
 	initialize_game_state();
-}
-
+	
 #if defined(__wii__)
-#include <ogc_network.h>
-#include <SDL_rwops.h>
-
-namespace wii {
-static int init_subsystems() {
-    int err;
-
-    if ((err = init_fat()) != 0) {
-        return err;
-    }
-
-    if ((err = init_network()) != 0) {
-        return err;
-    }
-
-    return 0;
-}
-
-static int init_fat() {
-    fprintf(stdout, "Forcing fat initialization by trying to open a dummy file using SDL...\n");
-    SDL_RWops* fileContext = SDL_RWFromFile("dummy.file", "r");
-    if (fileContext != NULL) {
-        return SDL_RWclose(fileContext);
-    }
-
-    return 0;
-}
-
-static int init_network() {
-	const int maxTryCount = 5;
-	int result = -EAGAIN;
-	fprintf(stdout, "Initializing network...\n");
-	for (int i = 1; (i <= maxTryCount) && (result == -EAGAIN); i++) {
-		result = net_init();
-		if (result < 0) {
-			fprintf(stderr, "Unable to init network (try %d/%d) : %d\n", i, maxTryCount, result);
-		} else {
-			fprintf(stdout, "Network initialized\n", i, maxTryCount, result);
-		}
-	}
-
-	if (result >= 0) {
-		char ip[16];
-		result = if_config(ip, NULL, NULL, true);
-		if (result < 0) {
-			fprintf(stderr, "Unable to get network's configuration.\n");
-		} else {
-			fprintf(stdout, "Network ip : %.16s\n", ip);
-		}
-	}
-
-	return result;
-}
-}
-
+	wii::init_wiimote(0);
 #endif
+}
 
 void shutdown_application(void)
 {
@@ -1439,7 +1377,7 @@ static void process_game_key(const SDL_Event &event)
 			break;
 // ZZZ: Alt+F4 is also a quit gesture in Windows
 #ifdef __WIN32__
-                case SDLK_F4:
+		case SDLK_F4:
 #endif
 		case SDLK_q:
 			item = iQuit;
@@ -1496,7 +1434,13 @@ static void process_event(const SDL_Event &event)
 	case SDL_KEYDOWN:
 		process_game_key(event);
 		break;
-		
+
+#if defined(__wii__)
+	case SDL_JOYBUTTONDOWN:
+		wii::process_joystick_keys(event);
+		break;
+#endif
+
 	case SDL_QUIT:
 		set_game_state(_quit_game);
 		break;

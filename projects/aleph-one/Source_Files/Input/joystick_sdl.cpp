@@ -30,35 +30,44 @@ May 18, 2009 (Eric Peterson):
 
 // internal handles
 static SDL_Joystick *joystick = NULL;
+static int savedJoystickEventState = SDL_DISABLE;
+
 int joystick_active = true;
 
 // controls the gradation of the pulse modulated strafing
 int strafe_bounds[3] = {14000, 20000, 28000};
 
 void enter_joystick(void) {
-    // de-filter joystick events from event polling
-    SDL_JoystickEventState(SDL_ENABLE);
+	int16 joystick_id = input_preferences->joystick_id;
+
+	// Don't forget already opened joysticks but close them instead
+	if ((joystick != NULL) && (joystick_id != SDL_JoystickIndex(joystick))) {
+		exit_joystick();
+	}
+	
+    // Save joystick events state and de-filter joystick events from event polling
+	savedJoystickEventState = SDL_JoystickEventState(SDL_QUERY);
+	if (savedJoystickEventState != SDL_ENABLE) {
+		SDL_JoystickEventState(SDL_ENABLE);
+	}
+    
     // attempt to open the first joystick if we haven't already.  it doesn't
     // really matter if we fail, since then we just won't be receiving any
     // joystick events :)
-    joystick = joystick ? joystick : SDL_JoystickOpen(input_preferences->joystick_id);
-
-    //printf("Opened joystick at %p\n", joystick);
-
-    // initialization was easy!
-    return;
+    if (joystick == NULL) {
+		joystick = SDL_JoystickOpen(joystick_id);
+	}
 }
 
 void exit_joystick(void) {
     // throw out the old joystick handle
-    if (joystick)
+    if (joystick != NULL) {
         SDL_JoystickClose(joystick);
-    joystick = NULL;
+        joystick = NULL;
+	}
 
-    // filter joystick events from event polling
-    SDL_JoystickEventState(SDL_DISABLE);
-
-    return;
+    // Restore joystick events state
+	SDL_JoystickEventState(savedJoystickEventState);
 }
 
 void joystick_buttons_become_keypresses(Uint8* ioKeyMap) {

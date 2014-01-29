@@ -2,85 +2,31 @@
 
 source setup-build-env.sh
 
+#silentPushd ${SUB_PROJECTS_PATH}
+#[ -d "SDL" ] || hg clone -b SDL-1.2 -u release-1.2.15 http://hg.libsdl.org/SDL SDL
+#[ -d "SDL_image" ] || hg clone -b SDL-1.2 -u release-1.2.12 http://hg.libsdl.org/SDL_image SDL_image
+#[ -d "SDL_mixer" ] || hg clone -b SDL-1.2 -u release-1.2.12 http://hg.libsdl.org/SDL_mixer SDL_mixer
+#[ -d "SDL_net" ] || hg clone -b SDL-1.2 -u release-1.2.8 http://hg.libsdl.org/SDL_net SDL_net
+#[ -d "SDL_ttf" ] || hg clone -b SDL-1.2 -u release-2.0.11 http://hg.libsdl.org/SDL_ttf SDL_ttf
+#[ -d "smpeg" ] || svn checkout svn://svn.icculus.org/smpeg/trunk smpeg
+#silentPopd
 
-patch --version > /dev/null 2>&1
-failOnMissingDependency "patch"
+export PKG_CONFIG=`which pkg-config`
 
-svn --version > /dev/null 2>&1
-failOnMissingDependency "subversion"
+./build "${SUB_PROJECTS_PATH}/SDL" $@ --prefix=${PORTLIBS_WII}
 
-wget --version > /dev/null 2>&1
-failOnMissingDependency "wget"
+./build "${SUB_PROJECTS_PATH}/SDL_image" $@ --prefix=${PORTLIBS_WII} --with-sdl-prefix=${PORTLIBS_WII} \
+    --disable-tif --disable-webp
 
-tar --version > /dev/null 2>&1
-failOnMissingDependency "tar"
+./build "${SUB_PROJECTS_PATH}/smpeg" $@ --prefix=${PORTLIBS_WII} --with-sdl-prefix=${PORTLIBS_WII} \
+    --disable-debug --disable-gtk-player --disable-opengl-player
 
+./build "${SUB_PROJECTS_PATH}/SDL_mixer" $@ --prefix=${PORTLIBS_WII} --with-sdl-prefix=${PORTLIBS_WII} --with-smpeg-prefix=${PORTLIBS_WII} \
+    --enable-music-ogg --enable-music-ogg-tremor --disable-music-cmd --disable-music-mod --disable-music-fluidsynth-midi --disable-music-flac
 
-DEVKITPRO_SDL_VERSION="1.2"
-SDL_WII_VERSION="99"
+./build "${SUB_PROJECTS_PATH}/SDL_net" $@ --prefix=${PORTLIBS_WII} --with-sdl-prefix=${PORTLIBS_WII} \
+    --disable-gui
 
+./build "${SUB_PROJECTS_PATH}/SDL_ttf" $@ --prefix=${PORTLIBS_WII} --with-sdl-prefix=${PORTLIBS_WII} --with-freetype-prefix=${PORTLIBS_PPC} \
+    --without-x
 
-LOG_FILE=${BUILD_PATH}/$0.log
-echo "Outputting messages to ${LOG_FILE}"
-mkdir -p ${BUILD_PATH}
-rm -f ${LOG_FILE}
-
-echo
-
-
-############################################################################################
-# Configure devkitPro's SDL (Because it generates configure scripts, while sdl-wii does not)
-# Don't actually build it because the generated library does not work as expected
-DEVKITPRO_SDL_PATH=${SUB_PROJECTS_PATH}/SDL-${DEVKITPRO_SDL_VERSION}
-DEVKITPRO_SDL_FILE=SDL-${DEVKITPRO_SDL_VERSION}-wii.tar.bz2
-DEVKITPRO_SDL_URL="http://sourceforge.net/projects/devkitpro/files/misc/${DEVKITPRO_SDL_FILE}/download"
-DEVKITPRO_SDL_BUILD_PATH=${BUILD_PATH}/SDL-${DEVKITPRO_SDL_VERSION}
-configureScript=${DEVKITPRO_SDL_PATH}/configure
-
-echo "Getting devkitPro's SDL from ${DEVKITPRO_SDL_URL} ..."
-silentPushd ${SUB_PROJECTS_PATH}
-wget ${DEVKITPRO_SDL_URL} -O ${DEVKITPRO_SDL_FILE} >> ${LOG_FILE} 2>&1
-failOnError "Unable to download devkitPro's SDL's source code."
-
-echo "Extracting devkitPro's SDL..."
-tar -xvf ${DEVKITPRO_SDL_FILE} >> ${LOG_FILE} 2>&1 && rm -f ${DEVKITPRO_SDL_FILE}
-failOnError "Unable to extract devkitPro's SDL's source code."
-silentPopd
-
-echo "Configuring devkitPro's SDL library..."
-mkdir -p ${DEVKITPRO_SDL_BUILD_PATH}
-silentPushd ${DEVKITPRO_SDL_BUILD_PATH}
-${configureScript} --prefix=${PORTLIBS_WII} \
-		   --host=powerpc-eabi --build=powerpc-eabi-gnu \
-		   --disable-shared --enable-static >> ${LOG_FILE} 2>&1
-failOnError "Unable to configure devkitPro's SDL library's build process."
-make install-bin >> ${LOG_FILE} 2>&1
-failOnError "Unable to install devkitPro's SDL binaries."
-make install-data >> ${LOG_FILE} 2>&1
-failOnError "Unable to install devkitPro's SDL data."
-make install-man >> ${LOG_FILE} 2>&1
-failOnError "Unable to install devkitPro's SDL manual."
-silentPopd
-
-echo
-
-
-###############
-# Build sdl-wii
-SDL_WII_PATH=${SUB_PROJECTS_PATH}/sdl-wii
-SDL_WII_URL="http://sdl-wii.googlecode.com/svn/trunk"
-
-echo "Getting sdl-wii revision ${SDL_WII_VERSION} from ${SDL_WII_URL} ..."
-svn checkout -r ${SDL_WII_VERSION} ${SDL_WII_URL} ${SDL_WII_PATH} >> ${LOG_FILE} 2>&1
-failOnError "Unable to download wii-sdl's source code."
-
-echo "Building sdl-wii library..."
-silentPushd ${SDL_WII_PATH}
-patch -p0 -r - -i makefiles.patch >> ${LOG_FILE} 2>&1
-export INSTALL_HEADER_DIR=${WII_INCLUDE_PATH}
-export INSTALL_LIB_DIR=${WII_LIB_PATH}
-make install >> ${LOG_FILE} 2>&1
-failOnError "Unable to build sdl-wii library."
-silentPopd
-
-echo

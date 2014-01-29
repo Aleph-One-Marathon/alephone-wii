@@ -1,0 +1,77 @@
+#!/bin/bash
+
+source utils.sh
+
+function printUsage {
+	echo
+	echo "Usage : `basename $0` [option ..]"
+	echo
+	echo "Options (default values inside brackets) :"
+	echo "    -v, --version=version_name        Game version to DEPLOY [${DEFAULT_GAME_VERSION}]"
+	echo "    -d, --destination-path=path       Path where the game will be deployed [${DEFAULT_DEST_PATH}]"
+	echo "    -f, --fast=[yes|no]               Only deploy executables [${DEFAULT_FAST_DEPLOY}]"
+	echo "    -k, --keep-elf=[yes|no]           Keep elf file for debug purposes [${DEFAULT_KEEP_ELF}]"
+	echo "    -h, --help                        Display this help message"
+	echo
+}
+
+function deployGame {
+	local BUILT_PRODUCT_PATH=$1
+	local RESOURCES_PATH=$2/${GAME_VERSION}
+	local DEST_RESOURCES_PATH=${DEST_PATH}/AlephOne/${GAME_VERSION}
+	local DEST_APPLICATION_PATH=${DEST_PATH}/apps/${GAME_VERSION}
+
+	if [ $FAST_DEPLOY != "yes" ]; then
+		rm -rf ${DEST_RESOURCES_PATH}/*
+		rm -rf ${DEST_APPLICATION_PATH}/*
+	fi
+
+	mkdir -p ${DEST_RESOURCES_PATH}
+	if [ $FAST_DEPLOY != "yes" ]; then
+		cp -r ${BUILT_PRODUCT_PATH}/AlephOne/* ${DEST_RESOURCES_PATH}/
+		if [ -d ${RESOURCES_PATH}/AlephOne ]; then
+			cp -rf ${RESOURCES_PATH}/AlephOne/* ${DEST_RESOURCES_PATH}/
+		else
+			echo "It seems you are missing game resources for target '${GAME_VERSION}'."
+			echo "Please download them first from AlephOne's web site and put them in '$(getAbsolutePath ${DEST_RESOURCES_PATH})/'."
+		fi
+	fi
+
+	mkdir -p ${DEST_APPLICATION_PATH}
+	cp -r ${BUILT_PRODUCT_PATH}/apps/AlephOne/* ${DEST_APPLICATION_PATH}/
+	if [ $FAST_DEPLOY != "yes" ]; then
+		cp -r ${RESOURCES_PATH}/apps/AlephOne/* ${DEST_APPLICATION_PATH}/
+	fi
+	if [ $KEEP_ELF != "yes" ]; then
+		rm ${DEST_APPLICATION_PATH}/*.elf
+	fi
+}
+
+DEFAULT_GAME_VERSION="m2"
+DEFAULT_FAST_DEPLOY="no"
+DEFAULT_KEEP_ELF="no"
+DEFAULT_DEST_PATH=$(getAbsolutePath "../dist")
+
+GAME_VERSION="${DEFAULT_GAME_VERSION}"
+FAST_DEPLOY="${DEFAULT_FAST_DEPLOY}"
+KEEP_ELF="${DEFAULT_KEEP_ELF}"
+DEST_PATH="${DEFAULT_DEST_PATH}"
+
+while test $# -gt 0; do
+	case $1 in
+		-*=*) optarg=`echo "$1" | LC_ALL="C" sed 's/[-_a-zA-Z0-9]*=//'` ;;
+		*) optarg= ;;
+	esac
+
+	case $1 in
+		-v=* | --version=*) GAME_VERSION="$optarg" ;;
+		-d=* | --destination-path=*) DEST_PATH="$optarg" ;;
+		-f=* | --fast=*) FAST_DEPLOY="$optarg" ;;
+		-k=* | --keep-elf=*) KEEP_ELF="$optarg" ;;
+		-h | --help) printUsage; exit 0 ;;
+		*) printUsage; exit 0 ;;
+	esac
+	shift
+done
+
+deployGame "../target/wii/sd" "../resources"

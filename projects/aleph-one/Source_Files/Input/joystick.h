@@ -34,6 +34,7 @@ May 18, 2009 (Eric Peterson):
 
 void enter_joystick(void);
 void exit_joystick(void);
+
 void joystick_buttons_become_keypresses(Uint8* ioKeyMap);
 int process_joystick_axes(int flags, int tick);
 

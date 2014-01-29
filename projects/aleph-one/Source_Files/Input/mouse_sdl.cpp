@@ -49,7 +49,7 @@ static _fixed snapshot_delta_scrollwheel;
 
 void enter_mouse(short type)
 {
-	if (type != _keyboard_or_game_pad) {
+	if (!mouse_active) {
 #ifndef DEBUG
 		SDL_WM_GrabInput(SDL_GRAB_ON);
 #endif
@@ -69,7 +69,7 @@ void enter_mouse(short type)
 
 void exit_mouse(short type)
 {
-	if (type != _keyboard_or_game_pad) {
+	if (mouse_active) {
 #ifndef DEBUG
 		SDL_WM_GrabInput(SDL_GRAB_OFF);
 #endif
@@ -87,9 +87,14 @@ void recenter_mouse(void)
 {
 	if (mouse_active) {
 		SDL_Surface *s = SDL_GetVideoSurface();
-		center_x = s->w / 2;
-		center_y = s->h / 2;
-		SDL_WarpMouse(center_x, center_y);
+		if (s != NULL) {
+			center_x = s->w / 2;
+			center_y = s->h / 2;
+			SDL_WarpMouse(center_x, center_y);
+		} else {
+			center_x = 0;
+			center_y = 0;
+		}
 	}
 }
 

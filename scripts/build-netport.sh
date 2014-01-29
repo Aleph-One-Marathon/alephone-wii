@@ -33,20 +33,20 @@ failOnError "Unable to download netport's source code."
 echo "Building netport library..."
 silentPushd ${NETPORT_PATH}
 patch -p0 -r - -s -N -i not_posix_source.patch >> ${LOG_FILE} 2>&1
-make >> ${LOG_FILE} 2>&1
+make -j5 >> ${LOG_FILE} 2>&1
 failOnError "Unable to build netport library."
 
 silentPushd include
 for HEADER_FILE in $(ls -C *.h) $(ls -C */*.h)
 do
-    TARGET_DIR=${PROJECT_INCLUDE_PATH}/$(dirname ${HEADER_FILE})
+    TARGET_DIR=${PORTLIBS_WII}/include/$(dirname ${HEADER_FILE})
     mkdir -p ${TARGET_DIR}
     cp ${HEADER_FILE} ${TARGET_DIR}/
 done
 silentPopd
 
-mkdir -p ${PROJECT_LIB_PATH}
-cp lib/*.a ${PROJECT_LIB_PATH}/
+mkdir -p ${PORTLIBS_WII}/lib
+cp lib/*.a ${PORTLIBS_WII}/lib/
 silentPopd
 
 echo
