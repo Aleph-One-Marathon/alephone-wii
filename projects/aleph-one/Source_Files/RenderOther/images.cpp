@@ -67,6 +67,7 @@ Jul 31, 2002 (Loren Petrich)
 #include "render.h"
 #include "OGL_Render.h"
 #include "OGL_Blitter.h"
+#include "screen_definitions.h"
 
 
 // Constants
@@ -128,6 +129,9 @@ typedef struct clut_record {
 // Global variables
 static image_file_t ImagesFile;
 static image_file_t ScenarioFile;
+static image_file_t ExternalResourcesFile;
+static image_file_t ShapesImagesFile;
+static image_file_t SoundsImagesFile;
 
 // Prototypes
 static void shutdown_images_handler(void);
@@ -151,6 +155,7 @@ extern short interface_bit_depth;
 extern bool draw_clip_rect_active;
 extern screen_rectangle draw_clip_rect;
 
+extern bool shapes_file_is_m1();
 
 /*
  *  Uncompress picture data, returns size of compressed image data that was read
@@ -853,10 +858,8 @@ SDL_Surface *tile_surface(SDL_Surface *s, int width, int height)
 extern SDL_Surface *draw_surface;	// from screen_drawing.cpp
 //void draw_intro_screen(void);		// from screen.cpp
 
-static void draw_picture(LoadedResource &rsrc)
+static void draw_picture_surface(SDL_Surface *s)
 {
-	// Convert picture resource to surface, free resource
-	SDL_Surface *s = picture_to_surface(rsrc);
 	if (s == NULL)
 		return;
 	_set_port_to_intro();
@@ -888,6 +891,11 @@ static void draw_picture(LoadedResource &rsrc)
 	SDL_BlitSurface(s, &src_rect, video, &dst_rect);
 	_restore_port();
 	draw_intro_screen();
+}
+
+static void draw_picture(LoadedResource &rsrc)
+{
+    draw_picture_surface(picture_to_surface(rsrc));
 }
 
 
@@ -1009,10 +1017,10 @@ void initialize_images_manager(void)
 	file.SetNameWithPath(getcstr(temporary, strFILENAMES, filenameIMAGES)); // _typecode_images
 	
 	if (!file.Exists())
-		alert_user(fatalError, strERRORS, badExtraFileLocations, fnfErr);
+        logContext("Images file not found");
 	
 	if (!ImagesFile.open_file(file))
-		alert_user(fatalError, strERRORS, badExtraFileLocations, -1);
+        logContext("Images file could not be opened");
 
 	atexit(shutdown_images_handler);
 }
@@ -1024,6 +1032,9 @@ void initialize_images_manager(void)
 
 static void shutdown_images_handler(void)
 {
+	SoundsImagesFile.close_file();
+	ExternalResourcesFile.close_file();
+	ShapesImagesFile.close_file();
 	ScenarioFile.close_file();
 	ImagesFile.close_file();
 }
@@ -1036,6 +1047,25 @@ static void shutdown_images_handler(void)
 void set_scenario_images_file(FileSpecifier &file)
 {
 	ScenarioFile.open_file(file);
+}
+
+void set_shapes_images_file(FileSpecifier &file)
+{
+	ShapesImagesFile.open_file(file);
+}
+
+void set_external_resources_images_file(FileSpecifier &file)
+{
+    // fail here, instead of above, if Images is missing
+	if ((!file.Exists() || !ExternalResourcesFile.open_file(file)) &&
+        !ImagesFile.is_open())
+        alert_user(fatalError, strERRORS, badExtraFileLocations, -1);
+        
+}
+
+void set_sounds_images_file(FileSpecifier &file)
+{
+	SoundsImagesFile.open_file(file);
 }
 
 
@@ -1208,36 +1238,178 @@ bool image_file_t::get_text(int id, LoadedResource &rsrc)
 
 bool get_picture_resource_from_images(int base_resource, LoadedResource &PictRsrc)
 {
-	assert(ImagesFile.is_open());
-
-	int RsrcID = ImagesFile.determine_pict_resource_id(
-		base_resource, _images_file_delta16, _images_file_delta32);
-	return ImagesFile.get_pict(RsrcID, PictRsrc);
+    bool found = false;
+    
+    if (!found && ImagesFile.is_open())
+        found = ImagesFile.get_pict(ImagesFile.determine_pict_resource_id(base_resource, _images_file_delta16, _images_file_delta32), PictRsrc);
+    if (!found && ExternalResourcesFile.is_open())
+        found = ExternalResourcesFile.get_pict(base_resource, PictRsrc);
+    if (!found && ShapesImagesFile.is_open())
+        found = ShapesImagesFile.get_pict(base_resource, PictRsrc);
+    
+    return found;
 }
 
 bool get_sound_resource_from_images(int resource_number, LoadedResource &SoundRsrc)
 {
-	if (!ImagesFile.is_open())
-		return false;
-
-	return ImagesFile.get_snd(resource_number, SoundRsrc);
+    bool found = false;
+    
+    if (!found && ImagesFile.is_open())
+        found = ImagesFile.get_snd(resource_number, SoundRsrc);
+    if (!found && SoundsImagesFile.is_open())
+    {
+        // Marathon 1 case: only one sound used for intro
+        if (resource_number == 1111 || resource_number == 1114)
+            found = SoundsImagesFile.get_snd(1240, SoundRsrc);
+    }
+    
+    return found;
 }
-
 
 bool images_picture_exists(int base_resource)
 {
-	assert(ImagesFile.is_open());
+	if (shapes_file_is_m1() && (base_resource == MAIN_MENU_BASE || base_resource == MAIN_MENU_BASE+1))
+        return true;
+    
+    LoadedResource PictRsrc;
+    return get_picture_resource_from_images(base_resource, PictRsrc);
+}
 
-	int RsrcID = ImagesFile.determine_pict_resource_id(
-		base_resource, _images_file_delta16, _images_file_delta32);
-	return ImagesFile.has_pict(RsrcID);
+
+// In the first Marathon, the main menu is drawn from multiple
+// shapes in collection 10, instead of a single image. We handle
+// this special case by creating the composite images in code,
+// and returning these surfaces when the picture is requested.
+
+static SDL_Surface *m1_menu_unpressed = NULL;
+static SDL_Surface *m1_menu_pressed = NULL;
+
+static void create_m1_menu_surfaces(void)
+{
+    if (m1_menu_unpressed || m1_menu_pressed)
+        return;
+    
+    SDL_Surface *s;
+#ifdef ALEPHONE_LITTLE_ENDIAN
+    s = SDL_CreateRGBSurface(SDL_SWSURFACE, 640, 480, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0);
+#else
+    s = SDL_CreateRGBSurface(SDL_SWSURFACE, 640, 480, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0);
+#endif
+    if (!s)
+        return;
+
+    SDL_FillRect(s, NULL, SDL_MapRGB(s->format, 0, 0, 0));
+    
+    SDL_Rect src, dst;
+    src.x = src.y = 0;
+    
+    int top = 0;
+    int bottom = s->h;
+    
+    SDL_Surface *logo = get_shape_surface(0, 10);
+    if (!logo)
+    {
+        // did it fail because we haven't loaded the menu shapes?
+        mark_collection_for_loading(10);
+        load_collections(false, false);
+        logo = get_shape_surface(0, 10);
+    }
+    if (logo)
+    {
+        src.w = dst.w = logo->w;
+        src.h = dst.h = logo->h;
+        dst.x = (s->w - logo->w)/2;
+        dst.y = 0;
+        SDL_BlitSurface(logo, &src, s, &dst);
+        top += logo->h;
+        SDL_FreeSurface(logo);
+    }
+    
+    SDL_Surface *credits = get_shape_surface(19, 10);
+    if (credits)
+    {
+        src.w = dst.w = credits->w;
+        src.h = dst.h = credits->h;
+        dst.x = (s->w - credits->w)/2;
+        dst.y = s->h - credits->h;
+        SDL_BlitSurface(credits, &src, s, &dst);
+        bottom -= credits->h;
+        SDL_FreeSurface(credits);
+    }
+    
+    SDL_Surface *widget = get_shape_surface(1, 10);
+    if (widget)
+    {
+        src.w = dst.w = widget->w;
+        src.h = dst.h = widget->h;
+        dst.x = (s->w - widget->w)/2;
+        dst.y = top + (bottom - top - widget->h)/2;
+        SDL_BlitSurface(widget, &src, s, &dst);
+        SDL_FreeSurface(widget);
+    }
+    
+    m1_menu_unpressed = s;
+    
+    // now, add pressed buttons to copy of this surface
+    s = SDL_ConvertSurface(s, s->format, SDL_SWSURFACE);
+    
+    std::vector<std::pair<int, int> > button_shapes;
+    button_shapes.push_back(std::pair<int, int>(_new_game_button_rect, 11));
+    button_shapes.push_back(std::pair<int, int>(_load_game_button_rect, 12));
+    button_shapes.push_back(std::pair<int, int>(_gather_button_rect, 3));
+    button_shapes.push_back(std::pair<int, int>(_join_button_rect, 4));
+    button_shapes.push_back(std::pair<int, int>(_prefs_button_rect, 5));
+    button_shapes.push_back(std::pair<int, int>(_replay_last_button_rect, 6));
+    button_shapes.push_back(std::pair<int, int>(_save_last_button_rect, 7));
+    button_shapes.push_back(std::pair<int, int>(_replay_saved_button_rect, 8));
+    button_shapes.push_back(std::pair<int, int>(_credits_button_rect, 9));
+    button_shapes.push_back(std::pair<int, int>(_quit_button_rect, 10));
+    button_shapes.push_back(std::pair<int, int>(_center_button_rect, 2));
+    for (std::vector<std::pair<int, int> >::const_iterator it = button_shapes.begin(); it != button_shapes.end(); ++it)
+    {
+        screen_rectangle *r = get_interface_rectangle(it->first);
+        SDL_Surface *btn = get_shape_surface(it->second, 10);
+        if (btn)
+        {
+            src.w = dst.w = btn->w;
+            src.h = dst.h = btn->h;
+            dst.x = r->left;
+            dst.y = r->top;
+            SDL_BlitSurface(btn, &src, s, &dst);
+            SDL_FreeSurface(btn);
+        }
+    }
+    
+    m1_menu_pressed = s;
+}
+
+static bool m1_draw_full_screen_pict_resource_from_images(int pict_resource_number)
+{
+    if (!shapes_file_is_m1())
+        return false;
+    if (pict_resource_number == MAIN_MENU_BASE)
+    {
+        create_m1_menu_surfaces();
+        draw_picture_surface(m1_menu_unpressed);
+        return true;
+    }
+    else if (pict_resource_number == MAIN_MENU_BASE+1)
+    {
+        create_m1_menu_surfaces();
+        draw_picture_surface(m1_menu_pressed);
+        return true;
+    }
+    return false;
 }
 
 void draw_full_screen_pict_resource_from_images(int pict_resource_number)
 {
-	LoadedResource PictRsrc;
-	get_picture_resource_from_images(pict_resource_number, PictRsrc);
-	draw_picture(PictRsrc);
+	if (m1_draw_full_screen_pict_resource_from_images(pict_resource_number))
+		return;
+    
+    LoadedResource PictRsrc;
+    if (get_picture_resource_from_images(pict_resource_number, PictRsrc))
+        draw_picture(PictRsrc);
 }
 
 
@@ -1247,37 +1419,27 @@ void draw_full_screen_pict_resource_from_images(int pict_resource_number)
 
 bool get_picture_resource_from_scenario(int base_resource, LoadedResource &PictRsrc)
 {
-	if (!ScenarioFile.is_open())
-		return false;
-
-	int RsrcID = ScenarioFile.determine_pict_resource_id(
-		base_resource, _scenario_file_delta16, _scenario_file_delta32);
-
-	bool success = ScenarioFile.get_pict(RsrcID, PictRsrc);
-#ifdef mac
-	if (success) {
-		Handle PictHdl = PictRsrc.GetHandle();
-		if (PictHdl) HNoPurge(PictHdl);
-	}
-#endif
-	return success;
+    bool found = false;
+    
+    if (!found && ScenarioFile.is_open())
+        found = ScenarioFile.get_pict(ScenarioFile.determine_pict_resource_id(base_resource, _scenario_file_delta16, _scenario_file_delta32), PictRsrc);
+    if (!found && ShapesImagesFile.is_open())
+        found = ShapesImagesFile.get_pict(base_resource, PictRsrc);
+    
+    return found;
 }
 
 bool scenario_picture_exists(int base_resource)
 {
-	if (!ScenarioFile.is_open())
-		return false;
-
-	int RsrcID = ScenarioFile.determine_pict_resource_id(
-		base_resource, _scenario_file_delta16, _scenario_file_delta32);
-	return ScenarioFile.has_pict(RsrcID);
+    LoadedResource PictRsrc;
+    return get_picture_resource_from_scenario(base_resource, PictRsrc);
 }
 
 void draw_full_screen_pict_resource_from_scenario(int pict_resource_number)
 {
 	LoadedResource PictRsrc;
-	get_picture_resource_from_scenario(pict_resource_number, PictRsrc);
-	draw_picture(PictRsrc);
+	if (get_picture_resource_from_scenario(pict_resource_number, PictRsrc))
+        draw_picture(PictRsrc);
 }
 
 
@@ -1287,17 +1449,15 @@ void draw_full_screen_pict_resource_from_scenario(int pict_resource_number)
 
 bool get_sound_resource_from_scenario(int resource_number, LoadedResource &SoundRsrc)
 {
-	if (!ScenarioFile.is_open())
-		return false;
-
-	bool success = ScenarioFile.get_snd(resource_number, SoundRsrc);
-#ifdef mac
-	if (success) {
-		Handle SndHdl = SoundRsrc.GetHandle();
-		if (SndHdl) HNoPurge(SndHdl);
-	}
-#endif
-	return success;
+    bool found = false;
+    
+    if (!found && ScenarioFile.is_open())
+        found = ScenarioFile.get_snd(resource_number, SoundRsrc);
+    if (!found && SoundsImagesFile.is_open())
+        // Marathon 1 case: only one sound used for chapter screens
+        found = SoundsImagesFile.get_snd(1240, SoundRsrc);
+    
+    return found;
 }
 
 
@@ -1327,6 +1487,11 @@ struct color_table *calculate_picture_clut(int CLUTSource, int pict_resource_num
 {
 	struct color_table *picture_table = NULL;
 
+#if 1
+    // with TRUE_COLOR_ONLY turned on, specific cluts don't matter
+    picture_table = build_8bit_system_color_table();
+    build_direct_color_table(picture_table, interface_bit_depth);
+#else
 	// Select the source
 	image_file_t *OFilePtr = NULL;
 	switch (CLUTSource) {
@@ -1362,6 +1527,7 @@ struct color_table *calculate_picture_clut(int CLUTSource, int pict_resource_num
 			build_direct_color_table(picture_table, interface_bit_depth);
 	}
 
+#endif
 	return picture_table;
 }
 

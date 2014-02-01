@@ -26,22 +26,20 @@ SOUNDFILE.CPP
 #include "Decoder.h"
 
 #include <assert.h>
+#include <boost/make_shared.hpp>
+
+#include "BStream.h"
+#include <boost/iostreams/stream_buffer.hpp>
+
+namespace io = boost::iostreams;
 
 SoundHeader::SoundHeader() :
-	sixteen_bit(false),
-	stereo(false),
-	signed_8bit(false),
-	bytes_per_frame(false),
-	little_endian(false),
-	loop_start(0),
-	loop_end(0),
-	rate(0),
-	data(0),
-	length(0)
+	SoundInfo(),
+	data_offset(0)
 {
 }
 
-bool SoundHeader::UnpackStandardSystem7Header(AIStreamBE &header)
+bool SoundHeader::UnpackStandardSystem7Header(BIStreamBE &header)
 {
 	try 
 	{
@@ -57,12 +55,12 @@ bool SoundHeader::UnpackStandardSystem7Header(AIStreamBE &header)
 		header >> loop_end;
 		
 		return true;
-	} catch (...) {
+	} catch (basic_bstream::failure e) {
 		return false;
 	}
 }
 
-bool SoundHeader::UnpackExtendedSystem7Header(AIStreamBE &header)
+bool SoundHeader::UnpackExtendedSystem7Header(BIStreamBE &header)
 {
 	try 
 	{
@@ -115,68 +113,151 @@ bool SoundHeader::UnpackExtendedSystem7Header(AIStreamBE &header)
 		}
 		
 		return true;
-	} catch (...) {
+	} catch (basic_bstream::failure e) {
 		return false;
 	}
 }
 
-bool SoundHeader::Load(const uint8* data)
+bool SoundHeader::Load(BIStreamBE& s)
 {
 	Clear();
-	if (data[20] == 0x00)
+
+	uint8 encoding;
+	s.rdbuf()->pubseekoff(20, std::ios_base::cur);
+	encoding = s.rdbuf()->sgetc();
+	s.rdbuf()->pubseekoff(-20, std::ios_base::cur);
+
+	switch (encoding) 
 	{
-		AIStreamBE header(data, 22);
-		if (!UnpackStandardSystem7Header(header)) return false;
-		this->data = data + 22;
-		return true;
+	case stdSH:
+		if (UnpackStandardSystem7Header(s))
+		{
+			data_offset = 22;
+			return true;
+		}
+		break;
+	case extSH:
+	case cmpSH:
+		if (UnpackExtendedSystem7Header(s))
+		{
+			data_offset = 64;
+			return true;
+		}
+		break;
 	}
-	else if (data[20] == 0xff || data[20] == 0xfe)
-	{
-		AIStreamBE header(data, 64);
-		if (!UnpackExtendedSystem7Header(header)) return false;
-		this->data = data + 64;
-		return true;
-	}
+
 	return false;
+}
+
+boost::shared_ptr<SoundData> SoundHeader::LoadData(BIStreamBE& s)
+{
+	if (!data_offset)
+	{
+		return boost::shared_ptr<SoundData>();
+	}
+
+	s.ignore(data_offset);
+	boost::shared_ptr<SoundData> p = boost::make_shared<SoundData>(length);
+	try 
+	{
+		s.read(reinterpret_cast<char*>(&(*p)[0]), length);
+	}
+	catch (basic_bstream::failure e)
+	{
+		p.reset();
+	}
+
+	return p;
 }
 
 bool SoundHeader::Load(OpenedFile &SoundFile)
 {
-	Clear();
-	if (!SoundFile.IsOpen()) return false;
+	io::stream_buffer<opened_file_device> sb(SoundFile);
+	BIStreamBE s(&sb);
 
-	int32 file_position;
-	SoundFile.GetPosition(file_position);
-	SoundFile.SetPosition(file_position + 20);
-	uint8 header_type;
-	if (!SoundFile.Read(1, &header_type)) return false;
-	SoundFile.SetPosition(file_position);
+	return Load(s);
+}
 
-	if (header_type == 0x0)
+boost::shared_ptr<SoundData> SoundHeader::LoadData(OpenedFile& SoundFile)
+{
+	io::stream_buffer<opened_file_device> sb(SoundFile);
+	BIStreamBE s(&sb);
+	
+	return LoadData(s);
+}
+
+bool SoundHeader::Load(LoadedResource& rsrc)
+{
+	io::stream_buffer<io::array_source> sb(reinterpret_cast<char*>(rsrc.GetPointer()), rsrc.GetLength());
+	BIStreamBE s(&sb);
+
+	// Get resource format
+	uint16 format;
+	s >> format;
+	if (format != 1 && format != 2)
 	{
-		// standard sound header
-		vector<uint8> headerBuffer(22);
-		if (!SoundFile.Read(headerBuffer.size(), &headerBuffer[0]))
-			return false;
-
-		AIStreamBE header(&headerBuffer[0], headerBuffer.size());
-		if (!UnpackStandardSystem7Header(header)) return false;
-		if (!SoundFile.Read(length, Load(length))) return false;
-		return true;
+		logWarning("Unknown sound resource format %d", format);
+		return false;
 	}
-	else if (header_type == 0xff || header_type == 0xfe)
-	{
-		vector<uint8> headerBuffer(64);
-		if (!SoundFile.Read(headerBuffer.size(), &headerBuffer[0]))
-			return false;
 
-		AIStreamBE header(&headerBuffer[0], headerBuffer.size());
-		if (!UnpackExtendedSystem7Header(header)) return false;
-		if (!SoundFile.Read(length, Load(length))) return false;
-		return true;
+	// Skip sound data types or reference count
+	if (format == 1)
+	{
+		uint16 num_data_formats;
+		s >> num_data_formats;
+		s.ignore(num_data_formats * 6);
+	}
+	else if (format == 2)
+	{
+		s.ignore(2);
+	}
+
+	// Scan sound commands for bufferCmd
+	uint16 num_cmds;
+	s >> num_cmds;
+	for (int i = 0; i < num_cmds; ++i) 
+	{
+		uint16 cmd, param1;
+		uint32 param2;
+		
+		s >> cmd
+		  >> param1
+		  >> param2;
+
+		if (cmd == bufferCmd)
+		{
+			s.rdbuf()->pubseekpos(param2);
+			if (Load(s))
+			{
+				data_offset += param2;
+				return true;
+			}
+		}
 	}
 
 	return false;
+}
+
+boost::shared_ptr<SoundData> SoundHeader::LoadData(LoadedResource& rsrc)
+{
+	io::stream_buffer<io::array_source> sb(reinterpret_cast<char*>(rsrc.GetPointer()), rsrc.GetLength());
+	BIStreamBE s(&sb);
+
+	return LoadData(s);
+}
+
+SoundDefinition::SoundDefinition() :
+	sound_code(0), 
+	behavior_index(1), 
+	flags(0),
+	chance(0),
+	low_pitch(0),
+	high_pitch(0),
+	permutations(1),
+	permutations_played(0),
+	group_offset(0), single_length(0), total_length(0),
+	last_played(0)
+{
 }
 
 bool SoundDefinition::Unpack(OpenedFile &SoundFile)
@@ -240,18 +321,24 @@ bool SoundDefinition::Load(OpenedFile &SoundFile, bool LoadPermutations)
     return true;
 }
 
-int32 SoundDefinition::LoadedSize()
+
+boost::shared_ptr<SoundData> SoundDefinition::LoadData(OpenedFile& SoundFile, short permutation)
 {
-	int32 size = 0;
-	for (int i = 0; i < sounds.size(); i++)
+	boost::shared_ptr<SoundData> p;
+	if (!SoundFile.IsOpen()) 
 	{
-		size += sounds[i].Length();
+		return p;
 	}
 
-	return size;
+	if (!SoundFile.SetPosition(group_offset + sound_offsets[permutation]))
+	{
+		return p;
+	}
+
+	return sounds[permutation].LoadData(SoundFile);
 }
 
-bool SoundFile::Open(FileSpecifier& SoundFileSpec)
+bool M2SoundFile::Open(FileSpecifier& SoundFileSpec)
 {
 	Close();
 
@@ -270,7 +357,6 @@ bool SoundFile::Open(FileSpecifier& SoundFileSpec)
 	header >> tag;
 	header >> source_count;
 	header >> sound_count;
-	real_sound_count = sound_count;
 	header.ignore(v1Unused * 2);
 
 	if ((version != 0 && version != 1) ||
@@ -302,95 +388,114 @@ bool SoundFile::Open(FileSpecifier& SoundFileSpec)
 		}
 	}
 
+	// load all the headers
+	for (int source = 0; source < source_count; ++source) 
+	{
+		for (int i = 0; i < sound_count; ++i) 
+		{
+			sound_definitions[source][i].Load(*sound_file, true);
+		}
+	}
+
 	// keep the sound file opened
 	opened_sound_file = sound_file;
 	
 	return true;
 }
 
-void SoundFile::Close()
+void M2SoundFile::Close()
 {
 	sound_definitions.clear();
 }
 
-void SoundFile::UnloadCustomSounds() {
-  sound_count = real_sound_count;
-  for(vector<vector<SoundDefinition> >::iterator it = sound_definitions.begin(); it != sound_definitions.end(); ++it) {
-    (*it).resize(sound_count);
-  }
-}
-
-int SoundFile::NewCustomSoundDefinition() {
-  SoundDefinition def;
-  def.behavior_index = 2; // _sound_is_normal?
-  def.flags = 0;
-  def.chance = 0;
-  def.low_pitch = def.high_pitch = 0;
-  def.permutations = 0;
-  def.permutations_played = 0;
-  def.group_offset = def.single_length = def.total_length = 0;
-  def.last_played = machine_tick_count();
-  int index = sound_count;
-  def.sound_code = 19000 + index; // necessary...
-  for(vector<vector<SoundDefinition> >::iterator it = sound_definitions.begin(); it != sound_definitions.end(); ++it) {
-    // this makes me squirm, what if index is wrong?
-    (*it).push_back(def);
-    // make me feel better
-    assert((sound_count+1) == (*it).size());
-  }
-  ++sound_count;
-  return index;
-}
-
-// ReplacementSounds.cpp refuses to cooperate because of a weird interaction
-// with the existing sound loading code... so I ended up having to copy and
-// paste a fair amount of code from there.
-static bool TryLoadingExternal(SoundHeader& hdr, const char* path) {
-  FileSpecifier file;
-  if(!file.SetNameWithPath(path)) return false;
-  auto_ptr<Decoder> decoder(Decoder::Get(file));
-  if(!decoder.get()) return false;
-  int32 length = decoder->Frames() * decoder->BytesPerFrame();
-  if(!length) return false;
-  // it has to be done this way because of some weirdness that happens if it
-  // isn't. Is it normal for this much weirdness to be concentrated in this
-  // little code?
-  if(decoder->Decode(hdr.Load(length), length) != length) {
-    hdr.Clear();
-    return false;
-  }
-  else {
-    hdr.sixteen_bit = decoder->IsSixteenBit();
-    hdr.stereo = decoder->IsStereo();
-    hdr.signed_8bit = decoder->IsSigned();
-    hdr.bytes_per_frame = decoder->BytesPerFrame();
-    hdr.little_endian = decoder->IsLittleEndian();
-    hdr.loop_start = hdr.loop_end = 0;
-    hdr.rate = (uint32) (FIXED_ONE * decoder->Rate());
-    return true;
-  }
-}
-
-bool SoundFile::AddCustomSoundSlot(int index, const char* file) {
-  if(index < real_sound_count || index >= sound_count) return false;
-  SoundHeader sound;
-  bool ret = TryLoadingExternal(sound, file);
-  if(!ret) return false;
-  for(vector<vector<SoundDefinition> >::iterator it = sound_definitions.begin(); it != sound_definitions.end(); ++it) {
-    if((*it)[index].sounds.size() >= 5 /*MAXIMUM_PERMUTATIONS_PER_SOUND*/) continue;
-    (*it)[index].sounds.push_back(sound);
-    //int sound_index = (*it)[index].sounds.size();
-    //(*it)[index].sounds.resize(sound_index+1);
-    //(*it)[index].sounds[sound_index] = sound;
-    ++(*it)[index].permutations;
-  }
-  return true;
-}
-
-SoundDefinition* SoundFile::GetSoundDefinition(int source, int sound_index)
+SoundDefinition* M2SoundFile::GetSoundDefinition(int source, int sound_index)
 {
 	if (source < sound_definitions.size() && sound_index < sound_definitions[source].size())
 		return &sound_definitions[source][sound_index];
 	else
 		return 0;
+}
+
+boost::shared_ptr<SoundData> M2SoundFile::GetSoundData(SoundDefinition* definition, int permutation)
+{
+	return definition->LoadData(*opened_sound_file, permutation);
+}
+
+bool M1SoundFile::Open(FileSpecifier& SoundFile)
+{
+	Close();
+	return SoundFile.Open(resource_file);
+}
+
+void M1SoundFile::Close()
+{
+	headers.clear();
+	definitions.clear();
+	cached_sound_code = -1;
+	cached_rsrc.Unload();
+	resource_file.Close();
+}
+
+SoundDefinition* M1SoundFile::GetSoundDefinition(int, int sound_index)
+{
+	if (resource_file.Check('s', 'n', 'd', ' ', sound_index))
+	{
+		std::map<int16, SoundDefinition>::iterator it = definitions.find(sound_index);
+		if (it == definitions.end())
+		{
+			SoundDefinition definition;
+			definition.behavior_index = 2; // sound_is_loud
+			definition.sound_code = sound_index;
+			// look for permutations
+			definition.permutations = 1;
+			while (resource_file.Check('s', 'n', 'd', ' ', sound_index + definition.permutations) && definition.permutations < MAXIMUM_PERMUTATIONS_PER_SOUND)
+			{
+				++definition.permutations;
+			}
+
+			it = definitions.insert(std::pair<int16, SoundDefinition>(sound_index, definition)).first;
+		}
+		return &(it->second);
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+const int M1SoundFile::MAXIMUM_PERMUTATIONS_PER_SOUND = 5;
+
+SoundHeader M1SoundFile::GetSoundHeader(SoundDefinition* definition, int permutation)
+{
+	int sound_index = definition->sound_code + std::min(permutation, MAXIMUM_PERMUTATIONS_PER_SOUND);
+
+	SoundHeader header;
+	std::map<int16, SoundHeader>::iterator it = headers.find(sound_index);
+	if (it == headers.end())
+	{
+		if (cached_sound_code != sound_index)
+		{
+			resource_file.Get('s', 'n', 'd', ' ', sound_index, cached_rsrc);
+			cached_sound_code = sound_index;
+		}
+
+		SoundHeader header;
+		header.Load(cached_rsrc);
+		it = headers.insert(std::pair<int16, SoundHeader>(sound_index, header)).first;
+	}
+	
+	return it->second;
+}
+
+boost::shared_ptr<SoundData> M1SoundFile::GetSoundData(SoundDefinition* definition, int permutation)
+{
+	int sound_index = definition->sound_code + std::min(permutation, MAXIMUM_PERMUTATIONS_PER_SOUND);
+
+	if (cached_sound_code != sound_index)
+	{
+		resource_file.Get('s', 'n', 'd', ' ', sound_index, cached_rsrc);
+		cached_sound_code = sound_index;
+	}
+
+	return GetSoundHeader(definition, permutation).LoadData(cached_rsrc);
 }

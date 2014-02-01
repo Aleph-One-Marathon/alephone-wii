@@ -64,6 +64,7 @@ Jan 31, 2001 (Loren Petrich):
 #include "fades.h"
 #include "screen.h"
 #include "interface.h"
+#include "map.h" // for TICKS_PER_SECOND
 
 #include <string.h>
 #include <stdlib.h>
@@ -76,6 +77,7 @@ Jan 31, 2001 (Loren Petrich):
 #include "OGL_Faders.h"
 
 #include "Music.h"
+#include "Movie.h"
 
 #ifdef env68k
 #pragma segment shell
@@ -296,6 +298,7 @@ bool update_fades(
 		}
 		
 		recalculate_and_display_color_table(fade->type, transparency, fade->original_color_table, fade->animated_color_table, FADE_IS_ACTIVE(fade));
+		Movie::instance()->AddFrame(Movie::FRAME_FADE);
 	}
 	
 	return FADE_IS_ACTIVE(fade) ? true : false;
@@ -446,6 +449,8 @@ void gamma_correct_color_table(
 	
 	assert(gamma_level>=0 && gamma_level<NUMBER_OF_GAMMA_LEVELS);
 	gamma= actual_gamma_values[gamma_level];
+	if (Movie::instance()->IsRecording())
+		gamma = 1.0;
 	if (gamma > 0.999F && gamma < 1.001F) {
 		memcpy(corrected_color_table, uncorrected_color_table, sizeof(struct color_table));
 		return;
@@ -844,8 +849,10 @@ bool XML_FaderParser::HandleAttribute(const char *Tag, const char *Value)
 	}
 	else if (StringsEqual(Tag,"period"))
 	{
-		if (ReadInt16Value(Value,Data.period))
+		int16_t period;
+		if (ReadInt16Value(Value, period))
 		{
+			Data.period = static_cast<int32_t>(period) * 1000 / MACHINE_TICKS_PER_SECOND;
 			IsPresent[3] = true;
 			return true;
 		}

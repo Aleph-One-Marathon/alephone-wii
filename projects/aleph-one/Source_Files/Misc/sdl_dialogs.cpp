@@ -122,17 +122,8 @@ void initialize_dialogs(FileSpecifier &theme)
 	SDL_SetColorKey(default_image, SDL_SRCCOLORKEY, transp);
 
 	// Load theme from preferences, if it exists
-	if (!load_theme(theme) && strcmp(theme.GetPath(), "none") != 0)
-	{
-		// reset to default
-		get_default_theme_spec(theme);
-		if (load_theme(theme))
-		{
-			strncpy(environment_preferences->theme_dir, theme.GetPath(), 256);
-			environment_preferences->theme_dir[255] = 0;
-			write_preferences();
-		}
-	}
+	load_theme(theme);
+
 	atexit(shutdown_dialogs);
 }
 
@@ -2651,7 +2642,7 @@ int dialog::finish(bool play_sound)
 
 	// Hide cursor
 	if (!cursor_was_visible)
-		SDL_ShowCursor(false);
+		SDL_ShowCursor(SDL_DISABLE);
 
 	// Clear dialog surface
 	SDL_FillRect(dialog_surface, NULL, get_theme_color(DIALOG_FRAME, DEFAULT_STATE, BACKGROUND_COLOR));

@@ -24,13 +24,107 @@ SOUND.C
 #include "ReplacementSounds.h"
 #include "sound_definitions.h"
 #include "Mixer.h"
+#include "images.h"
 
 #define SLOT_IS_USED(o) ((o)->flags&(uint16)0x8000)
 #define SLOT_IS_FREE(o) (!SLOT_IS_USED(o))
 #define MARK_SLOT_AS_FREE(o) ((o)->flags&=(uint16)~0x8000)
 #define MARK_SLOT_AS_USED(o) ((o)->flags|=(uint16)0x8000)
 
-static int16 real_number_of_sound_definitions;
+class SoundMemoryManager {
+public:
+	SoundMemoryManager(std::size_t max_size) : m_size(0), m_max_size(max_size) { }
+
+	void SetMaxSize(std::size_t max_size) { m_max_size = max_size; }
+
+	void Add(boost::shared_ptr<SoundData> data, short index, short slot);
+	boost::shared_ptr<SoundData> Get(short index, short slot) { return m_entries[index].data[slot]; }
+	void Update(short index);
+	boost::function<void (short)> SoundReleased;
+
+	bool IsLoaded(short index) {
+		return m_entries.count(index);
+	}
+
+	void Clear() { m_entries.clear(); m_size = 0; }
+
+private:
+	struct Entry {
+		Entry() : data(5), last_played(0) { }
+		std::vector<boost::shared_ptr<SoundData> > data;
+		uint32 last_played;
+
+		std::size_t size() {
+			std::size_t n = 0;
+			for (std::vector<boost::shared_ptr<SoundData> >::iterator it = data.begin(); it != data.end(); ++it) 
+			{
+				if (it->get()) 
+				{
+					n += (*it)->size();
+				}
+			}
+			
+			return n;
+		}
+	};
+
+	void ReleaseOldestSound();
+	void Release(short index);
+	std::map<short, Entry> m_entries;
+	std::size_t m_size;
+	std::size_t m_max_size;
+};
+
+void SoundMemoryManager::Add(boost::shared_ptr<SoundData> data, short index, short slot)
+{
+	m_entries[index].data[slot] = data;
+	m_entries[index].last_played = machine_tick_count();
+
+	m_size += data->size();
+
+	while (m_size > m_max_size)
+	{
+		std::cerr << "Size is too big (" << m_size << ">" << m_max_size << ")" << std::endl;
+		ReleaseOldestSound();
+	}
+}
+
+void SoundMemoryManager::Release(short index)
+{
+	if (SoundReleased) 
+	{
+		SoundReleased(index);
+	}
+	m_size -= m_entries[index].size();
+	m_entries.erase(index);
+}
+
+void SoundMemoryManager::ReleaseOldestSound()
+{
+	if (!m_entries.size())
+	{
+		return;
+	}
+	
+	std::map<short, Entry>::iterator oldest_sound = m_entries.begin();
+	std::map<short, Entry>::iterator it = oldest_sound;
+	++it;
+	for (; it != m_entries.end(); ++it)
+	{
+		if (it->second.last_played < oldest_sound->second.last_played)
+		{
+			oldest_sound = it;
+		}
+	}
+
+	std::cerr << "Dropping sound " << oldest_sound->first << std::endl;
+	Release(oldest_sound->first);
+}
+
+void SoundMemoryManager::Update(short index)
+{
+	m_entries[index].last_played = machine_tick_count();
+}
 
 SoundManager *SoundManager::m_instance = 0;
 
@@ -44,7 +138,6 @@ extern void get_default_sounds_spec(FileSpecifier &file);
 
 void SoundManager::Initialize(const Parameters& new_parameters)
 {
-	loaded_sounds_size = 0;
 	total_channel_count = 0;
 
 	FileSpecifier InitialSoundFile;
@@ -94,11 +187,20 @@ void SoundManager::Shutdown()
 bool SoundManager::OpenSoundFile(FileSpecifier& File)
 {
 	StopAllSounds();
-	if (!sound_file.Open(File)) return false;
-	real_number_of_sound_definitions = number_of_sound_definitions = sound_file.sound_count;	
+	sound_file.reset(new M2SoundFile);
+	if (!sound_file->Open(File))
+	{
+		// try M1 sounds
+		sound_file.reset(new M1SoundFile);
+		if (!sound_file->Open(File))
+		{
+			return false;
+		}
+		set_sounds_images_file(File);
+	}
 
 	sound_source = (parameters.flags & _16bit_sound_flag) ? _16bit_22k_source : _8bit_22k_source;
-	if (sound_file.source_count == 1)
+	if (sound_file->SourceCount() == 1)
 		sound_source = _8bit_22k_source;
 
 	return true;
@@ -107,7 +209,7 @@ bool SoundManager::OpenSoundFile(FileSpecifier& File)
 void SoundManager::CloseSoundFile()
 {
 	StopAllSounds();
-	sound_file.Close();
+	sound_file->Close();
 }
 
 bool SoundManager::AdjustVolumeUp(short sound_index)
@@ -149,22 +251,6 @@ void SoundManager::TestVolume(short volume, short sound_index)
 	}
 }
 
-int SoundManager::NewCustomSoundDefinition() {
-  int ret = sound_file.NewCustomSoundDefinition();
-  if(ret >= 0)
-    ++number_of_sound_definitions;
-  return ret;
-}
-
-bool SoundManager::AddCustomSoundSlot(int index, const char* file) {
-  return sound_file.AddCustomSoundSlot(index, file);
-}
-
-void SoundManager::UnloadCustomSounds() {
-  sound_file.UnloadCustomSounds();
-  number_of_sound_definitions = real_number_of_sound_definitions;
-}
-
 bool SoundManager::LoadSound(short sound_index)
 {
 	if (active)
@@ -172,33 +258,48 @@ bool SoundManager::LoadSound(short sound_index)
 		SoundDefinition *definition = GetSoundDefinition(sound_index);
 		if (!definition) return false;
 
-		// Load all the external-file sounds for each index; fill the slots appropriately.
+		// Load all the external-file sounds for each index;
+		// fill the slots appropriately.
 		int NumSlots= (parameters.flags & _more_sounds_flag) ? definition->permutations : 1;
-		for (int k = 0; k < NumSlots; k++)
+
+		if (definition->sound_code == NONE) 
 		{
-			SoundOptions *SndOpts = SoundReplacements::instance()->GetSoundOptions(sound_index, k);
-			if (!SndOpts) continue;
-			if (!SndOpts->Sound.LoadExternal(SndOpts->File)) continue;
+			return false;
 		}
 
-		if (definition->sound_code != NONE &&
-		    (parameters.flags & _ambient_sound_flag) || !(definition->flags & _sound_is_ambient))
+		if (!(parameters.flags & _ambient_sound_flag) && (definition->flags & _sound_is_ambient))
 		{
-			if (!definition->LoadedSize())
+			return false;
+		}
+			
+		if (sounds->IsLoaded(sound_index))
+		{
+			sounds->Update(sound_index);
+		} 
+		else
+		{
+			for (int i = 0; i < NumSlots; ++i)
 			{
-				definition->Load(*(sound_file.opened_sound_file), parameters.flags & _more_sounds_flag);
-				loaded_sounds_size += definition->LoadedSize();
-				definition->last_played = machine_tick_count();
-				while (loaded_sounds_size > total_buffer_size)
-					ReleaseLeastUsefulSound();
-			}
-			if (definition->LoadedSize())
-			{
-				definition->permutations_played = 0;
+				boost::shared_ptr<SoundData> p = sound_file->GetSoundData(definition, i);
+
+				SoundOptions *SndOpts = SoundReplacements::instance()->GetSoundOptions(sound_index, i);
+				if (SndOpts)
+				{
+					boost::shared_ptr<SoundData> x = SndOpts->Sound.LoadExternal(SndOpts->File);
+					if (x.get()) 
+					{
+						p = x;
+					}
+				}
+
+				if (p.get())
+				{
+					sounds->Add(p, sound_index, i);
+				}
 			}
 		}
-		
-		return definition->LoadedSize() ? true : false;
+
+		return sounds->IsLoaded(sound_index);
 	}	
 
 	return false;
@@ -233,9 +334,7 @@ void SoundManager::UnloadAllSounds()
 	if (active)
 	{
 		StopSound(NONE, NONE);
-
-		while (ReleaseLeastUsefulSound() != NONE)
-			;
+		sounds->Clear();
 	}
 }
 
@@ -246,7 +345,7 @@ void SoundManager::PlaySound(short sound_index,
 {
 	/* don’t do anything if we’re not initialized or active, or our sound_code is NONE,
 		or our volume is zero, our we have no sound channels */
-	if (sound_index!=NONE && active && sound_index < number_of_sound_definitions && parameters.volume > 0 && total_channel_count > 0)
+	if (sound_index!=NONE && active && parameters.volume > 0 && total_channel_count > 0)
 	{
 		Channel::Variables variables;
 
@@ -293,7 +392,7 @@ void SoundManager::DirectPlaySound(short sound_index, angle direction, short vol
 	/* don’t do anything if we’re not initialized or active, or our sound_code is NONE,
 	   or our volume is zero, our we have no sound channels */
 
-	if (sound_index != NONE && active && sound_index < number_of_sound_definitions && parameters.volume > 0 && total_channel_count > 0)
+	if (sound_index != NONE && active && parameters.volume > 0 && total_channel_count > 0)
 	{
 		if (LoadSound(sound_index))
 		{
@@ -306,7 +405,7 @@ void SoundManager::DirectPlaySound(short sound_index, angle direction, short vol
 				variables.priority = 0;
 				variables.volume = volume;
 
-				if (direction = NONE || !listener)
+				if (direction == NONE || !listener)
 				{
 					variables.left_volume = variables.right_volume = volume;
 				}
@@ -380,11 +479,6 @@ void SoundManager::StopSound(short identifier, short sound_index)
 	}
 
 	return;
-}
-
-int SoundManager::NumberOfSoundDefinitions()
-{
-	return number_of_sound_definitions;
 }
 
 void SoundManager::Idle()
@@ -614,7 +708,7 @@ bool SoundManager::Parameters::Verify()
 	return true;
 }
 
-SoundManager::SoundManager() : active(false), initialized(false) 
+SoundManager::SoundManager() : active(false), initialized(false), sounds(new SoundMemoryManager(10 << 20)) 
 { 
 	channels.resize(MAXIMUM_SOUND_CHANNELS + MAXIMUM_AMBIENT_SOUND_CHANNELS);
 };
@@ -627,6 +721,8 @@ void SoundManager::SetStatus(bool active)
 		{
 			if (active) 
 			{
+				uint32 total_buffer_size;
+
 				total_channel_count = parameters.channel_count;
 				if (parameters.flags & _ambient_sound_flag)
 					total_channel_count += MAXIMUM_AMBIENT_SOUND_CHANNELS;
@@ -648,6 +744,8 @@ void SoundManager::SetStatus(bool active)
 				{
 					total_buffer_size = total_buffer_size * parameters.channel_count / 4;
 				}
+
+				sounds->SetMaxSize(total_buffer_size);
 				
 				if (parameters.flags & _stereo_flag)
 					samples *= 2;
@@ -684,10 +782,10 @@ void SoundManager::SetStatus(bool active)
 
 SoundDefinition* SoundManager::GetSoundDefinition(short sound_index)
 {
-	SoundDefinition* sound_definition = sound_file.GetSoundDefinition(sound_source, sound_index);
+	SoundDefinition* sound_definition = sound_file->GetSoundDefinition(sound_source, sound_index);
 	if (sound_source == _16bit_22k_source && sound_definition && sound_definition->permutations == 0)
 	{
-		sound_definition = sound_file.GetSoundDefinition(_8bit_22k_source, sound_index);
+		sound_definition = sound_file->GetSoundDefinition(_8bit_22k_source, sound_index);
 	}
 
 	return sound_definition;
@@ -698,25 +796,28 @@ void SoundManager::BufferSound(Channel &channel, short sound_index, _fixed pitch
 	SoundDefinition *definition = GetSoundDefinition(sound_index);
 	if (!definition || !definition->permutations)
 		return;
-	assert(definition->LoadedSize());
 
 	int permutation = GetRandomSoundPermutation(sound_index);
 
 	assert(permutation >= 0 && permutation < definition->permutations);
 
-	Mixer::Header header;
+	SoundInfo header;
 
 	SoundOptions *SndOpts = SoundReplacements::instance()->GetSoundOptions(sound_index, permutation);
-	if (SndOpts && SndOpts->Sound.Length())
+	if (SndOpts && SndOpts->Sound.length)
 	{
 		header = SndOpts->Sound;
 	}
 	else
 	{
-		header = definition->sounds[permutation];
+		header = sound_file->GetSoundHeader(definition, permutation);
 	}
-	
-	Mixer::instance()->BufferSound(channel.mixer_channel, header, CalculatePitchModifier(sound_index, pitch));
+
+	boost::shared_ptr<SoundData> sound = sounds->Get(sound_index, permutation);
+	if (sound.get()) 
+	{
+		Mixer::instance()->BufferSound(channel.mixer_channel, header, sound, CalculatePitchModifier(sound_index, pitch));
+	}
 }
 
 SoundManager::Channel *SoundManager::BestChannel(short sound_index, Channel::Variables &variables)
@@ -810,9 +911,6 @@ void SoundManager::FreeChannel(Channel &channel)
 		assert(sound_index != NONE);
 		channel.sound_index = NONE;
 		MARK_SLOT_AS_FREE(&channel);
-
-		// if anybody else is playing this sound_index, we can't unlock the handle
-		if (!SoundIsPlaying(sound_index)) UnlockSound(sound_index);
 	}
 }
 
@@ -829,49 +927,6 @@ void SoundManager::UnlockLockedSounds()
 			}
 		}
 	}
-}
-
-short SoundManager::ReleaseLeastUsefulSound()
-{
-	short sound_index, least_used_sound_index = NONE;
-	SoundDefinition *least_used_definition = 0;
-
-	for (sound_index = 0; sound_index < number_of_sound_definitions; ++sound_index)
-	{
-		SoundDefinition *definition = GetSoundDefinition(sound_index);
-
-		if (definition->LoadedSize() && (!least_used_definition || least_used_definition->last_played > definition->last_played))
-		{
-			least_used_sound_index = sound_index;
-			least_used_definition = definition;
-		}
-	}
-
-	if (least_used_sound_index != NONE)
-	{
-		StopSound(NONE, least_used_sound_index);
-		DisposeSound(least_used_sound_index);
-	}
-
-	return least_used_sound_index;
-}
-
-void SoundManager::DisposeSound(short sound_index)
-{
-	SoundDefinition *definition = GetSoundDefinition(sound_index);
-
-	// unload replacement sounds
-	int NumSlots = (parameters.flags & _more_sounds_flag) ? definition->permutations : 1;
-	for (int k = 0; k < NumSlots; k++)
-	{
-		SoundOptions *SndOpts = SoundReplacements::instance()->GetSoundOptions(sound_index, k);
-		if (SndOpts) SndOpts->Sound.Clear();
-	}
-
-	if (!definition) return;
-	loaded_sounds_size -= definition->LoadedSize();
-	definition->Unload();
-
 }
 
 void SoundManager::CalculateSoundVariables(short sound_index, world_location3d *source, Channel::Variables& variables)
@@ -1219,6 +1274,7 @@ static short _Sound_ButtonSuccess = _snd_computer_interface_page;
 static short _Sound_ButtonFailure = _snd_absorbed;
 static short _Sound_ButtonInoperative = _snd_cant_toggle_switch;
 static short _Sound_OGL_Reset = _snd_juggernaut_exploding;
+static short _Sound_Center_Button = _snd_owl;
 
 
 short Sound_TerminalLogon() {return _Sound_TerminalLogon;}
@@ -1243,6 +1299,7 @@ short Sound_ButtonSuccess() {return _Sound_ButtonSuccess;}
 short Sound_ButtonFailure() {return _Sound_ButtonFailure;}
 short Sound_ButtonInoperative() {return _Sound_ButtonInoperative;}
 short Sound_OGL_Reset() {return _Sound_OGL_Reset;}
+short Sound_Center_Button() {return _Sound_Center_Button;}
 
 // XML elements for parsing sound specifications;
 // this is currently what ambient and random sounds are to be used
@@ -1641,6 +1698,10 @@ bool XML_SoundsParser::HandleAttribute(const char *Tag, const char *Value)
 	else if (StringsEqual(Tag,"ogl_reset"))
 	{
 		return ReadInt16Value(Value,_Sound_OGL_Reset);
+	}
+	else if (StringsEqual(Tag,"center_button"))
+	{
+		return ReadInt16Value(Value,_Sound_Center_Button);
 	}
 	UnrecognizedTag();
 	return false;

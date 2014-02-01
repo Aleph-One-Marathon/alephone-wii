@@ -15,7 +15,7 @@ int access(const char *path, int amode) {
     if (((amode & W_OK) != 0) && !checkMode(path, W_OK)) {
         return -1;
     }
-
+    
     return 0;
 }
 
@@ -32,7 +32,7 @@ bool checkMode(const char *path, int amode) {
 			fprintf(stderr, "Unsupported mode : %d -> ", amode);
 		break;
 	}
-
+	
     if (file == NULL) {
         DIR* dir = opendir(path);
         if (dir == NULL) {
@@ -41,7 +41,7 @@ bool checkMode(const char *path, int amode) {
         }
         closedir(dir);
 	}
-
+	
 	fclose(file);
 	return true;
 }

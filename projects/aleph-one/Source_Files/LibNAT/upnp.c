@@ -1,5 +1,5 @@
 /* Copyright (c) 2006 Adam Warrington
-** $Id: upnp.c 3332 2008-04-12 00:50:30Z ghs $
+** $Id$
 **
 ** Permission is hereby granted, free of charge, to any person obtaining a copy
 ** of this software and associated documentation files (the "Software"), to deal
@@ -116,6 +116,7 @@
 
 /************************************************************************
 ** Internal Structures 
+*************************************************************************/
 
 /* data to pass to xml description parse events */
 struct XmlDescData

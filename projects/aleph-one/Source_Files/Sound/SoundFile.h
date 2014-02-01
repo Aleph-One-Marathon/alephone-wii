@@ -24,65 +24,83 @@ SOUND_DEFINITIONS.H
 */
 
 #include "AStream.h"
+#include "BStream.h"
 #include "FileHandler.h"
 #include <memory>
 #include <vector>
+#include <map>
 #include <boost/shared_array.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/utility.hpp>
 
-class SoundHeader
+typedef std::vector<uint8> SoundData;
+
+class SoundInfo 
+{
+public:
+	SoundInfo() : sixteen_bit(false), 
+		      stereo(false), 
+		      signed_8bit(false), 
+		      little_endian(false), 
+		      bytes_per_frame(1),
+		      loop_start(0),
+		      loop_end(0),
+		      rate(0),
+		      length(0) { }
+	
+	bool sixteen_bit;
+	bool stereo;
+	bool signed_8bit;
+	bool little_endian;
+	int bytes_per_frame;
+	int32 loop_start;
+	int32 loop_end;
+	uint32 rate;
+	int32 length;
+};
+
+class SoundHeader : public SoundInfo
 {
 public:
 	SoundHeader();
 	virtual ~SoundHeader() { };
-	bool Load(OpenedFile &SoundFile); // loads a system 7 sound from file
-	bool Load(const uint8* data); // loads (but doesn't store) a system 7 sound
 
-	// decode raw samples into returned buffer
-	uint8* Load(int32 length) {
-		Clear();
-		this->length = length;
-		stored_data.reset(new uint8[length]);
-		return stored_data.get();
-	}
+	bool Load(BIStreamBE& stream);
+	boost::shared_ptr<SoundData> LoadData(BIStreamBE& stream);
 
-	bool sixteen_bit;
-	bool stereo;
-	bool signed_8bit;
-	int bytes_per_frame;
-	bool little_endian;
+	bool Load(OpenedFile &SoundFile); // loads a system 7 header from file
+	boost::shared_ptr<SoundData> LoadData(OpenedFile& SoundFile);
+	
+	bool Load(LoadedResource& rsrc); // finds system 7 header in rsrc
+	boost::shared_ptr<SoundData> LoadData(LoadedResource& rsrc);
 
-	const uint8* Data() const 
-		{ return stored_data.get() ? stored_data.get() : data; }
 	int32 Length() const
 		{ return length; };
 	
-	int32 loop_start;
-	int32 loop_end;
-
-	uint32 /* unsigned fixed */ rate;
-
-	void Clear() { stored_data.reset(); data = 0; length = 0; }
+	void Clear() { length = 0; }
 
 private:
-	bool UnpackStandardSystem7Header(AIStreamBE &header);
-	bool UnpackExtendedSystem7Header(AIStreamBE &header);
-	
-	boost::shared_array<uint8> stored_data;
-	const uint8* data;
-	int32 length;
+	static const uint8 stdSH = 0x00; // standard sound header
+	static const uint8 extSH = 0xFF; // extended sound header
+	static const uint8 cmpSH = 0xFE; // compressed sound header
+	static const uint16 bufferCmd = 0x8051;
 
+	bool UnpackStandardSystem7Header(BIStreamBE &header);
+	bool UnpackExtendedSystem7Header(BIStreamBE &header);
+	
+	uint32 data_offset;
 };
 
 class SoundDefinition
 {
 public:
+	SoundDefinition();
 	bool Unpack(OpenedFile &SoundFile);
 	bool Load(OpenedFile &SoundFile, bool LoadPermutations);
+	boost::shared_ptr<SoundData> LoadData(OpenedFile& SoundFile, short permutation);
 	void Unload() { sounds.clear(); }
 
 	static const int MAXIMUM_PERMUTATIONS_PER_SOUND = 5;
-
-	int32 LoadedSize(); // just the size of the data
 
 private:
 	static int HeaderSize() { return 64; }
@@ -112,26 +130,56 @@ public: // for now
 class SoundFile
 {
 public:
+	virtual bool Open(FileSpecifier& SoundFile) = 0;
+	virtual void Close() = 0;
+	virtual SoundDefinition* GetSoundDefinition(int source, int sound_index) = 0;
+	virtual SoundHeader GetSoundHeader(SoundDefinition* definition, int permutation) = 0;
+	virtual boost::shared_ptr<SoundData> GetSoundData(SoundDefinition* definition, int permutation) = 0;
+
+	virtual int SourceCount() { return 1; };
+};
+
+class M1SoundFile : public SoundFile
+{
+public:
+	M1SoundFile() : cached_sound_code(-1) { }
+
+	bool Open(FileSpecifier& SoundFile);
+	void Close();
+	SoundDefinition* GetSoundDefinition(int source, int sound_index);
+	SoundHeader GetSoundHeader(SoundDefinition* definition, int permutation);
+	boost::shared_ptr<SoundData> GetSoundData(SoundDefinition* definition, int permutation);
+
+private:
+	OpenedResourceFile resource_file;
+	LoadedResource cached_rsrc;
+	int16 cached_sound_code;
+
+	static const int MAXIMUM_PERMUTATIONS_PER_SOUND;
+
+	std::map<int16, SoundDefinition> definitions;
+	std::map<int16, SoundHeader> headers;
+};
+
+class M2SoundFile : public SoundFile
+{
+public:
 	bool Open(FileSpecifier &SoundFile);
 	void Close();
 	SoundDefinition* GetSoundDefinition(int source, int sound_index);
-	void Load(int source, int sound_index);
+	SoundHeader GetSoundHeader(SoundDefinition* definition, int permutation) { 
+		return definition->sounds[permutation];
+	}
+	boost::shared_ptr<SoundData> GetSoundData(SoundDefinition* definition, int permutation);
 
-	// Always returns a new sound index.
-	int NewCustomSoundDefinition();
-	// Returns false if the given index isn't a custom sound or the given
-	// file couldn't be loaded.
-	bool AddCustomSoundSlot(int index, const char* file);
-	// Does what it says on the tin.
-	void UnloadCustomSounds();
+	int SourceCount() { return source_count; }
 
-public:
+private:
 	int32 version;
 	int32 tag;
 	
 	int16 source_count;
 	int16 sound_count;
-	int16 real_sound_count;
 
 	static const int v1Unused = 124;
 

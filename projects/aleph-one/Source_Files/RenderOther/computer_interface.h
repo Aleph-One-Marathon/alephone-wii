@@ -98,7 +98,7 @@ const int SIZEOF_player_terminal_data = 20;
 void initialize_terminal_manager(void);
 void initialize_player_terminal_info(short player_index);
 void enter_computer_interface(short player_index, short text_number, short completion_flag);
-void _render_computer_interface(struct view_terminal_data *data);
+void _render_computer_interface(void);
 void update_player_for_terminal_mode(short player_index);
 void update_player_keys_for_terminal(short player_index, uint32 action_flags);
 uint32 build_terminal_action_flags(char *keymap);
@@ -120,17 +120,6 @@ uint8 *pack_player_terminal_data(uint8 *Stream, size_t Count);
 
 extern size_t calculate_packed_terminal_data_length(void);
 
-
-#ifdef PREPROCESSING_CODE
-struct static_preprocessed_terminal_data *preprocess_text(char *text, short length);
-struct static_preprocessed_terminal_data *get_indexed_terminal_data(short id);
-void encode_text(struct static_preprocessed_terminal_data *terminal_text);
-void decode_text(struct static_preprocessed_terminal_data *terminal_text);
-void find_all_picts_references_by_terminals(byte *compiled_text, short terminal_count,
-	short *picts, short *picture_count);
-void find_all_checkpoints_references_by_terminals(byte *compiled_text, 
-	short terminal_count, short *checkpoints, short *checkpoint_count);
-bool terminal_has_finished_text_type(short terminal_id, short finished_type);
-#endif
+void clear_compiled_terminal_cache();
 
 #endif

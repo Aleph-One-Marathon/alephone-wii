@@ -47,7 +47,7 @@ extern bool game_is_networked;
 
 Console *Console::m_instance = NULL;
 
-Console::Console() : m_active(false), m_carnage_messages_exist(false), m_use_lua_console(false)
+Console::Console() : m_active(false), m_carnage_messages_exist(false), m_use_lua_console(true)
 {
 	m_carnage_messages.resize(NUMBER_OF_PROJECTILE_TYPES);
 	register_save_commands();
@@ -255,10 +255,14 @@ static std::string replace_first(std::string &result, const std::string& from, c
 
 void Console::report_kill(int16 player_index, int16 aggressor_player_index, int16 projectile_index)
 {
-	if (!game_is_networked || !NetAllowCarnageMessages() || !m_carnage_messages_exist) return;
+	if (!game_is_networked || !NetAllowCarnageMessages() || !m_carnage_messages_exist || projectile_index == -1) return;
 
 	// do some lookups
-	projectile_data *projectile = get_projectile_data(projectile_index);
+	projectile_data *projectile = 0;
+	if (projectile_index != NONE) 
+	{
+		projectile = get_projectile_data(projectile_index);
+	}
 
 	const std::string player_key = "%player%";
 	const std::string aggressor_key = "%aggressor%";

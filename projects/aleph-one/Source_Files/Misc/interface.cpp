@@ -144,9 +144,13 @@ extern TP2PerfGlobals perf_globals;
 #include "interface_menus.h"
 #include "XML_LevelScript.h"
 #include "Music.h"
+#include "Movie.h"
 
 #ifdef HAVE_SMPEG
 #include <smpeg/smpeg.h>
+#endif
+#ifdef HAVE_FFMPEG
+#include "SDL_ffmpeg.h"
 #endif
 
 #include "sdl_dialogs.h"
@@ -162,10 +166,11 @@ enum recording_version {
 	RECORDING_VERSION_ALEPH_ONE_EARLY = 4,
 	RECORDING_VERSION_ALEPH_ONE_PRE_NET = 5,
 	RECORDING_VERSION_ALEPH_ONE_PRE_PIN = 6,
-	RECORDING_VERSION_ALEPH_ONE_1_0 = 7
+	RECORDING_VERSION_ALEPH_ONE_1_0 = 7,
+	RECORDING_VERSION_ALEPH_ONE_1_1 = 8
 };
-const short default_recording_version = RECORDING_VERSION_ALEPH_ONE_1_0;
-const short max_handled_recording= RECORDING_VERSION_ALEPH_ONE_1_0;
+const short default_recording_version = RECORDING_VERSION_ALEPH_ONE_1_1;
+const short max_handled_recording= RECORDING_VERSION_ALEPH_ONE_1_1;
 
 #include "screen_definitions.h"
 #include "interface_menus.h"
@@ -273,6 +278,19 @@ struct screen_data display_screens[]= {
 	{ FINAL_SCREEN_BASE, NUMBER_OF_FINAL_SCREENS, FINAL_SCREEN_DURATION }
 };
 
+struct screen_data m1_display_screens[]= {
+	{ 1111, 4, INTRO_SCREEN_DURATION },
+	{ MAIN_MENU_BASE, 1, 0 },
+	{ 10000, NUMBER_OF_CHAPTER_HEADINGS, CHAPTER_HEADING_DURATION },
+	{ PROLOGUE_SCREEN_BASE, NUMBER_OF_PROLOGUE_SCREENS, PROLOGUE_DURATION },
+	{ EPILOGUE_SCREEN_BASE, NUMBER_OF_EPILOGUE_SCREENS, EPILOGUE_DURATION },
+	{ 1000, 1, CREDIT_SCREEN_DURATION},
+	{ INTRO_SCREEN_BETWEEN_DEMO_BASE, NUMBER_OF_INTRO_SCREENS_BETWEEN_DEMOS, DEMO_INTRO_SCREEN_DURATION },
+	{ FINAL_SCREEN_BASE, NUMBER_OF_FINAL_SCREENS, FINAL_SCREEN_DURATION }
+};
+
+
+
 #if 0
 struct chapter_screen_sound_data {
 	short level;
@@ -301,6 +319,7 @@ static struct color_table *current_picture_clut= NULL;
 extern short interface_bit_depth;
 extern short bit_depth;
 extern bool insecure_lua;
+extern bool shapes_file_is_m1();
 
 /* ----------- prototypes/PREPROCESS_MAP_MAC.C */
 extern bool load_game_from_file(FileSpecifier& File);
@@ -349,6 +368,8 @@ screen_data *get_screen_data(
 	short index)
 {
 	assert(index>=0 && index<NUMBER_OF_SCREENS);
+	if (shapes_file_is_m1())
+		return m1_display_screens+index;
 	return display_screens+index;
 }
 
@@ -1029,6 +1050,8 @@ void resume_game(
 	if (!OGL_IsActive() || !(TEST_FLAG(Get_OGL_ConfigureData().Flags,OGL_Flag_Fader)))
 #endif
 		SetFadeEffectDelay(TICKS_PER_SECOND/2);
+	if (OGL_IsActive())
+		OGL_Blitter::BoundScreen(true);
 	validate_world_window();
 	set_keyboard_controller_status(true);
 }
@@ -1036,7 +1059,7 @@ void resume_game(
 void draw_menu_button_for_command(
 	short index)
 {
-	short rectangle_index= index-1+_new_game_button_rect;
+	short rectangle_index= index-1+START_OF_MENU_INTERFACE_RECTS;
 
 	assert(get_game_state()==_display_main_menu);
 	
@@ -1467,6 +1490,7 @@ void do_menu_item_command(
 					break;
 					
 				case iCenterButton:
+					SoundManager::instance()->PlaySound(Sound_Center_Button(), 0, NONE);
 					break;
 					
 				case iSaveLastFilm:
@@ -1557,10 +1581,7 @@ bool enabled_item(
 		case iCredits:
 		case iQuit:
 	        case iAbout:
-			break;
-
 		case iCenterButton:
-			enabled= false;
 			break;
 			
 		case iReplayLastFilm:
@@ -1668,8 +1689,16 @@ static void display_epilogue(
 	
 	hide_cursor();
 	// Setting of the end-screen parameters has been moved to XML_LevelScript.cpp
-	for (int i=0; i<NumEndScreens; i++)
-		try_and_display_chapter_screen(CHAPTER_SCREEN_BASE+EndScreenIndex+i, true, true);
+	int end_offset = EndScreenIndex;
+	int end_count = NumEndScreens;
+	if (shapes_file_is_m1()) // should check map, but this is easier
+	{
+		// ignore M2 defaults set in LoadLevelScripts()
+		end_offset = 100;
+		end_count = 2;
+	}
+	for (int i=0; i<end_count; i++)
+		try_and_display_chapter_screen(end_offset+i, true, true);
 	show_cursor();
 }
 
@@ -1886,7 +1915,7 @@ static void transfer_to_new_level(
 		// if this is the EPILOGUE_LEVEL_NUMBER, then it is time to get
 		// out of here already (as we've just played the epilogue movie,
 		// we can move on to the _display_epilogue game state)
-		if (level_number == EPILOGUE_LEVEL_NUMBER) {
+		if (level_number == (shapes_file_is_m1() ? 100 : EPILOGUE_LEVEL_NUMBER)) {
 			finish_game(false);
 			show_cursor(); // for some reason, cursor stays hidden otherwise
 			set_game_state(_begin_display_of_epilogue);
@@ -1894,7 +1923,7 @@ static void transfer_to_new_level(
 			return;
 		}
 
-		if (!game_is_networked) try_and_display_chapter_screen(CHAPTER_SCREEN_BASE + level_number, true, false);
+		if (!game_is_networked) try_and_display_chapter_screen(level_number, true, false);
 		success= goto_level(&entry, false);
 		set_keyboard_controller_status(true);
 	}
@@ -2002,6 +2031,10 @@ static bool begin_game(
 						FileSpecifier ReplayFile;
 						show_cursor(); // JTP: Hidden one way or another :p
 						
+						bool prompt_to_export = false;
+						SDLMod m = SDL_GetModState();
+						if ((m & KMOD_ALT) || (m & KMOD_META)) prompt_to_export = true;
+						
 						success= find_replay_to_use(cheat, ReplayFile);
 						if(success)
 						{
@@ -2013,7 +2046,7 @@ static bool begin_game(
 							}
 							else
 							{
-								success= setup_for_replay_from_file(ReplayFile, get_current_map_checksum());
+								success= setup_for_replay_from_file(ReplayFile, get_current_map_checksum(), prompt_to_export);
 
 								hide_cursor();
 							}
@@ -2060,7 +2093,13 @@ static bool begin_game(
 					case RECORDING_VERSION_MARATHON_2:
 						load_film_profile(FILM_PROFILE_MARATHON_2);
 						break;
+					case RECORDING_VERSION_MARATHON_INFINITY:
+						load_film_profile(FILM_PROFILE_MARATHON_INFINITY);
+						break;
 					case RECORDING_VERSION_ALEPH_ONE_1_0:
+						load_film_profile(FILM_PROFILE_ALEPH_ONE_1_0);
+						break;
+					case RECORDING_VERSION_ALEPH_ONE_1_1:
 						load_film_profile(FILM_PROFILE_DEFAULT);
 						break;
 					default:
@@ -2148,7 +2187,7 @@ static bool begin_game(
 		{
 			FindLevelMovie(entry.level_number);
 			show_movie(entry.level_number);
-			try_and_display_chapter_screen(CHAPTER_SCREEN_BASE + entry.level_number, false, false);
+			try_and_display_chapter_screen(entry.level_number, false, false);
 		}
 
 		Crosshairs_SetActive(player_preferences->crosshairs_active);
@@ -2293,6 +2332,7 @@ static void finish_game(
 	full_fade(_cinematic_fade_out, interface_color_table);
 	paint_window_black();
 	full_fade(_end_cinematic_fade_out, interface_color_table);
+	Movie::instance()->StopRecording();
 
 	show_cursor();
 
@@ -2472,7 +2512,8 @@ static void next_game_screen(
 				SoundRsrc.Unload();
 				if (get_sound_resource_from_images(pict_resource_number, SoundRsrc))
 				{
-					Mixer::instance()->PlaySoundResource(SoundRsrc);
+					_fixed pitch = (shapes_file_is_m1() && game_state.state==_display_intro_screens) ? _m1_high_frequency : _normal_frequency;
+					Mixer::instance()->PlaySoundResource(SoundRsrc, pitch);
 				}
 			}
 		}
@@ -2621,7 +2662,7 @@ static void handle_interface_menu_screen_click(
 #endif
 
 	/* find it.. */
-	for(index= _new_game_button_rect; index<NUMBER_OF_INTERFACE_RECTANGLES; ++index)
+	for(index= START_OF_MENU_INTERFACE_RECTS; index<END_OF_MENU_INTERFACE_RECTS; ++index)
 	{
 		screen_rect= get_interface_rectangle(index);
 		if (point_in_rectangle(x - xoffset, y - yoffset, screen_rect))
@@ -2629,9 +2670,9 @@ static void handle_interface_menu_screen_click(
 	}
 	
 	/* we found one.. */
-	if(index!=NUMBER_OF_INTERFACE_RECTANGLES)
+	if(index!=END_OF_MENU_INTERFACE_RECTS)
 	{
-		if(enabled_item(index-_new_game_button_rect+1))
+		if(enabled_item(index-START_OF_MENU_INTERFACE_RECTS+1))
 		{
 			bool last_state= true;
 
@@ -2668,7 +2709,7 @@ static void handle_interface_menu_screen_click(
 			
 			if(last_state)
 			{
-				do_menu_item_command(mInterface, index-_new_game_button_rect+1, cheatkeys_down);
+				do_menu_item_command(mInterface, index-START_OF_MENU_INTERFACE_RECTS+1, cheatkeys_down);
 			}	
 		}
 	}
@@ -2676,10 +2717,14 @@ static void handle_interface_menu_screen_click(
 
 /* Note that this is modal. This sucks... */
 static void try_and_display_chapter_screen(
-	short pict_resource_number,
+	short level,
 	bool interface_table_is_valid,
 	bool text_block)
 {
+	if (Movie::instance()->IsRecording())
+		return;
+	
+	short pict_resource_number = get_screen_data(_display_chapter_heading)->screen_base + level;
 	/* If the picture exists... */
 	if (scenario_picture_exists(pict_resource_number))
 	{
@@ -2705,10 +2750,6 @@ static void try_and_display_chapter_screen(
 		if (current_picture_clut)
 		{
 			LoadedResource SoundRsrc;
-#if defined(mac)
-			SndChannelPtr channel= NULL;
-			SndListHandle sound= NULL;
-#endif
 
 			/* slam the entire clut to black, now. */
 			if (interface_bit_depth==8) 
@@ -2722,19 +2763,8 @@ static void try_and_display_chapter_screen(
 
 			if (get_sound_resource_from_scenario(pict_resource_number,SoundRsrc))
 			{
-#if defined(mac)
-				sound = SndListHandle(SoundRsrc.GetHandle());
-				
-				OSErr sound_error= SndNewChannel(&channel, 0, 0, (SndCallBackUPP) NULL);
-					
-				if (sound_error==noErr)
-				{
-					HLockHi((Handle)sound);
-					SndPlay(channel, sound, true);
-				}
-#elif defined(SDL)
-				Mixer::instance()->PlaySoundResource(SoundRsrc);
-#endif
+				_fixed pitch = (shapes_file_is_m1() && level == 101) ? _m1_high_frequency : _normal_frequency;
+				Mixer::instance()->PlaySoundResource(SoundRsrc, pitch);
 			}
 			
 			/* Fade in.... */
@@ -2748,12 +2778,7 @@ static void try_and_display_chapter_screen(
 			/* Fade out! (Pray) */
 			interface_fade_out(pict_resource_number, false);
 			
-#if defined(mac)
-			if (channel)
-				SndDisposeChannel(channel, true);
-#elif defined(SDL)
 			Mixer::instance()->StopSoundResource();
-#endif
 		}
 		game_state.state= existing_state;
 	}
@@ -2983,7 +3008,10 @@ void exit_networking(void)
  */
 
 #ifdef HAVE_OPENGL
+#if defined(HAVE_FFMPEG) || defined(HAVE_SMPEG)
 static OGL_Blitter show_movie_blitter;
+#endif
+#ifdef HAVE_SMPEG
 static SDL_mutex *show_movie_mutex = NULL;
 
 // SMPEG callback for use under OpenGL
@@ -3003,12 +3031,44 @@ static void show_movie_frame(SDL_Surface* frame, int x, int y, unsigned int w, u
 	}
 }
 #endif
+#endif
+#ifdef HAVE_FFMPEG
+static SDL_mutex *movie_audio_mutex = NULL;
+static const int AUDIO_BUF_SIZE = 10;
+static SDL_ffmpegAudioFrame *aframes[AUDIO_BUF_SIZE];
+static uint64_t movie_sync = 0;
+void movie_audio_callback(void *data, Uint8 *stream, int length)
+{
+	if (movie_audio_mutex && SDL_LockMutex(movie_audio_mutex) != -1)
+	{
+		if (aframes[0]->size == length)
+		{
+			movie_sync = aframes[0]->pts;
+			memcpy(stream, aframes[0]->buffer, aframes[0]->size);
+			aframes[0]->size = 0;
+			
+			SDL_ffmpegAudioFrame *f = aframes[0];
+			for (int i = 1; i < AUDIO_BUF_SIZE; i++)
+				aframes[i - 1] = aframes[i];
+			aframes[AUDIO_BUF_SIZE - 1] = f;
+		}
+		else
+		{
+			memset(stream, 0, length);
+		}
+		SDL_UnlockMutex(movie_audio_mutex);
+	}
+}
+#endif
 
 extern bool option_nosound;
 
 void show_movie(short index)
 {
-#ifdef HAVE_SMPEG
+	if (Movie::instance()->IsRecording())
+		return;
+	
+#if defined(HAVE_FFMPEG) || defined(HAVE_SMPEG)
 	float PlaybackSize = 2;
 	
 	FileSpecifier IntroMovie;
@@ -3034,6 +3094,135 @@ void show_movie(short index)
 #endif
 	{
 		SoundManager::Pause pauseSoundManager;
+		SDL_Rect dst_rect = { (s->w - 640)/2, (s->h - 480)/2, 640, 480 };
+
+#ifdef HAVE_FFMPEG
+		SDL_ffmpegFile *sffile = SDL_ffmpegOpen(File->GetPath());
+		if (!sffile)
+			return;
+		
+		SDL_ffmpegSelectVideoStream(sffile, 0);
+		SDL_ffmpegStream *vstream = SDL_ffmpegGetVideoStream(sffile, 0);
+		
+		SDL_ffmpegSelectAudioStream(sffile, 0);
+		SDL_ffmpegStream *astream = SDL_ffmpegGetAudioStream(sffile, 0);
+		
+		SDL_ffmpegVideoFrame *vframe = vstream ? SDL_ffmpegCreateVideoFrame() : NULL;
+		
+		if (vframe)
+		{
+			vframe->surface = SDL_CreateRGBSurface(SDL_SWSURFACE, dst_rect.w, dst_rect.h, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0x00000000);
+			if (!vframe->surface)
+			{
+				SDL_ffmpegFreeVideoFrame(vframe);
+				vframe = NULL;
+			}
+		}
+		
+		
+		if (astream)
+		{
+			movie_audio_mutex = SDL_CreateMutex();
+			SDL_AudioSpec specs = SDL_ffmpegGetAudioSpec(sffile, 512, movie_audio_callback);
+			if (SDL_OpenAudio(&specs, 0) >= 0)
+			{
+				int frameSize = specs.channels * specs.samples * 2;
+				for (int i = 0; i < AUDIO_BUF_SIZE; i++)
+				{
+					aframes[i] = SDL_ffmpegCreateAudioFrame(sffile, frameSize);
+					SDL_ffmpegGetAudioFrame(sffile, aframes[i]);
+				}
+			}
+		}
+				
+#ifdef HAVE_OPENGL
+		if (OGL_IsActive())
+			OGL_ClearScreen();
+#endif
+		
+		SDL_PauseAudio(false);
+		bool done = false;
+		while (!done)
+		{
+			SDL_Event event;
+			while (SDL_PollEvent(&event) )
+			{
+				switch (event.type) {
+				case SDL_KEYDOWN:
+				case SDL_MOUSEBUTTONDOWN:
+					done = true;
+					break;
+				default:
+					break;
+				}
+			}
+			
+			if (astream)
+			{
+				SDL_LockMutex(movie_audio_mutex);
+				for (int i = 0; i < AUDIO_BUF_SIZE; i++)
+				{
+					if (!aframes[i]->size)
+					{
+						SDL_ffmpegGetAudioFrame(sffile, aframes[i]);
+					}
+				}
+				if (!aframes[AUDIO_BUF_SIZE - 1]->size && aframes[AUDIO_BUF_SIZE - 1]->last)
+					done = true;
+				SDL_UnlockMutex(movie_audio_mutex);
+			}
+			
+			if (vframe)
+			{
+				if (!vframe->ready)
+				{
+					SDL_ffmpegGetVideoFrame(sffile, vframe);
+				}
+				else if (vframe->pts <= movie_sync)
+				{
+#ifdef HAVE_OPENGL
+					if (OGL_IsActive())
+					{
+						OGL_Blitter::BoundScreen();
+						show_movie_blitter.Load(*(vframe->surface));
+						show_movie_blitter.Draw(dst_rect);
+						show_movie_blitter.Unload();
+						SDL_GL_SwapBuffers();
+					}
+					else
+#endif
+					{
+						SDL_BlitSurface(vframe->surface, 0, SDL_GetVideoSurface(), &dst_rect);
+						SDL_UpdateRects(SDL_GetVideoSurface(), 1, &dst_rect);
+					}
+					vframe->ready = 0;
+					if (vframe->last)
+						done = true;
+				}
+				else 
+				{
+					SDL_Delay(MIN(30, vframe->pts - movie_sync));
+				}
+			}
+		}
+		
+		SDL_PauseAudio(true);
+		if (astream)
+		{
+			for (int i = 0; i < AUDIO_BUF_SIZE; i++)
+			{
+				SDL_ffmpegFreeAudioFrame(aframes[i]);
+			}
+			SDL_DestroyMutex(movie_audio_mutex);
+			movie_audio_mutex = NULL;
+		}
+				
+		if (vframe)
+			SDL_ffmpegFreeVideoFrame(vframe);
+		SDL_ffmpegFree(sffile);
+		SDL_CloseAudio();
+
+#elif defined(HAVE_SMPEG) // end HAVE_FFMPEG
 		
 		SMPEG_Info info;
 		SMPEG *movie;
@@ -3044,7 +3233,6 @@ void show_movie(short index)
 			SMPEG_delete(movie);
 			return;
 		}
-		SDL_Rect dst_rect = { (s->w - 640)/2, (s->h - 480)/2, 640, 480 };
 		
 #ifdef HAVE_OPENGL
 		SDL_Surface *gl_surface = NULL;
@@ -3106,8 +3294,9 @@ void show_movie(short index)
 		show_movie_mutex = NULL;
 		show_movie_blitter.Unload();
 #endif
-	}
 #endif // HAVE_SMPEG
+	}
+#endif // HAVE_FFMPEG || HAVE_SMPEG
 }
 
 
@@ -3151,4 +3340,16 @@ size_t should_restore_game_networked()
         }
 
         return theResult;
+}
+
+OpenedResourceFile ExternalResources;
+
+void set_external_resources_file(FileSpecifier& f)
+{
+	f.Open(ExternalResources);
+}
+
+void close_external_resources()
+{
+	ExternalResources.Close();
 }

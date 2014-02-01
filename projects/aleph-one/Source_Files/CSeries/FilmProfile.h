@@ -50,9 +50,12 @@ struct FilmProfile
 	// floor/ceiling are reversed
 	bool inexplicable_pin_change;
 
-	// LP increased the dynamic limits
-	bool increased_dynamic_limits;
+	// LP increased the dynamic limits, which persisted through 1.0
+	bool increased_dynamic_limits_1_0;
 
+	// 1.1 reverted number of paths to preserve original AI behavior
+	bool increased_dynamic_limits_1_1;
+    
 	// Infinity has an improved line_is_obstructed
 	bool line_is_obstructed_fix;
 
@@ -72,14 +75,30 @@ struct FilmProfile
 	// Marathon Infinity always adds adjacent polygons to the
 	// intersecting indexes (unmerged maps only)
 	bool adjacent_polygons_always_intersect;
+
+	// Aleph One moved object initialization to improve Lua access
+	bool early_object_initialization;
+
+	// Aleph One 1.1 fixes
+	bool fix_sliding_on_platforms;
+	bool prevent_dead_projectile_owners;
+	bool validate_random_ranged_attack;
+	bool allow_short_kamikaze;
+	bool ketchup_fix;
+	bool lua_increments_rng;
+	bool destroy_players_ball_fix;
+	bool calculate_terminal_lines_correctly;
+	bool key_frame_zero_shrapnel_fix; // for M1 lookers and simulacra
+	bool count_dead_dropped_items_correctly;
 };
 
 extern FilmProfile film_profile;
 
 enum FilmProfileType {
-	FILM_PROFILE_DEFAULT,
+	FILM_PROFILE_ALEPH_ONE_1_0,
 	FILM_PROFILE_MARATHON_2,
-	FILM_PROFILE_MARATHON_INFINITY
+	FILM_PROFILE_MARATHON_INFINITY,
+	FILM_PROFILE_DEFAULT,
 };
 
 void load_film_profile(FilmProfileType type, bool reload_mml = true);

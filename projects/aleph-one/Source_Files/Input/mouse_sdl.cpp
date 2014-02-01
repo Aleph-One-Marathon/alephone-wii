@@ -215,12 +215,12 @@ mouse_buttons_become_keypresses(Uint8* ioKeyMap)
 
 void hide_cursor(void)
 {
-	SDL_ShowCursor(0);
+	SDL_ShowCursor(SDL_DISABLE);
 }
 
 void show_cursor(void)
 {
-	SDL_ShowCursor(1);
+	SDL_ShowCursor(SDL_ENABLE);
 }
 
 

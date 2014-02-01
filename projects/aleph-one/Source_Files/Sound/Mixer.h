@@ -42,32 +42,12 @@ public:
 
 	void SetVolume(short volume) { main_volume = volume; }
 
-	struct Header
-	{
-		bool sixteen_bit;
-		bool stereo;
-		bool signed_8bit;
-		int bytes_per_frame;
-		
-		const uint8* data;
-		int32 length;
-
-		const uint8* loop;
-		int32 loop_length;
-
-		uint32 /* unsigned fixed */ rate;
-		bool little_endian;
-
-		Header();
-		Header(const SoundHeader& header);
-	};
-
-	void BufferSound(int channel, const Header& header, _fixed pitch);
+	void BufferSound(int channel, const SoundInfo& header, boost::shared_ptr<SoundData> data, _fixed pitch);
 
 	// returns the number of normal/ambient channels
 	int SoundChannelCount() { return sound_channel_count; }
 
-	void QuietChannel(int channel) { channels[channel].active = false; }
+	void QuietChannel(int channel) { channels[channel].Quiet(); }
 	void SetChannelVolumes(int channel, int16 left, int16 right) { 
 		channels[channel].left_volume = left; 
 		channels[channel].right_volume = right; 
@@ -87,7 +67,7 @@ public:
 	void EnsureNetworkAudioPlaying();
 	void StopNetworkAudio();
 
-	void PlaySoundResource(LoadedResource &rsrc);
+	void PlaySoundResource(LoadedResource &rsrc, _fixed pitch = _normal_frequency);
 	void StopSoundResource();
 
 private:
@@ -96,14 +76,10 @@ private:
 	static Mixer *m_instance;
 	
 	struct Channel {
+		SoundInfo info;
 		bool active;			// Flag: currently playing sound
 		
-		bool sixteen_bit;		// Flag: 16-bit sound data (8-bit otherwise)
-		bool stereo;			// Flag: stereo sound data (mono otherwise)
-		bool signed_8bit;		// Flag: 8-bit sound data is signed (unsigned otherwise, 16-bit data is always signed)
-		int bytes_per_frame;	        // Bytes per sample frame (1, 2 or 4)
-		bool little_endian;             // 16-bit samples are little-endian
-		
+		boost::shared_ptr<SoundData> sound_data;
 		const uint8 *data;              // Current pointer to sound data
 		int32 length;			// Length in bytes remaining to be played
 		const uint8 *loop;		// Pointer to loop start
@@ -115,18 +91,19 @@ private:
 		int16 left_volume;		// Volume (0x100 = nominal)
 		int16 right_volume;
 		
-		Header *next_header;            // Pointer to next queued sound header (NULL = none)
+		SoundInfo next_header;            // Info for next sound
+		boost::shared_ptr<SoundData> next_data;
 		_fixed next_pitch;		// Pitch of next queued sound header
 
 		Channel();
-		void LoadSoundHeader(const Header& header, _fixed pitch);
-		void BufferSoundHeader(const Header& header, _fixed pitch) {
-			delete next_header;
-			next_header = new Header(header);
+		void LoadSoundHeader(const SoundInfo& header, boost::shared_ptr<SoundData> data, _fixed pitch);
+		void BufferSoundHeader(const SoundInfo& header, boost::shared_ptr<SoundData> data, _fixed pitch) {
+			next_header = header;
+			next_data = data;
 			next_pitch = pitch;
 		}
 
-		void Quiet() { active = false; };
+		void Quiet() { active = false; sound_data.reset(); next_data.reset(); }
 
 		enum Source {
 			SOURCE_SOUND_HEADERS,
@@ -156,9 +133,13 @@ private:
 	int sound_channel_count;
 
 	void Resample(Channel* c, int16* left, int16* right, int samples);
+	template<class T, bool stereo, bool le_or_signed>
+	static void Resample_(Channel* c, int16* left, int16* right, int samples);
 
 	static void MixerCallback(void *user, uint8 *stream, int len);
 	void Callback(uint8 *stream, int len);
+	
+	friend class Movie; // to let Movie recorder call our callback
 
 	NetworkSpeakerSoundBufferDescriptor* sNetworkAudioBufferDesc;
 

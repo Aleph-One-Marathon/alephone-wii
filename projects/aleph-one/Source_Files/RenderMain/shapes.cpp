@@ -97,6 +97,7 @@ Jan 17, 2001 (Loren Petrich):
 #include "game_errors.h"
 #include "FileHandler.h"
 #include "progress.h"
+#include "images.h"
 
 #include "map.h"
 
@@ -112,6 +113,8 @@ Jan 17, 2001 (Loren Petrich):
 
 #include <SDL_rwops.h>
 #include <memory>
+
+#include <boost/shared_ptr.hpp>
 
 #include "Plugins.h"
 
@@ -176,6 +179,14 @@ short number_of_shading_tables, shading_table_fractional_bits, shading_table_siz
 
 // LP addition: opened-shapes-file object
 static OpenedFile ShapesFile;
+static OpenedResourceFile M1ShapesFile;
+
+static enum {
+	M1_SHAPES_VERSION = 1,
+	M2_SHAPES_VERSION
+} shapes_file_version;
+
+bool shapes_file_is_m1() { return shapes_file_version == M1_SHAPES_VERSION; }
 
 /* ---------- private prototypes */
 
@@ -580,7 +591,68 @@ static void load_low_level_shape(low_level_shape_definition *d, SDL_RWops *p)
 	SDL_RWseek(p, 4 * sizeof(int16), SEEK_CUR);
 }
 
-static void load_bitmap(std::vector<uint8>& bitmap, SDL_RWops *p)
+static void convert_m1_rle(std::vector<uint8>& bitmap, int scanlines, int scanline_length, SDL_RWops* p)
+{
+//	std::vector<uint8> bitmap;
+	for (int scanline = 0; scanline < scanlines; ++scanline)
+	{
+		std::vector<uint8> scanline_data(scanline_length);
+		uint8* dst = &scanline_data[0];
+		uint8* sentry = &scanline_data[scanline_length];
+
+		while (true)
+		{
+			int16 opcode = SDL_ReadBE16(p);
+			if (opcode > 0)
+			{
+				assert(dst + opcode <= sentry);
+				SDL_RWread(p, dst, opcode, 1);
+				dst += opcode;
+			}
+			else if (opcode < 0)
+			{
+				assert(dst - opcode <= sentry);
+				dst -= opcode;
+			}
+			else
+				break;
+		}
+
+		assert (dst == sentry);
+
+		// Find M2/oo-format RLE compression;
+		// it needs the first nonblank pixel and the last nonblank one + 1
+		int16 first = 0;
+		int16 last = 0;
+		for (int i = 0; i < scanline_length; ++i)
+		{
+			if (scanline_data[i] != 0)
+			{
+				first = i;
+				break;
+			}
+		}
+
+		for (int i = scanline_length - 1; i >= 0; --i)
+		{
+			if (scanline_data[i] != 0)
+			{
+				last = i + 1;
+				break;
+			}
+		}
+
+		if (last < first) last = first;
+
+		bitmap.push_back(first >> 8);
+		bitmap.push_back(first & 0xff);
+		bitmap.push_back(last >> 8);
+		bitmap.push_back(last & 0xff);
+		bitmap.insert(bitmap.end(), &scanline_data[first], &scanline_data[last]);
+	}
+}
+
+static void load_bitmap(std::vector<uint8>& bitmap, SDL_RWops *p, int version)
 {
 	bitmap_definition b;
 
@@ -593,31 +665,44 @@ static void load_bitmap(std::vector<uint8>& bitmap, SDL_RWops *p)
 
 	// guess how big to make it
 	int rows = (b.flags & _COLUMN_ORDER_BIT) ? b.width : b.height;
+	int row_len = (b.flags & _COLUMN_ORDER_BIT) ? b.height : b.width;
 		
 	SDL_RWseek(p, 16, SEEK_CUR);
 		
 	// Skip row address pointers
 	SDL_RWseek(p, (rows + 1) * sizeof(uint32), SEEK_CUR);
 
-	if (b.bytes_per_row == NONE) {
-		// ugly--figure out how big it's going to be
-			
-		int32 size = 0;
-		for (int j = 0; j < rows; j++) {
-			int16 first = SDL_ReadBE16(p);
-			int16 last = SDL_ReadBE16(p);
-			size += 4;
-			SDL_RWseek(p, last - first, SEEK_CUR);
-			size += last - first;
+	if (b.bytes_per_row == NONE) 
+	{
+		if (version == M1_SHAPES_VERSION)
+		{
+			// make enough room for the definition, then append as we convert RLE
+			bitmap.resize(sizeof(bitmap_definition) + rows * sizeof(pixel8*));
 		}
-
-		bitmap.resize(sizeof(bitmap_definition) + rows * sizeof(pixel8*) + size);
-
-		// Now, seek back
-		SDL_RWseek(p, -size, SEEK_CUR);
-	} else {
+		else
+		{
+			// ugly--figure out how big it's going to be
+			
+			int32 size = 0;
+			for (int j = 0; j < rows; j++) {
+				int16 first = SDL_ReadBE16(p);
+				int16 last = SDL_ReadBE16(p);
+				size += 4;
+				SDL_RWseek(p, last - first, SEEK_CUR);
+				size += last - first;
+			}
+			
+			bitmap.resize(sizeof(bitmap_definition) + rows * sizeof(pixel8*) + size);
+			
+			// Now, seek back
+			SDL_RWseek(p, -size, SEEK_CUR);
+		}
+	} 
+	else
+	{
 		bitmap.resize(sizeof(bitmap_definition) + rows * sizeof(pixel8*) + rows * b.bytes_per_row);
 	}
+
 
 	uint8* c = &bitmap[0];
 	bitmap_definition *d = (bitmap_definition *) &bitmap[0];
@@ -633,18 +718,26 @@ static void load_bitmap(std::vector<uint8>& bitmap, SDL_RWops *p)
 	c += rows * sizeof(pixel8 *);
 
 	// Copy bitmap data
-	if (d->bytes_per_row == NONE) {
+	if (d->bytes_per_row == NONE) 
+	{
 		// RLE format
 
-		for (int j = 0; j < rows; j++) {
-			int16 first = SDL_ReadBE16(p);
-			int16 last = SDL_ReadBE16(p);
-			*(c++) = (uint8)(first >> 8);
-			*(c++) = (uint8)(first);
-			*(c++) = (uint8)(last >> 8);
-			*(c++) = (uint8)(last);
-			SDL_RWread(p, c, 1, last - first);
-			c += last - first;
+		if (version == M1_SHAPES_VERSION)
+		{
+			convert_m1_rle(bitmap, rows, row_len, p);
+		}
+		else
+		{
+			for (int j = 0; j < rows; j++) {
+				int16 first = SDL_ReadBE16(p);
+				int16 last = SDL_ReadBE16(p);
+				*(c++) = (uint8)(first >> 8);
+				*(c++) = (uint8)(first);
+				*(c++) = (uint8)(last >> 8);
+				*(c++) = (uint8)(last);
+				SDL_RWread(p, c, 1, last - first);
+				c += last - first;
+			}
 		}
 	} else {
 		SDL_RWread(p, c, d->bytes_per_row, rows);
@@ -665,68 +758,91 @@ static void allocate_shading_tables(short collection_index, bool strip)
 	}
 }
 
-
 /*
  *  Load collection
  */
 
 static bool load_collection(short collection_index, bool strip)
 {
-	SDL_RWops *p = ShapesFile.GetRWops(); // Source stream
+	SDL_RWops* p;
+	boost::shared_ptr<SDL_RWops> m1_p; // automatic deallocation
+	LoadedResource r;
+	int32 src_offset;
 
-	// Get offset and length of data in source file from header
 	collection_header *header = get_collection_header(collection_index);
-	int32 src_offset, src_length;
+	
+	if (shapes_file_version == M1_SHAPES_VERSION)
+	{
+		// Collections are stored in .256 resources
+		if (!M1ShapesFile.Get('.', '2', '5', '6', 128 + collection_index, r))
+		{
+			return false;
+		}
 
-	if (bit_depth == 8 || header->offset16 == -1) {
-		vassert(header->offset != -1, csprintf(temporary, "collection #%d does not exist.", collection_index));
-		src_offset = header->offset;
-		src_length = header->length;
-	} else {
-		src_offset = header->offset16;
-		src_length = header->length16;
+		m1_p.reset(SDL_RWFromConstMem(r.GetPointer(), r.GetLength()), SDL_FreeRW);
+		p = m1_p.get();
+		src_offset = 0;
+	}
+	else
+	{
+		// Get offset and length of data in source file from header
+		
+		if (bit_depth == 8 || header->offset16 == -1) {
+			if (header->offset == -1)
+			{
+				return false;
+			}
+			src_offset = header->offset;
+		} else {
+			src_offset = header->offset16;
+		}
+
+		p = ShapesFile.GetRWops();
+		ShapesFile.SetPosition(0);
+		src_offset += SDL_RWtell(p);
 	}
 
 	// Read collection definition
 	std::auto_ptr<collection_definition> cd(new collection_definition);
- 	ShapesFile.SetPosition(src_offset);
+	SDL_RWseek(p, src_offset, RW_SEEK_SET);
 	load_collection_definition(cd.get(), p);
 	header->status &= ~markPATCHED;
 
 	// Convert CLUTS
-	ShapesFile.SetPosition(src_offset + cd->color_table_offset);
+	SDL_RWseek(p, src_offset + cd->color_table_offset, RW_SEEK_SET);
 	load_clut(&cd->color_tables[0], cd->clut_count * cd->color_count, p);
 
 	// Convert high-level shape definitions
-	ShapesFile.SetPosition(src_offset + cd->high_level_shape_offset_table_offset);
+	SDL_RWseek(p, src_offset + cd->high_level_shape_offset_table_offset, RW_SEEK_SET);
+
 	std::vector<uint32> t(cd->high_level_shape_count);
 	SDL_RWread(p, &t[0], sizeof(uint32), cd->high_level_shape_count);
 	byte_swap_memory(&t[0], _4byte, cd->high_level_shape_count);
 	for (int i = 0; i < cd->high_level_shape_count; i++) {
-		ShapesFile.SetPosition(src_offset + t[i]);
+		SDL_RWseek(p, src_offset + t[i], RW_SEEK_SET);
 		load_high_level_shape(cd->high_level_shapes[i], p);
 	}
 
 	// Convert low-level shape definitions
-	ShapesFile.SetPosition(src_offset + cd->low_level_shape_offset_table_offset);
+	SDL_RWseek(p, src_offset + cd->low_level_shape_offset_table_offset, RW_SEEK_SET);
 	t.resize(cd->low_level_shape_count);
 	SDL_RWread(p, &t[0], sizeof(uint32), cd->low_level_shape_count);
 	byte_swap_memory(&t[0], _4byte, cd->low_level_shape_count);
 
 	for (int i = 0; i < cd->low_level_shape_count; i++) {
-		ShapesFile.SetPosition(src_offset + t[i]);
+		SDL_RWseek(p, src_offset + t[i], RW_SEEK_SET);
 		load_low_level_shape(&cd->low_level_shapes[i], p);
 	}
 
 	// Convert bitmap definitions
-	ShapesFile.SetPosition(src_offset + cd->bitmap_offset_table_offset);
+	SDL_RWseek(p, src_offset + cd->bitmap_offset_table_offset, RW_SEEK_SET);
 	t.resize(cd->bitmap_count);
 	SDL_RWread(p, &t[0], sizeof(uint32), cd->bitmap_count);
 	byte_swap_memory(&t[0], _4byte, cd->bitmap_count);
 
 	for (int i = 0; i < cd->bitmap_count; i++) {
-		ShapesFile.SetPosition(src_offset + t[i]);
-		load_bitmap(cd->bitmaps[i], p);
+		SDL_RWseek(p, src_offset + t[i], RW_SEEK_SET);
+		load_bitmap(cd->bitmaps[i], p, shapes_file_version);
 	}
 
 	header->collection = cd.release();
@@ -872,7 +988,7 @@ void load_shapes_patch(SDL_RWops *p, bool override_replacements)
 					int32 size = SDL_ReadBE32(p);
 					if (cd && patch_bit_depth == 8 && bitmap_index < cd->bitmaps.size())
 					{
-						load_bitmap(cd->bitmaps[bitmap_index], p);
+						load_bitmap(cd->bitmaps[bitmap_index], p, M2_SHAPES_VERSION);
 						if (override_replacements)
 						{
 							get_bitmap_definition(collection_index, bitmap_index)->flags |= _PATCHED_BIT;
@@ -922,7 +1038,7 @@ void initialize_shape_handler()
 	FileSpecifier File;
 	get_default_shapes_spec(File);
 	open_shapes_file(File);
-	if (!ShapesFile.IsOpen())
+	if (!ShapesFile.IsOpen() && !M1ShapesFile.IsOpen())
 		alert_user(fatalError, strERRORS, badExtraFileLocations, ShapesFile.GetError());
 	else
 		atexit(shutdown_shape_handler);
@@ -932,8 +1048,13 @@ void initialize_shape_handler()
 
 void open_shapes_file(FileSpecifier& File)
 {
-	if (File.Open(ShapesFile))
+	if (File.Open(M1ShapesFile) && M1ShapesFile.Check('.','2','5','6',128))
 	{
+		shapes_file_version = M1_SHAPES_VERSION;
+	}
+	else if (File.Open(ShapesFile))
+	{
+		shapes_file_version = M2_SHAPES_VERSION;
 		// Load the collection headers;
 		// need a buffer for the packed data
 		int Size = MAXIMUM_COLLECTIONS*SIZEOF_collection_header;
@@ -978,11 +1099,19 @@ void open_shapes_file(FileSpecifier& File)
 		set_game_error(SavedType,SavedError);
 #endif
 	}
+	set_shapes_images_file(File);
 }
 
 static void close_shapes_file(void)
 {
-	ShapesFile.Close();
+	if (shapes_file_version == M1_SHAPES_VERSION)
+	{
+		M1ShapesFile.Close();
+	}
+	else
+	{
+		ShapesFile.Close();
+	}
 }
 
 static void shutdown_shape_handler(void)
@@ -1358,6 +1487,19 @@ bool collection_loaded(short collection_index)
 	return collection_loaded(header);
 }
 
+bool can_load_collection(short collection_index)
+{
+	if (collection_index >= 0 && collection_index < NUMBER_OF_COLLECTIONS)
+	{
+		collection_header* header = get_collection_header(collection_index);
+		if (header) {
+			return (header->offset != -1 || header->offset16 != -1);
+		}
+	}
+
+	return false;
+}
+
 static void lock_collection(
 	struct collection_header *header)
 {
@@ -1549,50 +1691,6 @@ if((GET_COLLECTION(collection_code) < 0) || (GET_COLLECTION(collection_code) >= 
 	struct low_level_shape_definition *low_level_shape;
 
 	low_level_shape= get_low_level_shape_definition(collection_index, low_level_shape_index);
-
-#ifdef HAVE_OPENGL
-        if (!low_level_shape) return NULL;
-	// Try to get the texture options to use for a substituted image;
-	// a scale of <= 0 will be assumed to be "don't do the adjustment".
-	if (!OGL_IsActive()) return (struct shape_information_data *) low_level_shape;
-    else
-    {
-	short clut_index= GET_COLLECTION_CLUT(collection_code);
-	short bitmap_index = low_level_shape->bitmap_index;
-	OGL_TextureOptions *TxtrOpts = OGL_GetTextureOptions(collection_index,clut_index,bitmap_index);
-	
-	if (!TxtrOpts->NormalImg.IsPresent() ||
-	    (TxtrOpts->offset_x == 0 && TxtrOpts->offset_y == 0 &&
-	     TxtrOpts->shape_width <= 0 && TxtrOpts->shape_height <= 0))
-		return (struct shape_information_data *) low_level_shape;
-	
-	// find scale factor used in shape data
-	bitmap_definition *bitmap = get_bitmap_definition(collection_index, bitmap_index);
-	short scale_factor = (low_level_shape->world_right - low_level_shape->world_left) / bitmap->width;
-		
-	// Prepare the adjusted frame data; no need for mirroring here
-	AdjustedFrame = *low_level_shape;
-		
-	if (TxtrOpts->shape_width > 0)
-		AdjustedFrame.world_right = AdjustedFrame.world_left + (TxtrOpts->shape_width * scale_factor);
-	if (TxtrOpts->shape_height > 0)
-		AdjustedFrame.world_bottom = AdjustedFrame.world_top - (TxtrOpts->shape_height * scale_factor);
-	if (TxtrOpts->offset_x != 0)
-	{
-		short offx = TxtrOpts->offset_x * scale_factor;
-		AdjustedFrame.world_left -= offx;
-		AdjustedFrame.world_right -= offx;
-	}
-	if (TxtrOpts->offset_y != 0)
-	{
-		short offy = TxtrOpts->offset_y * scale_factor;
-		AdjustedFrame.world_top += offy;
-		AdjustedFrame.world_bottom += offy;
-	}
-	
-	return (struct shape_information_data *) &AdjustedFrame;
-    }
-#endif
 	return (struct shape_information_data *) low_level_shape;
 }
 
@@ -1740,7 +1838,10 @@ void load_collections(
 				/* load and decompress collection */
 				if (!load_collection(collection_index, (header->status&markSTRIP) ? true : false))
 				{
-					alert_user(fatalError, strERRORS, outOfMemory, -1);
+					if (shapes_file_version != M1_SHAPES_VERSION)
+					{
+						alert_user(fatalError, strERRORS, outOfMemory, -1);
+					}
 				}
 //				OGL_LoadModelsImages(collection_index);
 			}

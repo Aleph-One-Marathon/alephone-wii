@@ -79,6 +79,9 @@ struct graphics_preferences_data
 	int16 software_alpha_blending;
 
 	bool hog_the_cpu;
+
+	int16 movie_export_video_quality;
+    int16 movie_export_audio_quality;
 };
 
 struct serial_number_data
@@ -228,8 +231,6 @@ struct environment_preferences_data
 	TimeType sounds_mod_date;
 	uint32 patches[MAXIMUM_PATCHES_PER_ENVIRONMENT];
 
-	char theme_dir[256];
-
 	// ZZZ: these aren't really environment preferences, but
 	// preferences that affect the environment preferences dialog
 	bool group_by_directory;	// if not, display popup as one giant flat list
@@ -245,6 +246,9 @@ struct environment_preferences_data
 	bool hide_extensions;
 
 	FilmProfileType film_profile;
+
+	// Marathon 1 resources from the application itself
+	char resources_file[256];
 };
 
 /* New preferences.. (this sorta defeats the purpose of this system, but not really) */

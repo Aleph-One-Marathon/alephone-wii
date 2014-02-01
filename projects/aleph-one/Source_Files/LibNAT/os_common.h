@@ -1,5 +1,5 @@
 /* Copyright (c) 2006 Adam Warrington
-** $Id: os_common.h 2636 2006-03-24 23:11:52Z jkvw $
+** $Id$
 **
 ** Permission is hereby granted, free of charge, to any person obtaining a copy
 ** of this software and associated documentation files (the "Software"), to deal
@@ -62,6 +62,7 @@
   /* defines for win32 */
   #include <windows.h>
   #include <winsock.h>
+  typedef int socklen_t;
   
   /* this is the win32 version of the OsSocket struct */
   struct OsSocket {

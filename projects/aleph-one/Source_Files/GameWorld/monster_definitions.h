@@ -98,6 +98,31 @@ enum /* monster classes */
 	_class_neutral_alien= _class_native
 };
 
+// old Marathon monster classes
+enum 
+{
+	_class_player_m1 = 0x01,
+	_class_human_civilian_m1 = 0x02,
+	_class_madd_m1 = 0x04,
+	_class_fighter_m1 = 0x08,
+	_class_trooper_m1 = 0x10,
+	_class_hunter_m1 = 0x20,
+	_class_enforcer_m1 = 0x40,
+	_class_juggernaut_m1 = 0x80,
+	// unused 0x100
+	_class_compiler_m1 = 0x200,
+	_class_hulk = 0x400,
+	// unused 0x800
+	_class_looker = 0x1000,
+	// unused 0x2000,
+	_class_wasp = 0x4000,
+	_class_assimilated_civilian_m1 = 0x8000,
+
+	_class_client_m1 = _class_compiler_m1|_class_hulk|_class_assimilated_civilian_m1,
+	_class_pfhor_m1 = _class_fighter_m1|_class_trooper_m1|_class_hunter_m1|_class_enforcer_m1|_class_juggernaut_m1
+	
+};
+
 enum /* intelligence: maximum polygon switches before losing lock */
 {
 	_intelligence_low= 2,
@@ -142,10 +167,16 @@ enum /* flags */
 	_monster_is_not_afraid_of_lava= 0x1000000,
 	_monster_is_not_afraid_of_goo= 0x2000000,
 	_monster_can_teleport_under_media= 0x4000000,
-	_monster_chooses_weapons_randomly= 0x8000000
+	_monster_chooses_weapons_randomly= 0x8000000,
 	/* monsters unable to open doors have door retry masks of NONE */
 	/* monsters unable to switch levels have min,max ledge deltas of 0 */
 	/* monsters unstopped by bullets have hit frames of NONE */
+
+	// pseudo flags set when reading Marathon 1 physics
+	_monster_weaknesses_cause_soft_death = 0x10000000,
+	_monster_screams_when_crushed = 0x20000000,
+	_monster_makes_sound_when_activated = 0x40000000, // instead of when locking on a target
+	_monster_can_grenade_climb = 0x80000000, // only applies to player
 };
 
 enum /* monster speeds (world_distance per tick); also used for projectiles */

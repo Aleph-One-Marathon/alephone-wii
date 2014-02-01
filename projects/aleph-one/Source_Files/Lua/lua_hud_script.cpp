@@ -77,11 +77,12 @@ extern struct static_data *static_world;
 
 static const luaL_Reg lualibs[] = {
 {"", luaopen_base},
-//  {LUA_LOADLIBNAME, luaopen_package},
 {LUA_TABLIBNAME, luaopen_table},
 {LUA_STRLIBNAME, luaopen_string},
+{LUA_BITLIBNAME, luaopen_bit32},
 {LUA_MATHLIBNAME, luaopen_math},
 {LUA_DBLIBNAME, luaopen_debug},
+{LUA_IOLIBNAME, luaopen_io},
 {NULL, NULL}
 };
 
@@ -92,7 +93,7 @@ class LuaHUDState
 {
 public:
 	LuaHUDState() : running_(false), inited_(false), num_scripts_(0) {
-		state_.reset(lua_open(), lua_close);
+		state_.reset(luaL_newstate(), lua_close);
 	}
 
 	virtual ~LuaHUDState() {
@@ -111,15 +112,9 @@ public:
 		const luaL_Reg *lib = lualibs;
 		for (; lib->func; lib++)
 		{
-			lua_pushcfunction(State(), lib->func);
-			lua_pushstring(State(), lib->name);
-			lua_call(State(), 1, 0);
+			luaL_requiref(State(), lib->name, lib->func, 1);
+			lua_pop(State(), 1);
 		}
-
-
-		lua_pushcfunction(State(), luaopen_io);
-		lua_pushstring(State(), LUA_IOLIBNAME);
-		lua_call(State(), 1, 0);
 		
 		RegisterFunctions();
 	}
@@ -157,8 +152,7 @@ bool LuaHUDState::GetTrigger(const char* trigger)
 	if (!running_)
 		return false;
 
-	lua_pushstring(State(), "Triggers");
-	lua_gettable(State(), LUA_GLOBALSINDEX);
+	lua_getglobal(State(), "Triggers");
 	if (!lua_istable(State(), -1))
 	{
 		lua_pop(State(), 1);
@@ -222,7 +216,7 @@ void LuaHUDState::RegisterFunctions()
 
 bool LuaHUDState::Load(const char *buffer, size_t len)
 {
-	int status = luaL_loadbuffer(State(), buffer, len, "hud_script");
+	int status = luaL_loadbufferx(State(), buffer, len, "hud_script", "t");
 	if (status == LUA_ERRRUN)
 		logWarning("Lua loading failed: error running script.");
 	if (status == LUA_ERRFILE)
@@ -263,8 +257,7 @@ void LuaHUDState::MarkCollections(std::set<short>& collections)
 	if (!running_)
 		return;
     
-	lua_pushstring(State(), "CollectionsUsed");
-	lua_gettable(State(), LUA_GLOBALSINDEX);
+	lua_getglobal(State(), "CollectionsUsed");
 	
 	if (lua_istable(State(), -1))
 	{

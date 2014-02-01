@@ -403,6 +403,8 @@ static _fixed constant_lighting_proc(_fixed initial_intensity, _fixed final_inte
 static _fixed linear_lighting_proc(_fixed initial_intensity, _fixed final_intensity, short phase, short period);
 static _fixed smooth_lighting_proc(_fixed initial_intensity, _fixed final_intensity, short phase, short period);
 static _fixed flicker_lighting_proc(_fixed initial_intensity, _fixed final_intensity, short phase, short period);
+static _fixed random_lighting_proc(_fixed initial_intensity, _fixed final_intensity, short phase, short period);
+static _fixed fluorescent_lighting_proc(_fixed initial_intensity, _fixed final_intensity, short phase, short period);
 
 typedef _fixed (*lighting_function)(_fixed initial_intensity, _fixed final_intensity,
 	short phase, short period);
@@ -412,7 +414,9 @@ static lighting_function lighting_functions[NUMBER_OF_LIGHTING_FUNCTIONS]=
 	constant_lighting_proc,
 	linear_lighting_proc,
 	smooth_lighting_proc,
-	flicker_lighting_proc
+	flicker_lighting_proc,
+	random_lighting_proc,
+	fluorescent_lighting_proc,
 };
 
 static _fixed lighting_function_dispatch(
@@ -470,6 +474,32 @@ static _fixed flicker_lighting_proc(
 	return smooth_intensity + (delta ? global_random()%delta : 0);
 }
 
+static _fixed random_lighting_proc(
+	_fixed initial_intensity,
+	_fixed final_intensity,
+	short phase,
+	short period)
+{
+	_fixed delta;
+	if (final_intensity > initial_intensity) 
+	{
+		delta = final_intensity - initial_intensity;
+		return initial_intensity + (delta ? global_random()%delta : 0);
+	} else {
+		delta = initial_intensity - final_intensity;
+		return final_intensity + (delta ? global_random()%delta : 0);	
+	}
+}
+
+// should the probability of final_intensity increase with phase?
+static _fixed fluorescent_lighting_proc(
+	_fixed initial_intensity,
+	_fixed final_intensity,
+	short phase,
+	short period)
+{
+	return (global_random()%2 ? final_intensity : initial_intensity);
+}
 
 uint8 *unpack_old_light_data(uint8 *Stream, old_light_data* Objects, size_t Count)
 {
@@ -651,15 +681,116 @@ uint8 *pack_light_data(uint8 *Stream, light_data* Objects, size_t Count)
 	return S;
 }
 
-static void FixLightState(lighting_function_specification& LightState, old_light_data& OldLight)
+static void FixIntensity(lighting_function_specification& LightState, old_light_data& OldLight)
 {
-	LightState.period = ((LightState.period*OldLight.period)/TICKS_PER_SECOND);
-	LightState.intensity = OldLight.minimum_intensity + 
-		_fixed(float(LightState.intensity)*float(OldLight.maximum_intensity - OldLight.minimum_intensity) / FIXED_ONE);
-    // ZZZ: avoid setting period to 0 (kills the rephase function or whatnot)
-    if(LightState.period == 0)
-        LightState.period++;
+	if (LightState.intensity > 0)
+	{
+		LightState.intensity = OldLight.maximum_intensity;
+	} else {
+		LightState.intensity = OldLight.minimum_intensity;
+	}
 }
+
+static_light_data old_light_definitions[NUMBER_OF_OLD_LIGHTS] = 
+{
+	// _light_is_normal
+	{
+		_normal_light,
+		FLAG(_light_is_initially_active)|FLAG(_light_has_slaved_intensities), 0,
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, FIXED_ONE, 0 },
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, FIXED_ONE, 0 },
+		{ _constant_lighting_function, 1, 0, FIXED_ONE, 0 },
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, 0, 0 },
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, 0, 0 },
+		{ _constant_lighting_function, 1, 0, FIXED_ONE, 0 }
+	},
+
+	// _light_is_rheostat
+	{ 
+		_normal_light,
+		FLAG(_light_is_initially_active)|FLAG(_light_has_slaved_intensities), 0,
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, FIXED_ONE, 0 },
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, FIXED_ONE, 0 },
+		{ _smooth_lighting_function, 3 * TICKS_PER_SECOND, 0, FIXED_ONE, 0 },
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, 0, 0 },
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, 0, 0 },
+		{ _smooth_lighting_function, 3 * TICKS_PER_SECOND, 0, 0, 0 }
+	},
+
+	// _light_is_flourescent
+	{
+		_normal_light,
+		FLAG(_light_is_initially_active)|FLAG(_light_has_slaved_intensities), 0,
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, FIXED_ONE, 0 },
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, FIXED_ONE, 0 },
+		{ _fluorescent_lighting_function, 3 * TICKS_PER_SECOND, 0, FIXED_ONE, 0 },
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, 0, 0 },
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, 0, 0 },
+		{ _constant_lighting_function, 1, 0, 0, 0 }
+	},
+
+	// _light_is_strobe
+	{
+		_normal_light,
+		FLAG(_light_is_initially_active)|FLAG(_light_has_slaved_intensities), 0,
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, FIXED_ONE, 0 },
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, 0, 0 },
+		{ _constant_lighting_function, 1, 0, FIXED_ONE, 0 },
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, 0, 0 },
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, FIXED_ONE, 0 },
+		{ _constant_lighting_function, 1, 0, 0, 0 }
+	},
+
+	// _light_flickers
+	{
+		_normal_light,
+		FLAG(_light_is_initially_active)|FLAG(_light_has_slaved_intensities), 0,
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, FIXED_ONE, 0 },
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, FIXED_ONE, 0 },
+		{ _flicker_lighting_function, 3 * TICKS_PER_SECOND, 0, FIXED_ONE, 0 },
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, 0, 0 },
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, 0, 0 },
+		{ _constant_lighting_function, 1, 0, 0, 0 }
+	},
+
+	// _light_pulsates
+	{
+		_normal_light,
+		FLAG(_light_is_initially_active)|FLAG(_light_has_slaved_intensities), 0,
+		{ _smooth_lighting_function, 2*TICKS_PER_SECOND, 0, FIXED_ONE, 0 },
+		{ _smooth_lighting_function, 2*TICKS_PER_SECOND-1, 0, 0, 0 },
+		{ _smooth_lighting_function, 2*TICKS_PER_SECOND-1, 0, FIXED_ONE, 0 },
+		
+		{ _smooth_lighting_function, 2*TICKS_PER_SECOND, 0, 0, 0 },
+		{ _smooth_lighting_function, 2*TICKS_PER_SECOND-1, 0, FIXED_ONE, 0 },
+		{ _smooth_lighting_function, 2*TICKS_PER_SECOND, 0, 0, 0 }
+	},
+
+	// _light_is_annoying
+	{
+		_normal_light,
+		FLAG(_light_is_initially_active)|FLAG(_light_has_slaved_intensities), 0,
+		{ _random_lighting_function, 2, 1, FIXED_ONE, 0 },
+		{ _constant_lighting_function, 2, 0, 0, 0 },
+		{ _random_lighting_function, 1, 0, FIXED_ONE, 0 },
+		
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, 0, 0 },
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, 0, 0 },
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, 0, 0 }
+	},
+
+	// _light_is_energy_efficient
+	{
+		_normal_light,
+		FLAG(_light_is_initially_active)|FLAG(_light_has_slaved_intensities), 0,
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, FIXED_ONE, 0 },
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, FIXED_ONE, 0 },
+		{ _linear_lighting_function, 2 * TICKS_PER_SECOND, 0, FIXED_ONE, 0 },
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, 0, 0 },
+		{ _constant_lighting_function, TICKS_PER_SECOND, 0, 0, 0 },
+		{ _linear_lighting_function, 2 * TICKS_PER_SECOND, 0, 0, 0 }
+	}
+};	
 
 void convert_old_light_data_to_new(static_light_data* NewLights, old_light_data* OldLights, int Count)
 {
@@ -670,39 +801,33 @@ void convert_old_light_data_to_new(static_light_data* NewLights, old_light_data*
 	
 	for (int k = 0; k < Count; k++, OldLtPtr++, NewLtPtr++)
 	{
-		/* As time goes on, we should add functions below to make the lights */
-		/*  behave more like their bacward compatible cousins. */
+		obj_copy(*NewLtPtr, old_light_definitions[OldLtPtr->type]);
+		FixIntensity(NewLtPtr->primary_active, *OldLtPtr);
+		FixIntensity(NewLtPtr->secondary_active, *OldLtPtr);
+		FixIntensity(NewLtPtr->becoming_active, *OldLtPtr);
+		FixIntensity(NewLtPtr->primary_inactive, *OldLtPtr);
+		FixIntensity(NewLtPtr->secondary_inactive, *OldLtPtr);
+		FixIntensity(NewLtPtr->becoming_inactive, *OldLtPtr);
 
-		/* Do the best we can.. */
-		switch(OldLtPtr->type)
+		if (OldLtPtr->type == _light_is_strobe) 
 		{
-		case _light_is_normal:
-		case _light_is_annoying:
-		case _light_is_energy_efficient:
-		case _light_is_rheostat:
-		case _light_is_flourescent:
-			obj_copy(*NewLtPtr,*get_defaults_for_light_type(_normal_light));
-			break;
-			
-		case _light_is_strobe:
-		case _light_flickers:
-		case _light_pulsates:
-			obj_copy(*NewLtPtr,*get_defaults_for_light_type(_strobe_light));
-			break;
-		
-		default:
-			break;
+			NewLtPtr->primary_active.period = OldLtPtr->period / 4 + 1;
+			NewLtPtr->secondary_active.period = OldLtPtr->period / 4 + 1;
+			NewLtPtr->primary_inactive.period = OldLtPtr->period / 4 + 1;
+			NewLtPtr->secondary_inactive.period = OldLtPtr->period / 4 + 1;			
 		}
 		
-		// Edit the light intensities, etc.
-		SET_FLAG(NewLtPtr->flags,FLAG(_light_is_initially_active),OldLtPtr->mode);
-		NewLtPtr->phase = OldLtPtr->phase;
-		FixLightState(NewLtPtr->primary_active,*OldLtPtr);
-		FixLightState(NewLtPtr->secondary_active,*OldLtPtr);
-		FixLightState(NewLtPtr->becoming_active,*OldLtPtr);
-		FixLightState(NewLtPtr->primary_inactive,*OldLtPtr);
-		FixLightState(NewLtPtr->secondary_inactive,*OldLtPtr);
-		FixLightState(NewLtPtr->becoming_inactive,*OldLtPtr);
+		switch (OldLtPtr->mode)
+		{
+		case _light_mode_on:
+		case _light_mode_turning_on:
+			SET_FLAG(NewLtPtr->flags,FLAG(_light_is_initially_active),1);
+			break;
+		case _light_mode_off:
+		default:
+			SET_FLAG(NewLtPtr->flags,FLAG(_light_is_initially_active),0);
+			break;
+		}
 	}
 }
 

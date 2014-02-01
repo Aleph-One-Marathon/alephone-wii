@@ -30,7 +30,13 @@
 
 #include "SoundManagerEnums.h"
 
+#include <boost/function.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/scoped_ptr.hpp>
+
 struct ambient_sound_data;
+
+class SoundMemoryManager;
 
 class SoundManager
 {
@@ -52,11 +58,6 @@ public:
 	bool AdjustVolumeDown(short sound_index = NONE);
 	void TestVolume(short volume, short sound_index);
 
-	// These three get forwarded to the open SoundFile.
-	int NewCustomSoundDefinition();
-	bool AddCustomSoundSlot(int index, const char* file);
-	void UnloadCustomSounds();
-
 	bool LoadSound(short sound);
 	void LoadSounds(short *sounds, short count);
 
@@ -71,8 +72,6 @@ public:
 
 	void StopSound(short identifier, short sound_index);
 	void StopAllSounds() { StopSound(NONE, NONE); }
-
-	int NumberOfSoundDefinitions();
 
 	inline int16 GetNetmicVolumeAdjustment() {
 		return (parameters.volume_while_speaking);
@@ -152,10 +151,7 @@ private:
 	Channel *BestChannel(short sound_index, Channel::Variables& variables);
 	void FreeChannel(Channel &);
 
-	void UnlockSound(short sound_index) { }
 	void UnlockLockedSounds();
-	short ReleaseLeastUsefulSound();
-	void DisposeSound(short sound_index);
 
 	void CalculateSoundVariables(short sound_index, world_location3d *source, Channel::Variables& variables);
 	void CalculateInitialSoundVariables(short sound_index, world_location3d *source, Channel::Variables& variables, _fixed pitch);
@@ -175,15 +171,13 @@ private:
 	bool active;
 
 	short total_channel_count;
-	int32 total_buffer_size;
 
 	short sound_source; // 8-bit, 16-bit
 	
-	int32 loaded_sounds_size;
-
 	std::vector<Channel> channels;
 
-	SoundFile sound_file;	
+	boost::scoped_ptr<SoundFile> sound_file;
+	SoundMemoryManager* sounds;
 
 	// buffer sizes
 	static const int MINIMUM_SOUND_BUFFER_SIZE = 300*KILO;
@@ -260,6 +254,7 @@ short Sound_ButtonSuccess();
 short Sound_ButtonFailure();
 short Sound_ButtonInoperative();
 short Sound_OGL_Reset();
+short Sound_Center_Button();
 
 // LP change: get the parser for the sound elements (name "sounds")
 XML_ElementParser *Sounds_GetParser();
