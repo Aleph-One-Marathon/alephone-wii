@@ -1048,10 +1048,10 @@ void resume_game(
 #endif
 #ifdef HAVE_OPENGL
 	if (!OGL_IsActive() || !(TEST_FLAG(Get_OGL_ConfigureData().Flags,OGL_Flag_Fader)))
-#endif
 		SetFadeEffectDelay(TICKS_PER_SECOND/2);
 	if (OGL_IsActive())
 		OGL_Blitter::BoundScreen(true);
+#endif
 	validate_world_window();
 	set_keyboard_controller_status(true);
 }

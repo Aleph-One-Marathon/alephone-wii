@@ -75,9 +75,6 @@ AC_CHECK_FUNC(mkstemp, [
 AC_CHECK_FUNC(sysconf, [
   AC_DEFINE(HAVE_SYSCONF, 1, [sysconf() is available])
 ])
-AC_CHECK_FUNC(sysctlbyname, [
-  AC_DEFINE(HAVE_SYSCTLBYNAME, 1, [sysctlbyname() is available])
-])
 
 dnl Check for SDL.
 AM_PATH_SDL(1.2.0, , AC_MSG_ERROR([You need SDL 1.2 to run Aleph One.]))
@@ -200,6 +197,9 @@ PKG_CHECK_MODULES([FFMPEG], [libavcodec >= 53.35.0 libavformat >= 53.21.0 libavu
 			    LIBS="$FFMPEG_LIBS $LIBS"
 			    AC_DEFINE(HAVE_FFMPEG, 1, [ffmpeg support enabled])
 			    have_ffmpeg=true
+])
+AC_CHECK_FUNC(sysctlbyname, [
+  AC_DEFINE(HAVE_SYSCTLBYNAME, 1, [sysctlbyname() is available])
 ])
 fi
 AM_CONDITIONAL(HAVE_FFMPEG, test x$have_ffmpeg = xtrue)
