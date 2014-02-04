@@ -283,6 +283,27 @@ void Music::SeedLevelMusic()
 	randomizer.SetTable();
 }
 
+void Music::SetClassicLevelMusic(short song_index)
+{
+    ClearLevelMusic();
+    if (song_index < 0)
+        return;
+    
+    FileSpecifier file;
+    sprintf(temporary, "Music/%02d.ogg", song_index);
+    file.SetNameWithPath(temporary);
+    if (!file.Exists())
+    {
+        sprintf(temporary, "Music/%02d.mp3", song_index);
+        file.SetNameWithPath(temporary);
+    }
+    if (!file.Exists())
+        return;
+    
+    PushBackLevelMusic(file);
+    marathon_1_song_index = song_index;
+}
+
 void Music::PreloadLevelMusic()
 {
 	LoadLevelMusic();

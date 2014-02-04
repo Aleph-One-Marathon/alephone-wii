@@ -82,6 +82,8 @@ Jun 30, 2002 (tiennou):
 
 #include <string.h>
 
+#include "editor.h" // MARATHON_ONE_DATA_VERSION
+
 #ifdef env68k
 #pragma segment doors
 #endif
@@ -134,7 +136,8 @@ platform_definition *get_platform_definition(const short type)
 
 short new_platform(
 	struct static_platform_data *data,
-	short polygon_index)
+	short polygon_index,
+	short version)
 {
 	short platform_index= NONE;
 	struct platform_data *platform;
@@ -165,6 +168,23 @@ short new_platform(
 		platform->polygon_index= polygon_index;
 		platform->parent_platform_index= NONE;
 		calculate_platform_extrema(platform_index, data->minimum_height, data->maximum_height);
+		
+		if (version == MARATHON_ONE_DATA_VERSION)
+		{
+			switch (platform->type)
+			{
+			case 0: // marathon door
+			case 3: // pfhor door
+				SET_PLATFORM_IS_DOOR(platform, true);
+				break;
+			}
+			
+			if (PLATFORM_IS_LOCKED(platform))
+			{
+				SET_PLATFORM_IS_LOCKED(platform, false);
+				SET_PLATFORM_FLOODS_M1(platform, true);
+			}
+		}
 
 #if 0
 		switch (platform->type)
@@ -247,6 +267,7 @@ void update_platforms(
 		{
 			struct polygon_data *polygon= get_polygon_data(platform->polygon_index);
 			short sound_code= NONE;
+			bool was_flooded = PLATFORM_IS_FLOODED(platform);
 			
 			// Should there be some warning message about platform-polygon inconsistences?
 			// assert(polygon->permutation==platform_index);
@@ -373,6 +394,18 @@ void update_platforms(
 			}
 
 			if (sound_code!=NONE) play_platform_sound(platform_index, sound_code);
+			
+			if (was_flooded != PLATFORM_IS_FLOODED(platform))
+			{
+				// flood status changed - update side lights
+				// FIXME: this assumes Marathon 1 map lighting
+				for (int i = 0; i < polygon->vertex_count; i++)
+				{
+					short side_index = polygon->side_indexes[i];
+					if (side_index == NONE) continue;
+					guess_side_lightsource_indexes(side_index);
+				}
+			}
 		}
 	}
 }

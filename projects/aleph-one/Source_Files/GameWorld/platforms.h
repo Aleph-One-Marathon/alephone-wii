@@ -98,6 +98,7 @@ enum /* static platform flags */
 	_platform_is_locked,
 	_platform_is_secret,
 	_platform_is_door,
+	_platform_floods_m1,
 	NUMBER_OF_STATIC_PLATFORM_FLAGS /* <=32 */
 };
 
@@ -130,6 +131,7 @@ enum /* static platform flags */
 #define PLATFORM_IS_LOCKED(p) TEST_FLAG32((p)->static_flags, _platform_is_locked)
 #define PLATFORM_IS_SECRET(p) TEST_FLAG32((p)->static_flags, _platform_is_secret)
 #define PLATFORM_IS_DOOR(p) TEST_FLAG32((p)->static_flags, _platform_is_door)
+#define PLATFORM_FLOODS_M1(p) TEST_FLAG32((p)->static_flags, _platform_floods_m1)
 
 #define SET_PLATFORM_IS_INITIALLY_ACTIVE(p, v) SET_FLAG32((p)->static_flags, _platform_is_initially_active, (v))
 #define SET_PLATFORM_IS_INITIALLY_EXTENDED(p, v) SET_FLAG32((p)->static_flags, _platform_is_initially_extended, (v))
@@ -158,6 +160,7 @@ enum /* static platform flags */
 #define SET_PLATFORM_IS_LOCKED(p, v) SET_FLAG32((p)->static_flags, _platform_is_locked, (v))
 #define SET_PLATFORM_IS_SECRET(p, v) SET_FLAG32((p)->static_flags, _platform_is_secret, (v))
 #define SET_PLATFORM_IS_DOOR(p, v) SET_FLAG32((p)->static_flags, _platform_is_door, (v))
+#define SET_PLATFORM_FLOODS_M1(p, v) SET_FLAG32((p)->static_flags, _platform_floods_m1, (v))
 
 enum /* dynamic platform flags */
 {
@@ -200,6 +203,9 @@ enum /* dynamic platform flags */
 #define CLEAR_PLATFORM_WAS_JUST_ACTIVATED_OR_DEACTIVATED(p) SET_FLAG16((p)->dynamic_flags, _platform_was_just_activated_or_deactivated, false)
 #define SET_PLATFORM_FLOOR_BELOW_MEDIA(p, v) SET_FLAG16((p)->dynamic_flags, _platform_floor_below_media, v)
 #define SET_PLATFORM_CEILING_BELOW_MEDIA(p, v) SET_FLAG16((p)->dynamic_flags, _platform_ceiling_below_media, v)
+
+// using "fully contracted" is close enough to act like Marathon... I hope
+#define PLATFORM_IS_FLOODED(p) (PLATFORM_FLOODS_M1(p) && PLATFORM_IS_FULLY_CONTRACTED(p))
 
 struct endpoint_owner_data
 {
@@ -260,7 +266,7 @@ extern vector<platform_data> PlatformList;
 
 /* --------- prototypes/PLATFORMS.C */
 
-short new_platform(struct static_platform_data *data, short polygon_index);
+short new_platform(struct static_platform_data *data, short polygon_index, short version);
 struct static_platform_data *get_defaults_for_platform_type(short type);
 
 void update_platforms(void);

@@ -18,6 +18,8 @@ AC_ARG_ENABLE(opengl,
 [  --enable-opengl         use OpenGL for rendering [default=yes]], , enable_opengl=yes)
 AC_ARG_ENABLE(mad, 
 [  --enable-mad            use libmad for mp3 playback [default=yes]], , enable_mad=yes)
+AC_ARG_ENABLE(ffmpeg,
+[  --enable-ffmpeg         use ffmpeg for audio/video playback and film export [default=yes]], , enable_ffmpeg=yes)
 AC_ARG_ENABLE(sndfile, 
 [  --enable-sndfile        use libsndfile for decoding audio files [default=yes]], , enable_sndfile=yes)
 AC_ARG_ENABLE(vorbis, 
@@ -30,8 +32,6 @@ AC_ARG_ENABLE(speex,
 [  --enable-speex          enable Speex net mic playback [default=yes]], , enable_speex=yes)
 AC_ARG_ENABLE(alsa,
 [  --enable-alsa           enable ALSA net mic transmission [default=yes]], , enable_alsa=yes)
-AC_ARG_ENABLE(ttf,
-[  --enable-ttf            enable SDL_ttf font rendering [default=yes]], , enable_ttf=yes)
 AC_ARG_ENABLE(zzip,
 [  --enable-zzip           enable zziplib support [default=yes]], , enable_zzip=yes)
 AC_ARG_ENABLE(png,
@@ -72,6 +72,9 @@ AC_CHECK_FUNC(vsnprintf, [
 AC_CHECK_FUNC(mkstemp, [
   AC_DEFINE(LUA_USE_MKSTEMP, 1, [mkstemp() is available])
 ])
+AC_CHECK_FUNC(sysconf, [
+  AC_DEFINE(HAVE_SYSCONF, 1, [sysconf() is available])
+])
 
 dnl Check for SDL.
 AM_PATH_SDL(1.2.0, , AC_MSG_ERROR([You need SDL 1.2 to run Aleph One.]))
@@ -86,14 +89,13 @@ AC_CHECK_HEADERS(SDL_image.h, [
   ])
 ])
 
-if [[ "x$enable_ttf" = "xyes" ]]; then
 AC_CHECK_HEADERS(SDL_ttf.h, [
  AC_CHECK_LIB(SDL_ttf, TTF_Init, [
    LIBS="-lSDL_ttf $LIBS"
    AC_DEFINE(HAVE_SDL_TTF, 1, [SDL_TTF support is enabled])
- ])
-])
-fi
+ ])],
+ AC_MSG_ERROR([You need SDL_ttf to run Aleph One.])
+)
 
 dnl Check for SDL_net.
 AC_CHECK_HEADERS(SDL_net.h, [
@@ -187,6 +189,20 @@ PKG_CHECK_MODULES([VORBISFILE], [vorbisfile], [
 			  AC_DEFINE(HAVE_VORBISFILE, 1, [vorbis support enabled])
 ])
 fi
+
+if [[ "x$enable_ffmpeg" = "xyes" ]]; then
+dnl Check for libavcodec
+PKG_CHECK_MODULES([FFMPEG], [libavcodec >= 53.35.0 libavformat >= 53.21.0 libavutil >= 51.22.0 libswscale >= 2.1.0], [
+			    CPPFLAGS="$FFMPEG_CFLAGS $CPPFLAGS"
+			    LIBS="$FFMPEG_LIBS $LIBS"
+			    AC_DEFINE(HAVE_FFMPEG, 1, [ffmpeg support enabled])
+			    have_ffmpeg=true
+])
+AC_CHECK_FUNC(sysctlbyname, [
+  AC_DEFINE(HAVE_SYSCTLBYNAME, 1, [sysctlbyname() is available])
+])
+fi
+AM_CONDITIONAL(HAVE_FFMPEG, test x$have_ffmpeg = xtrue)
 
 if [[ "x$enable_lua" = "xyes" ]]; then
 AC_DEFINE(HAVE_LUA, 1, [Lua support is enabled])
@@ -284,6 +300,7 @@ AlephOne.spec
 Source_Files/Makefile
 Source_Files/CSeries/Makefile
 Source_Files/Expat/Makefile
+Source_Files/FFmpeg/Makefile
 Source_Files/Files/Makefile
 Source_Files/GameWorld/Makefile
 Source_Files/Input/Makefile

@@ -931,8 +931,8 @@ static void graphics_dialog(void *arg)
 	placer->add(new w_spacer(), true);
 
 #ifndef HAVE_OPENGL
-	
-	placer->dual_add(new w_static_text(expand_app_variables("This copy of $appName$ was built without OpenGL support.").c_str()), d);
+	expand_app_variables(temporary, "This copy of $appName$ was built without OpenGL support.");
+	placer->dual_add(new w_static_text(temporary), d);
 #endif
 	placer->add(new w_spacer(), true);
 
@@ -1824,6 +1824,10 @@ static void environment_dialog(void *arg)
 	table->dual_add(sounds_w->label("Sounds"), d);
 	table->dual_add(sounds_w, d);
 
+	w_env_select* resources_w = new w_env_select(environment_preferences->resources_file, "AVAILABLE FILES", _typecode_unknown, &d);
+	table->dual_add(resources_w->label("External Resources"), d);
+	table->dual_add(resources_w, d);
+
 	table->add_row(new w_spacer, true);
 	table->dual_add_row(new w_button("PLUGINS", plugins_dialog, &d), d);
 
@@ -1851,17 +1855,6 @@ static void environment_dialog(void *arg)
 	table->dual_add(hud_lua_w, d);
 	use_hud_lua_w->add_dependent_widget(hud_lua_w);
 	
-	table->add_row(new w_spacer, true);
-	table->dual_add_row(new w_static_text("Theme"), d);
-
-	w_env_select *theme_w = new w_env_select(environment_preferences->theme_dir, "AVAILABLE THEMES", _typecode_theme, &d);
-	table->dual_add(theme_w->label("Theme"), d);
-	table->dual_add(theme_w, d);
-
-	w_toggle *smooth_text_w = new w_toggle(environment_preferences->smooth_text);
-	table->dual_add(smooth_text_w->label("Smooth Text"), d);
-	table->dual_add(smooth_text_w, d);
-
 	table->add_row(new w_spacer, true);
 	table->dual_add_row(new w_static_text("Options"), d);
 
@@ -1891,7 +1884,7 @@ static void environment_dialog(void *arg)
 
 	// Run dialog
 	bool theme_changed = false;
-	FileSpecifier old_theme(environment_preferences->theme_dir);
+	FileSpecifier old_theme;
 	const Plugin* theme_plugin = Plugins::instance()->find_theme();
 	if (theme_plugin)
 	{
@@ -1929,6 +1922,13 @@ static void environment_dialog(void *arg)
 			changed = true;
 		}
 		
+		path = resources_w->get_path();
+		if (strcmp(path, environment_preferences->resources_file) != 0) 
+		{
+			strcpy(environment_preferences->resources_file, path);
+			changed = true;
+		}
+		
 		bool use_solo_lua = use_solo_lua_w->get_selection() != 0;
 		if (use_solo_lua != environment_preferences->use_solo_lua)
 		{
@@ -1955,13 +1955,7 @@ static void environment_dialog(void *arg)
 			changed = true;
 		}
 		
-		path = theme_w->get_path();
-		if (strcmp(path, environment_preferences->theme_dir)) {
-			strcpy(environment_preferences->theme_dir, path);
-			changed = theme_changed = true;
-		}
-
-		FileSpecifier new_theme(environment_preferences->theme_dir);
+		FileSpecifier new_theme;
 		theme_plugin = Plugins::instance()->find_theme();
 		if (theme_plugin)
 		{
@@ -1972,15 +1966,6 @@ static void environment_dialog(void *arg)
 		{
 			theme_changed = true;
 		}
-
-#ifdef HAVE_SDL_TTF
-		bool smooth_text = smooth_text_w->get_selection() != 0;
-		if (smooth_text != environment_preferences->smooth_text)
-		{
-			environment_preferences->smooth_text = smooth_text;
-			theme_changed = true;
-		}
-#endif
 
 		bool hide_extensions = hide_extensions_w->get_selection() != 0;
 		if (hide_extensions != environment_preferences->hide_extensions)
@@ -2238,6 +2223,8 @@ void write_preferences(
 	fprintf(F,"  use_npot=\"%s\"\n", BoolString(graphics_preferences->OGL_Configure.Use_NPOT));
 	fprintf(F,"  double_corpse_limit=\"%s\"\n", BoolString(graphics_preferences->double_corpse_limit));
 	fprintf(F,"  hog_the_cpu=\"%s\"\n", BoolString(graphics_preferences->hog_the_cpu));
+	fprintf(F,"  movie_export_video_quality=\"%hd\"\n",graphics_preferences->movie_export_video_quality);
+	fprintf(F,"  movie_export_audio_quality=\"%hd\"\n",graphics_preferences->movie_export_audio_quality);
 	fprintf(F,">\n");
 	fprintf(F,"  <void>\n");
 	WriteColor(F,"    ",graphics_preferences->OGL_Configure.VoidColor,"\n");
@@ -2369,7 +2356,7 @@ void write_preferences(
 	WriteXML_Pathname(F,"  physics_file=\"",environment_preferences->physics_file,"\"\n");
 	WriteXML_Pathname(F,"  shapes_file=\"",environment_preferences->shapes_file,"\"\n");
 	WriteXML_Pathname(F,"  sounds_file=\"",environment_preferences->sounds_file,"\"\n");
-	WriteXML_Pathname(F,"  theme_dir=\"",environment_preferences->theme_dir,"\"\n");
+	WriteXML_Pathname(F,"  resources_file=\"",environment_preferences->resources_file,"\"\n");
 	fprintf(F,"  map_checksum=\"%u\"\n",environment_preferences->map_checksum);
 	fprintf(F,"  physics_checksum=\"%u\"\n",environment_preferences->physics_checksum);
 	fprintf(F,"  shapes_mod_date=\"%u\"\n",uint32(environment_preferences->shapes_mod_date));
@@ -2455,6 +2442,9 @@ static void default_graphics_preferences(graphics_preferences_data *preferences)
 	preferences->hog_the_cpu = false;
 
 	preferences->software_alpha_blending = _sw_alpha_off;
+
+	preferences->movie_export_video_quality = 50;
+	preferences->movie_export_audio_quality = 50;
 }
 
 static void default_serial_number_preferences(serial_number_data *preferences)
@@ -2577,11 +2567,13 @@ static void default_environment_preferences(environment_preferences_data *prefer
 	FileSpecifier DefaultShapesFile;
 	FileSpecifier DefaultSoundsFile;
 	FileSpecifier DefaultPhysicsFile;
+	FileSpecifier DefaultExternalResourcesFile;
     
 	get_default_map_spec(DefaultMapFile);
 	get_default_physics_spec(DefaultPhysicsFile);
 	get_default_shapes_spec(DefaultShapesFile);
 	get_default_sounds_spec(DefaultSoundsFile);
+	get_default_external_resources_spec(DefaultExternalResourcesFile);
 	                
 	preferences->map_checksum= read_wad_file_checksum(DefaultMapFile);
 	strncpy(preferences->map_file, DefaultMapFile.GetPath(), 256);
@@ -2599,10 +2591,8 @@ static void default_environment_preferences(environment_preferences_data *prefer
 	strncpy(preferences->sounds_file, DefaultSoundsFile.GetPath(), 256);
 	preferences->sounds_file[255] = 0;
 
-	FileSpecifier DefaultThemeFile;
-	get_default_theme_spec(DefaultThemeFile);
-	strncpy(preferences->theme_dir, DefaultThemeFile.GetPath(), 256);
-	preferences->theme_dir[255] = 0;
+	strncpy(preferences->resources_file, DefaultExternalResourcesFile.GetPath(), 256);
+	preferences->resources_file[255] = 0;
 
 	preferences->group_by_directory = true;
 	preferences->reduce_singletons = false;
@@ -2792,6 +2782,13 @@ void load_environment_from_preferences(
 			/* What should I do? */
 		}
 	}
+
+	File = prefs->resources_file;
+	if (File.Exists())
+	{
+		set_external_resources_file(File);
+	}
+	set_external_resources_images_file(File);
 }
 
 
@@ -3297,6 +3294,14 @@ bool XML_GraphicsPrefsParser::HandleAttribute(const char *Tag, const char *Value
 	else if (StringsEqual(Tag,"hog_the_cpu"))
 	{
 		return ReadBooleanValue(Value, graphics_preferences->hog_the_cpu);
+	}
+	else if (StringsEqual(Tag,"movie_export_video_quality"))
+	{
+		return ReadBoundedInt16Value(Value, graphics_preferences->movie_export_video_quality, 0, 100);
+	}
+	else if (StringsEqual(Tag,"movie_export_audio_quality"))
+	{
+		return ReadBoundedInt16Value(Value, graphics_preferences->movie_export_audio_quality, 0, 100);
 	}
 	else if (StringsEqual(Tag,"use_directx_backend"))
 	{
@@ -4000,9 +4005,12 @@ bool XML_EnvironmentPrefsParser::HandleAttribute(const char *Tag, const char *Va
 		expand_symbolic_paths(environment_preferences->sounds_file, Value, 255);
 		return true;
 	}
+	else if (StringsEqual(Tag, "resources_file"))
+	{
+		expand_symbolic_paths(environment_preferences->resources_file, Value, 255);
+	}
 	else if (StringsEqual(Tag,"theme_dir"))
 	{
-		expand_symbolic_paths(environment_preferences->theme_dir, Value, 255);
 		return true;
 	}
 	else if (StringsEqual(Tag,"map_checksum"))

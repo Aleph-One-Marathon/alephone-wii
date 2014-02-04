@@ -26,34 +26,6 @@ Mixer* Mixer::m_instance = 0;
 
 extern bool option_nosound;
 
-Mixer::Header::Header() : 
-	sixteen_bit(false),
-	stereo(false),
-	signed_8bit(false),
-	bytes_per_frame(0),
-	data(0),
-	length(0),
-	loop(0),
-	loop_length(0),
-	rate(FIXED_ONE),
-	little_endian(false)
-{
-}
-
-Mixer::Header::Header(const SoundHeader& header) :
-	sixteen_bit(header.sixteen_bit),
-	stereo(header.stereo),
-	signed_8bit(header.signed_8bit),
-	bytes_per_frame(header.bytes_per_frame),
-	little_endian(header.little_endian),
-	data(header.Data()),
-	length(header.Length()),
-	loop(header.Data() + header.loop_start),
-	loop_length(header.loop_end - header.loop_start),
-	rate(header.rate)
-{
-}
-
 void Mixer::Start(uint16 rate, bool sixteen_bit, bool stereo, int num_channels, int volume, uint16 samples)
 {
 	sound_channel_count = num_channels;
@@ -84,6 +56,7 @@ void Mixer::Start(uint16 rate, bool sixteen_bit, bool stereo, int num_channels, 
 		for (int i = 0; i < num_channels + EXTRA_CHANNELS; ++i)
 		{
 			channels[i].sound_manager_index = i;
+			channels[i].source = Channel::SOURCE_SOUND_HEADERS;
 		}
 
 		channels[sound_channel_count + MUSIC_CHANNEL].source = Channel::SOURCE_MUSIC;
@@ -101,17 +74,17 @@ void Mixer::Stop()
 	sound_channel_count = 0;
 }
 
-void Mixer::BufferSound(int channel, const Header& header, _fixed pitch)
+void Mixer::BufferSound(int channel, const SoundInfo& header, boost::shared_ptr<SoundData> data, _fixed pitch)
 {
 	SDL_LockAudio();
 	if (channels[channel].active)
 	{
 		// queue the header
-		channels[channel].BufferSoundHeader(header, pitch);
+		channels[channel].BufferSoundHeader(header, data, pitch);
 	} else {
 		// load it directly
 		channels[channel].active = true;
-		channels[channel].LoadSoundHeader(header, pitch);
+		channels[channel].LoadSoundHeader(header, data, pitch);
 	}
 	SDL_UnlockAudio();
 }
@@ -134,11 +107,11 @@ void Mixer::Callback(uint8 *stream, int len)
 void Mixer::StartMusicChannel(bool sixteen_bit, bool stereo, bool signed_8bit, int bytes_per_frame, _fixed rate, bool little_endian)
 {
 	Channel *c = &channels[sound_channel_count + MUSIC_CHANNEL];
-	c->sixteen_bit = sixteen_bit;
-	c->stereo = stereo;
-	c->signed_8bit = signed_8bit;
-	c->little_endian = little_endian;
-	c->bytes_per_frame = bytes_per_frame;
+	c->info.sixteen_bit = sixteen_bit;
+	c->info.stereo = stereo;
+	c->info.signed_8bit = signed_8bit;
+	c->info.little_endian = little_endian;
+	c->info.bytes_per_frame = bytes_per_frame;
 	c->counter = 0;
 	c->rate = rate;
 	c->left_volume = c->right_volume = 0x100;
@@ -168,18 +141,18 @@ void Mixer::EnsureNetworkAudioPlaying()
 		if (sNetworkAudioBufferDesc)
 		{
 			SDL_LockAudio();
-			c->stereo = kNetworkAudioIsStereo;
-			c->sixteen_bit = kNetworkAudioIs16Bit;
-			c->signed_8bit = kNetworkAudioIsSigned8Bit;
-			c->bytes_per_frame = kNetworkAudioBytesPerFrame;
+			c->info.stereo = kNetworkAudioIsStereo;
+			c->info.sixteen_bit = kNetworkAudioIs16Bit;
+			c->info.signed_8bit = kNetworkAudioIsSigned8Bit;
+			c->info.bytes_per_frame = kNetworkAudioBytesPerFrame;
 			c->data = sNetworkAudioBufferDesc->mData;
 			c->length = sNetworkAudioBufferDesc->mLength;
 			c->loop_length = 0;
 			c->rate = (kNetworkAudioSampleRate << 16) / obtained.freq;
 #ifdef ALEPHONE_LITTLE_ENDIAN
-			c->little_endian = true;
+			c->info.little_endian = true;
 #else
-			c->little_endian = false;
+			c->info.little_endian = false;
 #endif
 			c->left_volume = 0x100;
 			c->right_volume = 0x100;
@@ -210,54 +183,25 @@ void Mixer::StopNetworkAudio()
 #endif
 }
 
-void Mixer::PlaySoundResource(LoadedResource &rsrc)
+void Mixer::PlaySoundResource(LoadedResource &rsrc, _fixed pitch)
 {
 	if (!channels.size()) return;
+
 	Channel *c = &channels[sound_channel_count + RESOURCE_CHANNEL];
-	// Open stream to resource
-	SDL_RWops *p = SDL_RWFromMem(rsrc.GetPointer(), (int)rsrc.GetLength());
-	if (p == NULL)
-		return;
 
-	// Get resource format
-	uint16 format = SDL_ReadBE16(p);
-	if (format != 1 && format != 2) {
-		fprintf(stderr, "Unknown sound resource format %d\n", format);
-		SDL_RWclose(p);
-		return;
-	}
-
-	// Skip sound data types or reference count
-	if (format == 1) {
-		uint16 num_data_formats = SDL_ReadBE16(p);
-		SDL_RWseek(p, num_data_formats * 6, SEEK_CUR);
-	} else if (format == 2)
-		SDL_RWseek(p, 2, SEEK_CUR);
-
-	// Lock sound subsystem
-	SDL_LockAudio();
-
-	// Scan sound commands for bufferCmd
-	uint16 num_cmds = SDL_ReadBE16(p);
-	for (int i=0; i<num_cmds; i++) {
-		uint16 cmd = SDL_ReadBE16(p);
-		uint16 param1 = SDL_ReadBE16(p);
-		uint32 param2 = SDL_ReadBE32(p);
-		//printf("cmd %04x %04x %08x\n", cmd, param1, param2);
-
-		if (cmd == 0x8051) {
-
-			SoundHeader header;
-			header.Load((uint8 *) rsrc.GetPointer() + param2);
+	SoundHeader header;
+	if (header.Load(rsrc))
+	{
+		boost::shared_ptr<SoundData> data = header.LoadData(rsrc);
+		if (data.get())
+		{
+			SDL_LockAudio();
 			c->active = true;
-			c->LoadSoundHeader(header, FIXED_ONE);
+			c->LoadSoundHeader(header, data, pitch);
 			c->left_volume = c->right_volume = 0x100;
+			SDL_UnlockAudio();
 		}
 	}
-
-	// Unlock sound subsystem
-	SDL_UnlockAudio();
-	SDL_RWclose(p);
 }
 
 void Mixer::StopSoundResource()
@@ -270,11 +214,6 @@ void Mixer::StopSoundResource()
 
 Mixer::Channel::Channel() :
 	active(false),
-	sixteen_bit(false),
-	stereo(false),
-	signed_8bit(false),
-	bytes_per_frame(0),
-	little_endian(false),
 	data(0),
 	length(0),
 	loop(0),
@@ -283,26 +222,30 @@ Mixer::Channel::Channel() :
 	counter(0),
 	left_volume(0x100),
 	right_volume(0x100),
-	next_header(0),
 	next_pitch(0)
 {
 }
 
-void Mixer::Channel::LoadSoundHeader(const Header& header, _fixed pitch)
+void Mixer::Channel::LoadSoundHeader(const SoundInfo& header, boost::shared_ptr<SoundData> data, _fixed pitch)
 {
 	if (!header.length) {
 		active = false;
 		return;
 	}
-	sixteen_bit = header.sixteen_bit;
-	stereo = header.stereo;
-	signed_8bit = header.signed_8bit;
-	bytes_per_frame = header.bytes_per_frame;
-	little_endian = header.little_endian;
-	data = header.data;
+
+	info = header;
+	sound_data = data;
+	this->data = &((*sound_data)[0]);
 	length = header.length;
-	loop = header.loop;
-	loop_length = (header.loop_length >= 4) ? header.loop_length : 0;
+	loop = this->data + (header.loop_start);
+	if (header.loop_end - header.loop_start >= 4) 
+	{
+		loop_length = header.loop_end - header.loop_start;
+	} 
+	else
+	{
+		loop_length = 0;
+	}
 	rate = (pitch >> 8) * ((header.rate >> 8) / instance()->obtained.freq);
 	counter = 0;
 }
@@ -355,12 +298,12 @@ void Mixer::Channel::GetMoreData()
 	{
 		// No loop, another sound header queued?
 		SoundManager::instance()->IncrementChannelCallbackCount(sound_manager_index); // fix this
-		if (next_header) {
+		if (next_header.length) {
 			
 			// Yes, load sound header and continue
-			LoadSoundHeader(*(next_header), next_pitch);
-			delete next_header;
-			next_header = 0;	
+			LoadSoundHeader(next_header, next_data, next_pitch);
+			next_header.length = 0;
+			next_data.reset();
 		} else {
 			
 			// No, turn off channel
@@ -397,7 +340,7 @@ static inline int32 lerp(int32 x0, int32 x1, _fixed rate)
 }
 
 template<class T, bool stereo, bool le_or_signed>
-void Resample_(Mixer::Channel* c, int16* left, int16* right, int samples)
+void Mixer::Resample_(Channel* c, int16* left, int16* right, int samples)
 {
 	while (samples--)
 	{
@@ -413,7 +356,7 @@ void Resample_(Mixer::Channel* c, int16* left, int16* right, int samples)
 				right0 = Convert<le_or_signed>(*data++);
 			}
 		
-			if ((c->counter & 0xffff) && c->length > c->bytes_per_frame)
+			if ((c->counter & 0xffff) && c->length > c->info.bytes_per_frame)
 			{
 				int32 left1 = Convert<le_or_signed>(*data++);
 				if (stereo) 
@@ -445,8 +388,8 @@ void Resample_(Mixer::Channel* c, int16* left, int16* right, int samples)
 			{
 				int count = c->counter >> 16;
 				c->counter &= 0xffff;
-				c->data += c->bytes_per_frame * count;
-				c->length -= c->bytes_per_frame * count;
+				c->data += c->info.bytes_per_frame * count;
+				c->length -= c->info.bytes_per_frame * count;
 			
 				if (c->length <= 0) 
 				{
@@ -463,11 +406,11 @@ void Resample_(Mixer::Channel* c, int16* left, int16* right, int samples)
 
 void Mixer::Resample(Channel* c, int16* left, int16* right, int samples)
 {
-	if (c->stereo) 
+	if (c->info.stereo) 
 	{
-		if (c->sixteen_bit) 
+		if (c->info.sixteen_bit) 
 		{
-			if (c->little_endian)
+			if (c->info.little_endian)
 			{
 				Resample_<int16, true, true>(c, left, right, samples);
 			}
@@ -478,7 +421,7 @@ void Mixer::Resample(Channel* c, int16* left, int16* right, int samples)
 		}
 		else
 		{
-			if (c->signed_8bit)
+			if (c->info.signed_8bit)
 			{
 				Resample_<int8, true, true>(c, left, right, samples);
 			} 
@@ -490,9 +433,9 @@ void Mixer::Resample(Channel* c, int16* left, int16* right, int samples)
 	} 
 	else
 	{
-		if (c->sixteen_bit) 
+		if (c->info.sixteen_bit) 
 		{
-			if (c->little_endian)
+			if (c->info.little_endian)
 			{
 				Resample_<int16, false, true>(c, left, right, samples);
 			}
@@ -503,7 +446,7 @@ void Mixer::Resample(Channel* c, int16* left, int16* right, int samples)
 		}
 		else
 		{
-			if (c->signed_8bit)
+			if (c->info.signed_8bit)
 			{
 				Resample_<int8, false, true>(c, left, right, samples);
 			} 

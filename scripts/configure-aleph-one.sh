@@ -21,4 +21,5 @@ binDir=${BIN_PATH}/${APPS_DIR}/${ALEPH_DIR}
 
 ./build "${SUB_PROJECTS_PATH}/aleph-one" -M=no $@ --prefix=${prefix} --datadir=${dataDir} --bindir=${binDir} \
 --with-sdl-prefix=${PORTLIBS_WII} --program-prefix="" --program-suffix=".elf" --program-transform-name="" \
---disable-opengl --disable-speex --disable-zzip
+--disable-opengl --disable-speex --disable-zzip --disable-ffmpeg
+

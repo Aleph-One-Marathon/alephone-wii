@@ -67,11 +67,20 @@ static int Lua_Collection_Get_Bitmap_Count(lua_State *L)
 	return 1;
 }
 
-const luaL_reg Lua_Collection_Get[] = {
+const luaL_Reg Lua_Collection_Get[] = {
 {"bitmap_count", Lua_Collection_Get_Bitmap_Count},
 {0, 0},
 };
 
+
+char Lua_InterfaceColor_Name[] = "interface_color";
+char Lua_InterfaceColors_Name[] = "InterfaceColors";
+
+char Lua_InterfaceFont_Name[] = "interface_font";
+char Lua_InterfaceFonts_Name[] = "InterfaceFonts";
+
+char Lua_InterfaceRect_Name[] = "interface_rect";
+char Lua_InterfaceRects_Name[] = "InterfaceRects";
 
 char Lua_InventorySection_Name[] = "inventory_section";
 char Lua_InventorySections_Name[] = "InventorySections";
@@ -123,7 +132,7 @@ static int Lua_ItemType_Get_Ball(lua_State *L)
 	lua_pushboolean(L, (get_item_kind(Lua_ItemType::Index(L, 1)) == _ball));
 	return 1;
 }
-const luaL_reg Lua_ItemType_Get[] = {
+const luaL_Reg Lua_ItemType_Get[] = {
 {"ball", Lua_ItemType_Get_Ball},
 {0, 0}
 };
@@ -233,29 +242,29 @@ static int Lua_Image_Crop_Rect_Get_Height(lua_State *L)
 
 static int Lua_Image_Crop_Rect_Set_X(lua_State *L)
 {
-	Lua_Image_Crop_Rect::Object(L, 1)->crop_rect.x = lua_tointeger(L, 2);
+	Lua_Image_Crop_Rect::Object(L, 1)->crop_rect.x = lua_tonumber(L, 2);
   return 0;
 }
 
 static int Lua_Image_Crop_Rect_Set_Y(lua_State *L)
 {
-	Lua_Image_Crop_Rect::Object(L, 1)->crop_rect.y = lua_tointeger(L, 2);
+	Lua_Image_Crop_Rect::Object(L, 1)->crop_rect.y = lua_tonumber(L, 2);
   return 0;
 }
 
 static int Lua_Image_Crop_Rect_Set_Width(lua_State *L)
 {
-	Lua_Image_Crop_Rect::Object(L, 1)->crop_rect.w = lua_tointeger(L, 2);
+	Lua_Image_Crop_Rect::Object(L, 1)->crop_rect.w = lua_tonumber(L, 2);
   return 0;
 }
 
 static int Lua_Image_Crop_Rect_Set_Height(lua_State *L)
 {
-	Lua_Image_Crop_Rect::Object(L, 1)->crop_rect.h = lua_tointeger(L, 2);
+	Lua_Image_Crop_Rect::Object(L, 1)->crop_rect.h = lua_tonumber(L, 2);
   return 0;
 }
 
-const luaL_reg Lua_Image_Crop_Rect_Get[] = {
+const luaL_Reg Lua_Image_Crop_Rect_Get[] = {
 {"x", Lua_Image_Crop_Rect_Get_X},
 {"y", Lua_Image_Crop_Rect_Get_Y},
 {"width", Lua_Image_Crop_Rect_Get_Width},
@@ -263,7 +272,7 @@ const luaL_reg Lua_Image_Crop_Rect_Get[] = {
 {0, 0}
 };
 
-const luaL_reg Lua_Image_Crop_Rect_Set[] = {
+const luaL_Reg Lua_Image_Crop_Rect_Set[] = {
 {"x", Lua_Image_Crop_Rect_Set_X},
 {"y", Lua_Image_Crop_Rect_Set_Y},
 {"width", Lua_Image_Crop_Rect_Set_Width},
@@ -329,7 +338,7 @@ static int Lua_Image_Get_Crop_Rect(lua_State *L)
 
 int Lua_Image_Rescale(lua_State *L)
 {
-	Lua_Image::Object(L, 1)->Rescale(lua_tointeger(L, 2), lua_tointeger(L, 3));
+	Lua_Image::Object(L, 1)->Rescale(lua_tonumber(L, 2), lua_tonumber(L, 3));
 	return 0;
 }
 
@@ -339,7 +348,7 @@ int Lua_Image_Draw(lua_State *L)
 	return 0;
 }
 
-const luaL_reg Lua_Image_Get[] = {
+const luaL_Reg Lua_Image_Get[] = {
 {"width", Lua_Image_Get_Width},
 {"height", Lua_Image_Get_Height},
 {"unscaled_width", Lua_Image_Get_Unscaled_Width},
@@ -367,7 +376,7 @@ static int Lua_Image_Set_Rotation(lua_State *L)
 	return 0;
 }
 
-const luaL_reg Lua_Image_Set[] = {
+const luaL_Reg Lua_Image_Set[] = {
 {"tint_color", Lua_Image_Set_Tint},
 {"rotation", Lua_Image_Set_Rotation},
 {0, 0}
@@ -380,7 +389,7 @@ static int Lua_Image_GC(lua_State *L)
 	return 0;
 }
 
-const luaL_reg Lua_Image_Metatable[] = {
+const luaL_Reg Lua_Image_Metatable[] = {
 {"__gc", Lua_Image_GC},
 {0, 0}
 };
@@ -417,7 +426,7 @@ int Lua_Images_New(lua_State *L)
 	char path[256] = "";
 	lua_pushstring(L, "path");
 	lua_gettable(L, 1);
-	if (!lua_isnil(L, -1))
+	if (lua_isstring(L, -1))
 	{
 		strncpy(path, lua_tostring(L, -1), 256);
 		path[255] = 0;
@@ -434,7 +443,7 @@ int Lua_Images_New(lua_State *L)
 	char mask[256] = "";
 	lua_pushstring(L, "mask");
 	lua_gettable(L, 1);
-	if (!lua_isnil(L, -1))
+	if (lua_isstring(L, -1))
 	{
 		strncpy(mask, lua_tostring(L, -1), 256);
 		path[255] = 0;
@@ -505,7 +514,7 @@ int Lua_Images_New(lua_State *L)
 	return 1;
 }
 
-const luaL_reg Lua_Images_Get[] = {
+const luaL_Reg Lua_Images_Get[] = {
 {"new", L_TableFunction<Lua_Images_New>},
 {0, 0}
 };
@@ -552,29 +561,29 @@ static int Lua_Shape_Crop_Rect_Get_Height(lua_State *L)
 
 static int Lua_Shape_Crop_Rect_Set_X(lua_State *L)
 {
-	Lua_Shape_Crop_Rect::Object(L, 1)->crop_rect.x = lua_tointeger(L, 2);
+	Lua_Shape_Crop_Rect::Object(L, 1)->crop_rect.x = lua_tonumber(L, 2);
     return 0;
 }
 
 static int Lua_Shape_Crop_Rect_Set_Y(lua_State *L)
 {
-	Lua_Shape_Crop_Rect::Object(L, 1)->crop_rect.y = lua_tointeger(L, 2);
+	Lua_Shape_Crop_Rect::Object(L, 1)->crop_rect.y = lua_tonumber(L, 2);
     return 0;
 }
 
 static int Lua_Shape_Crop_Rect_Set_Width(lua_State *L)
 {
-	Lua_Shape_Crop_Rect::Object(L, 1)->crop_rect.w = lua_tointeger(L, 2);
+	Lua_Shape_Crop_Rect::Object(L, 1)->crop_rect.w = lua_tonumber(L, 2);
     return 0;
 }
 
 static int Lua_Shape_Crop_Rect_Set_Height(lua_State *L)
 {
-	Lua_Shape_Crop_Rect::Object(L, 1)->crop_rect.h = lua_tointeger(L, 2);
+	Lua_Shape_Crop_Rect::Object(L, 1)->crop_rect.h = lua_tonumber(L, 2);
     return 0;
 }
 
-const luaL_reg Lua_Shape_Crop_Rect_Get[] = {
+const luaL_Reg Lua_Shape_Crop_Rect_Get[] = {
 {"x", Lua_Shape_Crop_Rect_Get_X},
 {"y", Lua_Shape_Crop_Rect_Get_Y},
 {"width", Lua_Shape_Crop_Rect_Get_Width},
@@ -582,7 +591,7 @@ const luaL_reg Lua_Shape_Crop_Rect_Get[] = {
 {0, 0}
 };
 
-const luaL_reg Lua_Shape_Crop_Rect_Set[] = {
+const luaL_Reg Lua_Shape_Crop_Rect_Set[] = {
 {"x", Lua_Shape_Crop_Rect_Set_X},
 {"y", Lua_Shape_Crop_Rect_Set_Y},
 {"width", Lua_Shape_Crop_Rect_Set_Width},
@@ -648,7 +657,7 @@ static int Lua_Shape_Get_Crop_Rect(lua_State *L)
 
 int Lua_Shape_Rescale(lua_State *L)
 {
-	Lua_Shape::Object(L, 1)->Rescale(lua_tointeger(L, 2), lua_tointeger(L, 3));
+	Lua_Shape::Object(L, 1)->Rescale(lua_tonumber(L, 2), lua_tonumber(L, 3));
 	return 0;
 }
 
@@ -658,7 +667,7 @@ int Lua_Shape_Draw(lua_State *L)
 	return 0;
 }
 
-const luaL_reg Lua_Shape_Get[] = {
+const luaL_Reg Lua_Shape_Get[] = {
 {"width", Lua_Shape_Get_Width},
 {"height", Lua_Shape_Get_Height},
 {"unscaled_width", Lua_Shape_Get_Unscaled_Width},
@@ -686,7 +695,7 @@ static int Lua_Shape_Set_Rotation(lua_State *L)
 	return 0;
 }
 
-const luaL_reg Lua_Shape_Set[] = {
+const luaL_Reg Lua_Shape_Set[] = {
 {"tint_color", Lua_Shape_Set_Tint},
 {"rotation", Lua_Shape_Set_Rotation},
 {0, 0}
@@ -699,7 +708,7 @@ static int Lua_Shape_GC(lua_State *L)
 	return 0;
 }
 
-const luaL_reg Lua_Shape_Metatable[] = {
+const luaL_Reg Lua_Shape_Metatable[] = {
 {"__gc", Lua_Shape_GC},
 {0, 0}
 };
@@ -761,24 +770,63 @@ int Lua_Shapes_New(lua_State *L)
 	return 1;
 }
 
-const luaL_reg Lua_Shapes_Get[] = {
+const luaL_Reg Lua_Shapes_Get[] = {
 {"new", L_TableFunction<Lua_Shapes_New>},
 {0, 0}
 };
 
 
 char Lua_Font_Name[] = "font"; // "font"
-typedef L_ObjectClass<Lua_Font_Name, FontSpecifier *> Lua_Font;
+class Lua_Font : public L_ObjectClass<Lua_Font_Name, FontSpecifier *>
+{
+public:
+	float m_font_scale;
+    	
+	static Lua_Font *Push(lua_State *L, FontSpecifier *fs);
+	static float Scale(lua_State *L, int index);
+    static void SetScale(lua_State *L, int index, float new_scale);
+};
+
+Lua_Font *Lua_Font::Push(lua_State *L, FontSpecifier *fs)
+{
+	Lua_Font *t = static_cast<Lua_Font *>(L_ObjectClass<Lua_Font_Name, FontSpecifier *>::Push(L, fs));
+	if (t)
+	{
+		t->m_font_scale = 1.0;
+	}
+	
+	return t;
+}
+
+float Lua_Font::Scale(lua_State *L, int index)
+{
+	Lua_Font *t = static_cast<Lua_Font *>(lua_touserdata(L, index));
+	if (!t) luaL_typerror(L, index, Lua_Font_Name);
+	return t->m_font_scale;
+}
+
+void Lua_Font::SetScale(lua_State *L, int index, float new_scale)
+{
+	Lua_Font *t = static_cast<Lua_Font *>(lua_touserdata(L, index));
+	if (!t) luaL_typerror(L, index, Lua_Font_Name);
+	t->m_font_scale = new_scale;
+}
 
 int Lua_Font_Measure_Text(lua_State *L)
 {
-	lua_pushnumber(L, Lua_Font::Object(L, 1)->TextWidth(lua_tostring(L, 2)));
-	lua_pushnumber(L, Lua_Font::Object(L, 1)->LineSpacing);
+	if (!lua_isstring(L, 2))
+		luaL_error(L, "measure_text: incorrect argument type");
+
+	lua_pushnumber(L, Lua_Font::Object(L, 1)->TextWidth(lua_tostring(L, 2)) * Lua_Font::Scale(L, 1));
+	lua_pushnumber(L, Lua_Font::Object(L, 1)->LineSpacing * Lua_Font::Scale(L, 1));
 	return 2;
 }
 
 int Lua_Font_Draw_Text(lua_State *L)
 {
+	if (!lua_isstring(L, 2))
+		luaL_error(L, "draw_text: incorrect argument type");
+
 	const char *str = lua_tostring(L, 2);
 	float x = static_cast<float>(lua_tonumber(L, 3));
 	float y = static_cast<float>(lua_tonumber(L, 4));
@@ -789,13 +837,14 @@ int Lua_Font_Draw_Text(lua_State *L)
 	
 	Lua_HUDInstance()->draw_text(Lua_Font::Object(L, 1),
 															 str,
-															 x, y, r, g, b, a);
+															 x, y, r, g, b, a,
+															 Lua_Font::Scale(L, 1));
 	return 0;
 }
 
 static int Lua_Font_Get_Size(lua_State *L)
 {
-	lua_pushnumber(L, Lua_Font::Object(L, 1)->Size);
+	lua_pushnumber(L, Lua_Font::Object(L, 1)->Size * Lua_Font::Scale(L, 1));
 	return 1;
 }
 
@@ -807,45 +856,52 @@ static int Lua_Font_Get_Style(lua_State *L)
 
 static int Lua_Font_Get_File(lua_State *L)
 {
-	char *f = Lua_Font::Object(L, 1)->File;
+	const std::string& f = Lua_Font::Object(L, 1)->File;
 	if (f[0] == '#')
 		lua_pushnil(L);
 	else
-		lua_pushstring(L, f);
+		lua_pushstring(L, f.c_str());
 	return 1;
 }
 
 static int Lua_Font_Get_ID(lua_State *L)
 {
-	char *f = Lua_Font::Object(L, 1)->File;
-	if (f[0] == '#')
-	{
-		short fontid = -1;
-		sscanf(&f[1], "%hd", &fontid);
-		if (fontid != -1)
-			lua_pushnumber(L, fontid);
-		else
-			lua_pushnil(L);
-	}
-	else
-		lua_pushnil(L);
+	lua_pushnil(L);
 	return 1;
 }
 
 static int Lua_Font_Get_Line_Height(lua_State *L)
 {
-	lua_pushnumber(L, Lua_Font::Object(L, 1)->LineSpacing);
+	lua_pushnumber(L, Lua_Font::Object(L, 1)->LineSpacing * Lua_Font::Scale(L, 1));
 	return 1;
 }
 
-const luaL_reg Lua_Font_Get[] = {
+static int Lua_Font_Get_Scale(lua_State *L)
+{
+	lua_pushnumber(L, Lua_Font::Scale(L, 1));
+	return 1;
+}
+
+const luaL_Reg Lua_Font_Get[] = {
 {"size", Lua_Font_Get_Size},
 {"style", Lua_Font_Get_Style},
 {"file", Lua_Font_Get_File},
 {"id", Lua_Font_Get_ID},
 {"line_height", Lua_Font_Get_Line_Height},
+{"scale", Lua_Font_Get_Scale},
 {"measure_text", L_TableFunction<Lua_Font_Measure_Text>},
 {"draw_text", L_TableFunction<Lua_Font_Draw_Text>},
+{0, 0}
+};
+
+static int Lua_Font_Set_Scale(lua_State *L)
+{
+    Lua_Font::SetScale(L, 1, lua_tonumber(L, 2));
+	return 0;
+}
+
+const luaL_Reg Lua_Font_Set[] = {
+{"scale", Lua_Font_Set_Scale},
 {0, 0}
 };
 
@@ -856,7 +912,7 @@ static int Lua_Font_GC(lua_State *L)
 	return 0;
 }
 
-const luaL_reg Lua_Font_Metatable[] = {
+const luaL_Reg Lua_Font_Metatable[] = {
 {"__gc", Lua_Font_GC},
 {0, 0}
 };
@@ -868,19 +924,19 @@ typedef L_Class<Lua_Fonts_Name> Lua_Fonts;
 int Lua_Fonts_New(lua_State *L)
 {
 	FontSpecifier f = {"Monaco", 12, styleNormal, 0, "mono"};
+    float font_scale = 1.0;
 	
-	lua_pushstring(L, "id");
+	lua_pushstring(L, "interface");
 	lua_gettable(L, 1);
 	if (!lua_isnil(L, -1))
-		snprintf(f.File, FontSpecifier::NameSetLen, "#%d", static_cast<int>(lua_tointeger(L, -1)));
+		f = get_interface_font(Lua_InterfaceFont::ToIndex(L, -1));
 	lua_pop(L, 1);
-	
+
 	lua_pushstring(L, "file");
 	lua_gettable(L, 1);
-	if (!lua_isnil(L, -1))
+	if (lua_isstring(L, -1))
 	{
-		strncpy(f.File, lua_tostring(L, -1), FontSpecifier::NameSetLen);
-		f.File[FontSpecifier::NameSetLen-1] = 0;
+		f.File = lua_tostring(L, -1);
 	}
 	lua_pop(L, 1);
 	
@@ -920,7 +976,7 @@ int Lua_Fonts_New(lua_State *L)
 	return 1;
 }
 
-const luaL_reg Lua_Fonts_Get[] = {
+const luaL_Reg Lua_Fonts_Get[] = {
 {"new", L_TableFunction<Lua_Fonts_New>},
 {0, 0}
 };
@@ -973,12 +1029,20 @@ static int Lua_HUDPlayer_Item_Get_Type(lua_State *L)
 	return 1;
 }
 
-const luaL_reg Lua_HUDPlayer_Item_Get[] = { 
+static int Lua_HUDPlayer_Item_Get_Valid(lua_State *L)
+{
+	int item_type = Lua_HUDPlayer_Item::Index(L, 1);
+    lua_pushboolean(L, item_valid_in_current_environment(item_type));
+    return 1;
+}
+
+const luaL_Reg Lua_HUDPlayer_Item_Get[] = { 
 {"count", Lua_HUDPlayer_Item_Get_Count},
 {"inventory_section", Lua_HUDPlayer_Item_Get_Section},
 {"singular", Lua_HUDPlayer_Item_Get_Singular},
 {"plural", Lua_HUDPlayer_Item_Get_Plural},
 {"type", Lua_HUDPlayer_Item_Get_Type},
+{"valid", Lua_HUDPlayer_Item_Get_Valid},
 {0, 0} 
 };
 
@@ -999,11 +1063,225 @@ static int Lua_HUDPlayer_Items_Length(lua_State *L)
 	return 1;
 }
 
-const luaL_reg Lua_HUDPlayer_Items_Metatable[] = {
+const luaL_Reg Lua_HUDPlayer_Items_Metatable[] = {
 {"__index", Lua_HUDPlayer_Items_Get},
 {"__len", Lua_HUDPlayer_Items_Length},
 {0, 0}
 };
+
+char Lua_HUDPlayer_Weapon_Trigger_Bullet_Name[] = "player_weapon_trigger_bullet";
+class Lua_HUDPlayer_Weapon_Trigger_Bullet : public L_Class<Lua_HUDPlayer_Weapon_Trigger_Bullet_Name>
+{
+public:
+	int16 m_weapon_index;
+	
+	static Lua_HUDPlayer_Weapon_Trigger_Bullet *Push(lua_State *L, int16 weapon_index, int16 index);
+	static int16 WeaponIndex(lua_State *L, int index);
+    static struct weapon_interface_ammo_data *AmmoData(lua_State *L, int index);
+};
+
+Lua_HUDPlayer_Weapon_Trigger_Bullet *Lua_HUDPlayer_Weapon_Trigger_Bullet::Push(lua_State *L, int16 weapon_index, int16 index)
+{
+	Lua_HUDPlayer_Weapon_Trigger_Bullet *t = static_cast<Lua_HUDPlayer_Weapon_Trigger_Bullet *>(L_Class<Lua_HUDPlayer_Weapon_Trigger_Bullet_Name>::Push(L, index));
+	if (t)
+	{
+		t->m_weapon_index = weapon_index;
+	}
+	
+	return t;
+}
+
+int16 Lua_HUDPlayer_Weapon_Trigger_Bullet::WeaponIndex(lua_State *L, int index)
+{
+	Lua_HUDPlayer_Weapon_Trigger_Bullet *t = static_cast<Lua_HUDPlayer_Weapon_Trigger_Bullet*>(lua_touserdata(L, index));
+	if (!t) luaL_typerror(L, index, Lua_HUDPlayer_Weapon_Trigger_Bullet_Name);
+	return t->m_weapon_index;
+}
+
+struct weapon_interface_ammo_data *Lua_HUDPlayer_Weapon_Trigger_Bullet::AmmoData(lua_State *L, int index)
+{
+    return &weapon_interface_definitions[Lua_HUDPlayer_Weapon_Trigger_Bullet::WeaponIndex(L, index)]
+                .ammo_data[Lua_HUDPlayer_Weapon_Trigger_Bullet::Index(L, index)];
+}
+
+static int Lua_HUDPlayer_Weapon_Trigger_Bullet_Get_X(lua_State *L)
+{
+    struct weapon_interface_ammo_data *wia = Lua_HUDPlayer_Weapon_Trigger_Bullet::AmmoData(L, 1);
+    lua_pushinteger(L, wia->screen_left);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_Trigger_Bullet_Get_Y(lua_State *L)
+{
+    struct weapon_interface_ammo_data *wia = Lua_HUDPlayer_Weapon_Trigger_Bullet::AmmoData(L, 1);
+    lua_pushinteger(L, wia->screen_top);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_Trigger_Bullet_Get_Width(lua_State *L)
+{
+    struct weapon_interface_ammo_data *wia = Lua_HUDPlayer_Weapon_Trigger_Bullet::AmmoData(L, 1);
+    lua_pushinteger(L, wia->delta_x);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_Trigger_Bullet_Get_Height(lua_State *L)
+{
+    struct weapon_interface_ammo_data *wia = Lua_HUDPlayer_Weapon_Trigger_Bullet::AmmoData(L, 1);
+    lua_pushinteger(L, wia->delta_y);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_Trigger_Bullet_Get_Across(lua_State *L)
+{
+    struct weapon_interface_ammo_data *wia = Lua_HUDPlayer_Weapon_Trigger_Bullet::AmmoData(L, 1);
+    lua_pushinteger(L, wia->ammo_across);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_Trigger_Bullet_Get_Down(lua_State *L)
+{
+    struct weapon_interface_ammo_data *wia = Lua_HUDPlayer_Weapon_Trigger_Bullet::AmmoData(L, 1);
+    lua_pushinteger(L, wia->ammo_down);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_Trigger_Bullet_Get_RTL(lua_State *L)
+{
+    struct weapon_interface_ammo_data *wia = Lua_HUDPlayer_Weapon_Trigger_Bullet::AmmoData(L, 1);
+    lua_pushboolean(L, wia->right_to_left);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_Trigger_Bullet_Get_Frame(lua_State *L)
+{
+    struct weapon_interface_ammo_data *wia = Lua_HUDPlayer_Weapon_Trigger_Bullet::AmmoData(L, 1);
+    if (wia->bullet == UNONE)
+        lua_pushnil(L);
+    else
+        lua_pushinteger(L, wia->bullet);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_Trigger_Bullet_Get_Empty_Frame(lua_State *L)
+{
+    struct weapon_interface_ammo_data *wia = Lua_HUDPlayer_Weapon_Trigger_Bullet::AmmoData(L, 1);
+    if (wia->empty_bullet == UNONE)
+        lua_pushnil(L);
+    else
+        lua_pushinteger(L, wia->empty_bullet);
+    return 1;
+}
+
+const luaL_Reg Lua_HUDPlayer_Weapon_Trigger_Bullet_Get[] = {
+    {"x", Lua_HUDPlayer_Weapon_Trigger_Bullet_Get_X},
+    {"y", Lua_HUDPlayer_Weapon_Trigger_Bullet_Get_Y},
+    {"width", Lua_HUDPlayer_Weapon_Trigger_Bullet_Get_Width},
+    {"height", Lua_HUDPlayer_Weapon_Trigger_Bullet_Get_Height},
+    {"across", Lua_HUDPlayer_Weapon_Trigger_Bullet_Get_Across},
+    {"down", Lua_HUDPlayer_Weapon_Trigger_Bullet_Get_Down},
+    {"right_to_left", Lua_HUDPlayer_Weapon_Trigger_Bullet_Get_RTL},
+    {"texture_index", Lua_HUDPlayer_Weapon_Trigger_Bullet_Get_Frame},
+    {"empty_texture_index", Lua_HUDPlayer_Weapon_Trigger_Bullet_Get_Empty_Frame},
+    {0, 0}
+};
+
+
+char Lua_HUDPlayer_Weapon_Trigger_Energy_Name[] = "player_weapon_trigger_energy";
+class Lua_HUDPlayer_Weapon_Trigger_Energy : public L_Class<Lua_HUDPlayer_Weapon_Trigger_Energy_Name>
+{
+public:
+	int16 m_weapon_index;
+	
+	static Lua_HUDPlayer_Weapon_Trigger_Energy *Push(lua_State *L, int16 weapon_index, int16 index);
+	static int16 WeaponIndex(lua_State *L, int index);
+    static struct weapon_interface_ammo_data *AmmoData(lua_State *L, int index);
+};
+
+Lua_HUDPlayer_Weapon_Trigger_Energy *Lua_HUDPlayer_Weapon_Trigger_Energy::Push(lua_State *L, int16 weapon_index, int16 index)
+{
+	Lua_HUDPlayer_Weapon_Trigger_Energy *t = static_cast<Lua_HUDPlayer_Weapon_Trigger_Energy *>(L_Class<Lua_HUDPlayer_Weapon_Trigger_Energy_Name>::Push(L, index));
+	if (t)
+	{
+		t->m_weapon_index = weapon_index;
+	}
+	
+	return t;
+}
+
+int16 Lua_HUDPlayer_Weapon_Trigger_Energy::WeaponIndex(lua_State *L, int index)
+{
+	Lua_HUDPlayer_Weapon_Trigger_Energy *t = static_cast<Lua_HUDPlayer_Weapon_Trigger_Energy*>(lua_touserdata(L, index));
+	if (!t) luaL_typerror(L, index, Lua_HUDPlayer_Weapon_Trigger_Energy_Name);
+	return t->m_weapon_index;
+}
+
+struct weapon_interface_ammo_data *Lua_HUDPlayer_Weapon_Trigger_Energy::AmmoData(lua_State *L, int index)
+{
+    return &weapon_interface_definitions[Lua_HUDPlayer_Weapon_Trigger_Energy::WeaponIndex(L, index)]
+    .ammo_data[Lua_HUDPlayer_Weapon_Trigger_Energy::Index(L, index)];
+}
+
+static int Lua_HUDPlayer_Weapon_Trigger_Energy_Get_X(lua_State *L)
+{
+    struct weapon_interface_ammo_data *wia = Lua_HUDPlayer_Weapon_Trigger_Energy::AmmoData(L, 1);
+    lua_pushinteger(L, wia->screen_left);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_Trigger_Energy_Get_Y(lua_State *L)
+{
+    struct weapon_interface_ammo_data *wia = Lua_HUDPlayer_Weapon_Trigger_Energy::AmmoData(L, 1);
+    lua_pushinteger(L, wia->screen_top);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_Trigger_Energy_Get_Width(lua_State *L)
+{
+    struct weapon_interface_ammo_data *wia = Lua_HUDPlayer_Weapon_Trigger_Energy::AmmoData(L, 1);
+    lua_pushinteger(L, wia->delta_x);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_Trigger_Energy_Get_Height(lua_State *L)
+{
+    struct weapon_interface_ammo_data *wia = Lua_HUDPlayer_Weapon_Trigger_Energy::AmmoData(L, 1);
+    lua_pushinteger(L, wia->delta_y);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_Trigger_Energy_Get_Max(lua_State *L)
+{
+    struct weapon_interface_ammo_data *wia = Lua_HUDPlayer_Weapon_Trigger_Energy::AmmoData(L, 1);
+    lua_pushinteger(L, wia->ammo_across);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_Trigger_Energy_Get_Full_Color(lua_State *L)
+{
+    struct weapon_interface_ammo_data *wia = Lua_HUDPlayer_Weapon_Trigger_Energy::AmmoData(L, 1);
+    Lua_InterfaceColor::Push(L, wia->bullet);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_Trigger_Energy_Get_Empty_Color(lua_State *L)
+{
+    struct weapon_interface_ammo_data *wia = Lua_HUDPlayer_Weapon_Trigger_Energy::AmmoData(L, 1);
+    Lua_InterfaceColor::Push(L, wia->empty_bullet);
+    return 1;
+}
+
+const luaL_Reg Lua_HUDPlayer_Weapon_Trigger_Energy_Get[] = {
+    {"x", Lua_HUDPlayer_Weapon_Trigger_Energy_Get_X},
+    {"y", Lua_HUDPlayer_Weapon_Trigger_Energy_Get_Y},
+    {"width", Lua_HUDPlayer_Weapon_Trigger_Energy_Get_Width},
+    {"height", Lua_HUDPlayer_Weapon_Trigger_Energy_Get_Height},
+    {"maximum", Lua_HUDPlayer_Weapon_Trigger_Energy_Get_Max},
+    {"color", Lua_HUDPlayer_Weapon_Trigger_Energy_Get_Full_Color},
+    {"empty_color", Lua_HUDPlayer_Weapon_Trigger_Energy_Get_Empty_Color},
+    {0, 0}
+};
+
 
 char Lua_HUDPlayer_Weapon_Trigger_Name[] = "player_weapon_trigger";
 
@@ -1075,11 +1353,37 @@ static int Lua_HUDPlayer_Weapon_Trigger_Get_Weapon_Drawn(lua_State *L)
 	return 1;
 }
 
-const luaL_reg Lua_HUDPlayer_Weapon_Trigger_Get[] = {
+static int Lua_HUDPlayer_Weapon_Trigger_Get_Bullet(lua_State *L)
+{
+    int wep_idx = Lua_HUDPlayer_Weapon_Trigger::WeaponIndex(L, 1);
+    int trig_idx = Lua_HUDPlayer_Weapon_Trigger::Index(L, 1);
+    struct weapon_interface_ammo_data *wia = &weapon_interface_definitions[wep_idx].ammo_data[trig_idx];
+    if (wia->type == _uses_bullets)
+        Lua_HUDPlayer_Weapon_Trigger_Bullet::Push(L, wep_idx, trig_idx);
+    else
+        lua_pushnil(L);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_Trigger_Get_Energy(lua_State *L)
+{
+    int wep_idx = Lua_HUDPlayer_Weapon_Trigger::WeaponIndex(L, 1);
+    int trig_idx = Lua_HUDPlayer_Weapon_Trigger::Index(L, 1);
+    struct weapon_interface_ammo_data *wia = &weapon_interface_definitions[wep_idx].ammo_data[trig_idx];
+    if (wia->type == _uses_energy)
+        Lua_HUDPlayer_Weapon_Trigger_Energy::Push(L, wep_idx, trig_idx);
+    else
+        lua_pushnil(L);
+    return 1;
+}
+
+const luaL_Reg Lua_HUDPlayer_Weapon_Trigger_Get[] = {
 {"rounds", Lua_HUDPlayer_Weapon_Trigger_Get_Rounds},
 {"total_rounds", Lua_HUDPlayer_Weapon_Trigger_Get_Total_Rounds},
 {"ammo_type", Lua_HUDPlayer_Weapon_Trigger_Get_Ammo_Type},
 {"weapon_drawn", Lua_HUDPlayer_Weapon_Trigger_Get_Weapon_Drawn},
+{"bullet_display", Lua_HUDPlayer_Weapon_Trigger_Get_Bullet},
+{"energy_display", Lua_HUDPlayer_Weapon_Trigger_Get_Energy},
 {0, 0}
 };
 
@@ -1091,6 +1395,194 @@ static int get_hudweapon_trigger(lua_State *L)
 {
 	Lua_HUDPlayer_Weapon_Trigger::Push(L, Lua_HUDPlayer_Weapon::Index(L, 1), trigger);
 	return 1;
+}
+
+char Lua_HUDPlayer_Weapon_SingleShape_Name[] = "player_weapon_singleshape";
+typedef L_Class<Lua_HUDPlayer_Weapon_SingleShape_Name> Lua_HUDPlayer_Weapon_SingleShape;
+
+static int Lua_HUDPlayer_Weapon_SingleShape_Get_Frame(lua_State *L)
+{
+    struct weapon_interface_data *wid = &weapon_interface_definitions[Lua_HUDPlayer_Weapon_SingleShape::Index(L, 1)];
+    lua_pushinteger(L, wid->weapon_panel_shape);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_SingleShape_Get_X(lua_State *L)
+{
+    struct weapon_interface_data *wid = &weapon_interface_definitions[Lua_HUDPlayer_Weapon_SingleShape::Index(L, 1)];
+    lua_pushinteger(L, wid->standard_weapon_panel_left);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_SingleShape_Get_Y(lua_State *L)
+{
+    struct weapon_interface_data *wid = &weapon_interface_definitions[Lua_HUDPlayer_Weapon_SingleShape::Index(L, 1)];
+    lua_pushinteger(L, wid->standard_weapon_panel_top);
+    return 1;
+}
+
+const luaL_Reg Lua_HUDPlayer_Weapon_SingleShape_Get[] = {
+    {"texture_index", Lua_HUDPlayer_Weapon_SingleShape_Get_Frame},
+    {"x", Lua_HUDPlayer_Weapon_SingleShape_Get_X},
+    {"y", Lua_HUDPlayer_Weapon_SingleShape_Get_Y},
+    {0, 0}
+};
+
+char Lua_HUDPlayer_Weapon_MultShape_Name[] = "player_weapon_multshape";
+typedef L_Class<Lua_HUDPlayer_Weapon_MultShape_Name> Lua_HUDPlayer_Weapon_MultShape;
+
+static int Lua_HUDPlayer_Weapon_MultShape_Get_Frame(lua_State *L)
+{
+    struct weapon_interface_data *wid = &weapon_interface_definitions[Lua_HUDPlayer_Weapon_MultShape::Index(L, 1)];
+    lua_pushinteger(L, wid->multiple_shape);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_MultShape_Get_X(lua_State *L)
+{
+    struct weapon_interface_data *wid = &weapon_interface_definitions[Lua_HUDPlayer_Weapon_MultShape::Index(L, 1)];
+    lua_pushinteger(L, wid->standard_weapon_panel_left + wid->multiple_delta_x);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_MultShape_Get_Y(lua_State *L)
+{
+    struct weapon_interface_data *wid = &weapon_interface_definitions[Lua_HUDPlayer_Weapon_MultShape::Index(L, 1)];
+    lua_pushinteger(L, wid->standard_weapon_panel_top + wid->multiple_delta_y);
+    return 1;
+}
+
+const luaL_Reg Lua_HUDPlayer_Weapon_MultShape_Get[] = {
+    {"texture_index", Lua_HUDPlayer_Weapon_MultShape_Get_Frame},
+    {"x", Lua_HUDPlayer_Weapon_MultShape_Get_X},
+    {"y", Lua_HUDPlayer_Weapon_MultShape_Get_Y},
+    {0, 0}
+};
+
+char Lua_HUDPlayer_Weapon_UnusableShape_Name[] = "player_weapon_unusableshape";
+typedef L_Class<Lua_HUDPlayer_Weapon_UnusableShape_Name> Lua_HUDPlayer_Weapon_UnusableShape;
+
+static int Lua_HUDPlayer_Weapon_UnusableShape_Get_Frame(lua_State *L)
+{
+    struct weapon_interface_data *wid = &weapon_interface_definitions[Lua_HUDPlayer_Weapon_UnusableShape::Index(L, 1)];
+    lua_pushinteger(L, wid->multiple_unusable_shape);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_UnusableShape_Get_X(lua_State *L)
+{
+    struct weapon_interface_data *wid = &weapon_interface_definitions[Lua_HUDPlayer_Weapon_UnusableShape::Index(L, 1)];
+    lua_pushinteger(L, wid->standard_weapon_panel_left + wid->multiple_delta_x);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_UnusableShape_Get_Y(lua_State *L)
+{
+    struct weapon_interface_data *wid = &weapon_interface_definitions[Lua_HUDPlayer_Weapon_UnusableShape::Index(L, 1)];
+    lua_pushinteger(L, wid->standard_weapon_panel_top + wid->multiple_delta_y);
+    return 1;
+}
+
+const luaL_Reg Lua_HUDPlayer_Weapon_UnusableShape_Get[] = {
+    {"texture_index", Lua_HUDPlayer_Weapon_UnusableShape_Get_Frame},
+    {"x", Lua_HUDPlayer_Weapon_UnusableShape_Get_X},
+    {"y", Lua_HUDPlayer_Weapon_UnusableShape_Get_Y},
+    {0, 0}
+};
+
+static int Lua_HUDPlayer_Weapon_Get_SingleShape(lua_State *L)
+{
+    short idx = Lua_HUDPlayer_Weapon::Index(L, 1);
+    struct weapon_interface_data *wid = &weapon_interface_definitions[idx];
+    if (wid->weapon_panel_shape == UNONE)
+        lua_pushnil(L);
+    else
+        Lua_HUDPlayer_Weapon_SingleShape::Push(L, idx);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_Get_MultShape(lua_State *L)
+{
+    short idx = Lua_HUDPlayer_Weapon::Index(L, 1);
+    struct weapon_interface_data *wid = &weapon_interface_definitions[idx];
+    if (!wid->multi_weapon || wid->multiple_shape == UNONE)
+        lua_pushnil(L);
+    else
+        Lua_HUDPlayer_Weapon_MultShape::Push(L, idx);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_Get_UnusableShape(lua_State *L)
+{
+    short idx = Lua_HUDPlayer_Weapon::Index(L, 1);
+    struct weapon_interface_data *wid = &weapon_interface_definitions[idx];
+    if (!wid->multi_weapon || wid->multiple_unusable_shape == UNONE)
+        lua_pushnil(L);
+    else
+        Lua_HUDPlayer_Weapon_UnusableShape::Push(L, idx);
+    return 1;
+}
+
+char Lua_HUDPlayer_Weapon_Name_Rect_Name[] = "player_weapon_name_rect";
+typedef L_Class<Lua_HUDPlayer_Weapon_Name_Rect_Name> Lua_HUDPlayer_Weapon_Name_Rect;
+
+static int Lua_HUDPlayer_Weapon_Name_Rect_Get_X(lua_State *L)
+{
+    struct weapon_interface_data *wid = &weapon_interface_definitions[Lua_HUDPlayer_Weapon_Name_Rect::Index(L, 1)];
+    short startx = wid->weapon_name_start_x;
+    if (startx == NONE)
+    {
+        screen_rectangle *r = get_interface_rectangle(_weapon_display_rect);
+        startx = r->left;
+    }
+    lua_pushnumber(L, startx);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_Name_Rect_Get_Width(lua_State *L)
+{
+    struct weapon_interface_data *wid = &weapon_interface_definitions[Lua_HUDPlayer_Weapon_Name_Rect::Index(L, 1)];
+    short startx = wid->weapon_name_start_x;
+    short endx = wid->weapon_name_end_x;
+    if (startx == NONE || endx == NONE)
+    {
+        screen_rectangle *r = get_interface_rectangle(_weapon_display_rect);
+        if (startx == NONE)
+            startx = r->left;
+        if (endx == NONE)
+            endx = r->right;
+    }
+    lua_pushnumber(L, endx - startx);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_Name_Rect_Get_Y(lua_State *L)
+{
+    struct weapon_interface_data *wid = &weapon_interface_definitions[Lua_HUDPlayer_Weapon_Name_Rect::Index(L, 1)];
+    lua_pushnumber(L, wid->weapon_name_start_y);
+    return 1;
+}
+
+static int Lua_HUDPlayer_Weapon_Name_Rect_Get_Height(lua_State *L)
+{
+    struct weapon_interface_data *wid = &weapon_interface_definitions[Lua_HUDPlayer_Weapon_Name_Rect::Index(L, 1)];
+    lua_pushnumber(L, wid->weapon_name_end_y - wid->weapon_name_start_y);
+    return 1;
+}
+
+const luaL_Reg Lua_HUDPlayer_Weapon_Name_Rect_Get[] = {
+    {"x", Lua_HUDPlayer_Weapon_Name_Rect_Get_X},
+    {"y", Lua_HUDPlayer_Weapon_Name_Rect_Get_Y},
+    {"width", Lua_HUDPlayer_Weapon_Name_Rect_Get_Width},
+    {"height", Lua_HUDPlayer_Weapon_Name_Rect_Get_Height},
+    {0, 0}
+};
+
+
+static int Lua_HUDPlayer_Weapon_Get_Name_Rect(lua_State *L)
+{
+    Lua_HUDPlayer_Weapon_Name_Rect::Push(L, Lua_HUDPlayer_Weapon::Index(L, 1));
+    return 1;
 }
 
 static int Lua_HUDPlayer_Weapon_Get_Type(lua_State *L)
@@ -1128,12 +1620,16 @@ static int Lua_HUDPlayer_Weapon_Get_Name(lua_State *L)
 	return 1;
 }
 
-const luaL_reg Lua_HUDPlayer_Weapon_Get[] = { 
+const luaL_Reg Lua_HUDPlayer_Weapon_Get[] = { 
 {"primary", get_hudweapon_trigger<_primary_weapon>},
 {"secondary", get_hudweapon_trigger<_secondary_weapon>},
 {"type", Lua_HUDPlayer_Weapon_Get_Type},
 {"name", Lua_HUDPlayer_Weapon_Get_Name},
-{0, 0} 
+{"name_rect", Lua_HUDPlayer_Weapon_Get_Name_Rect},
+{"shape", Lua_HUDPlayer_Weapon_Get_SingleShape},
+{"multiple_shape", Lua_HUDPlayer_Weapon_Get_MultShape},
+{"multiple_unusable_shape", Lua_HUDPlayer_Weapon_Get_UnusableShape},
+{0, 0}
 };
 
 extern player_weapon_data *get_player_weapon_data(const short player_index);
@@ -1186,7 +1682,7 @@ static int Lua_HUDPlayer_Weapons_Length(lua_State *L)
 	return 1;
 }
 
-const luaL_reg Lua_HUDPlayer_Weapons_Metatable[] = {
+const luaL_Reg Lua_HUDPlayer_Weapons_Metatable[] = {
 {"__index", Lua_HUDPlayer_Weapons_Get},
 {"__len", Lua_HUDPlayer_Weapons_Length},
 {0, 0}
@@ -1210,7 +1706,7 @@ static int Lua_HUDPlayer_Section_Get_Type(lua_State *L)
 	return 1;
 }
 
-const luaL_reg Lua_HUDPlayer_Section_Get[] = { 
+const luaL_Reg Lua_HUDPlayer_Section_Get[] = { 
 {"name", Lua_HUDPlayer_Section_Get_Name},
 {"type", Lua_HUDPlayer_Section_Get_Type},
 {0, 0} 
@@ -1240,7 +1736,7 @@ static int Lua_HUDPlayer_Sections_Length(lua_State *L)
 	return 1;
 }
 
-const luaL_reg Lua_HUDPlayer_Sections_Metatable[] = {
+const luaL_Reg Lua_HUDPlayer_Sections_Metatable[] = {
 {"__index", Lua_HUDPlayer_Sections_Get},
 {"__len", Lua_HUDPlayer_Sections_Length},
 {0, 0}
@@ -1273,7 +1769,7 @@ static int Lua_HUDCompass_Get_SW(lua_State *L)
 	return 1;
 }
 
-const luaL_reg Lua_HUDCompass_Get[] = {
+const luaL_Reg Lua_HUDCompass_Get[] = {
 {"ne", Lua_HUDCompass_Get_NE},
 {"northeast", Lua_HUDCompass_Get_NE},
 {"nw", Lua_HUDCompass_Get_NW},
@@ -1316,7 +1812,7 @@ static int Lua_MotionSensor_Blip_Get_Direction(lua_State *L)
 	return 1;
 }
 
-const luaL_reg Lua_MotionSensor_Blip_Get[] = { 
+const luaL_Reg Lua_MotionSensor_Blip_Get[] = { 
 {"type", Lua_MotionSensor_Blip_Get_Type},
 {"intensity", Lua_MotionSensor_Blip_Get_Intensity},
 {"distance", Lua_MotionSensor_Blip_Get_Distance},
@@ -1345,7 +1841,7 @@ static int Lua_MotionSensor_Blips_Length(lua_State *L)
 	return 1;
 }
 
-const luaL_reg Lua_MotionSensor_Blips_Metatable[] = {
+const luaL_Reg Lua_MotionSensor_Blips_Metatable[] = {
 {"__index", Lua_MotionSensor_Blips_Get},
 {"__len", Lua_MotionSensor_Blips_Length},
 {0, 0}
@@ -1369,7 +1865,7 @@ static int Lua_MotionSensor_Get_Blips(lua_State *L)
 	return 1;
 }
 
-const luaL_reg Lua_MotionSensor_Get[] = {
+const luaL_Reg Lua_MotionSensor_Get[] = {
 {"active", Lua_MotionSensor_Get_Active},
 {"blips", Lua_MotionSensor_Get_Blips},
 {0, 0}
@@ -1411,7 +1907,7 @@ static int Lua_HUDTexturePalette_Slot_Get_Type(lua_State *L)
     return 1;
 }
 
-const luaL_reg Lua_HUDTexturePalette_Slot_Get[] = {
+const luaL_Reg Lua_HUDTexturePalette_Slot_Get[] = {
 {"collection", Lua_HUDTexturePalette_Slot_Get_Collection},
 {"texture_index", Lua_HUDTexturePalette_Slot_Get_Texture},
 {"type", Lua_HUDTexturePalette_Slot_Get_Type},
@@ -1448,7 +1944,7 @@ static int Lua_HUDTexturePalette_Slots_Length(lua_State *L)
 	return 1;
 }
 
-const luaL_reg Lua_HUDTexturePalette_Slots_Metatable[] = {
+const luaL_Reg Lua_HUDTexturePalette_Slots_Metatable[] = {
 {"__index", Lua_HUDTexturePalette_Slots_Get},
 {"__len", Lua_HUDTexturePalette_Slots_Length},
 {0, 0}
@@ -1482,7 +1978,7 @@ static int Lua_HUDTexturePalette_Get_Slots(lua_State *L)
     return 1;
 }
 
-const luaL_reg Lua_HUDTexturePalette_Get[] = {
+const luaL_Reg Lua_HUDTexturePalette_Get[] = {
 {"size", Lua_HUDTexturePalette_Get_Size},
 {"highlight", Lua_HUDTexturePalette_Get_Selected},
 {"slots", Lua_HUDTexturePalette_Get_Slots},
@@ -1503,6 +1999,18 @@ static int Lua_HUDPlayer_Get_Dead(lua_State *L)
 {
 	lua_pushboolean(L, (PLAYER_IS_DEAD(current_player) || PLAYER_IS_TOTALLY_DEAD(current_player)));
 	return 1;
+}
+
+static int Lua_HUDPlayer_Get_Respawn_Duration(lua_State *L)
+{
+    int delayticks = -1;
+    if (PLAYER_IS_DEAD(current_player) &&
+        PLAYER_IS_TOTALLY_DEAD(current_player) &&
+        (current_player->variables.action==_player_stationary||dynamic_world->player_count==1))
+        lua_pushinteger(L, current_player->reincarnation_delay);
+    else
+        lua_pushnil(L);  // I'm not dead yet!
+    return 1;
 }
 
 static int Lua_HUDPlayer_Get_Energy(lua_State *L)
@@ -1554,7 +2062,7 @@ static int Lua_HUDPlayer_Velocity_Get_Vertical(lua_State *L)
 	return 1;
 }
 
-const luaL_reg Lua_HUDPlayer_Velocity_Get[] = {
+const luaL_Reg Lua_HUDPlayer_Velocity_Get[] = {
 	{"forward", Lua_HUDPlayer_Velocity_Get_Forward},
 	{"perpendicular", Lua_HUDPlayer_Velocity_Get_Perpendicular},
 	{"vertical", Lua_HUDPlayer_Velocity_Get_Vertical},
@@ -1634,7 +2142,7 @@ static int Lua_HUDPlayer_Get_Texture_Palette(lua_State *L)
     return 1;
 }
 
-const luaL_reg Lua_HUDPlayer_Get[] = {
+const luaL_Reg Lua_HUDPlayer_Get[] = {
 {"color", Lua_HUDPlayer_Get_Color},
 {"dead", Lua_HUDPlayer_Get_Dead},
 {"direction", Lua_HUDPlayer_Get_Direction},
@@ -1655,6 +2163,7 @@ const luaL_reg Lua_HUDPlayer_Get[] = {
 {"compass", Lua_HUDPlayer_Get_Compass},
 {"zoom_active", Lua_HUDPlayer_Get_Zoom},
 {"texture_palette", Lua_HUDPlayer_Get_Texture_Palette},
+{"respawn_duration", Lua_HUDPlayer_Get_Respawn_Duration},
 {0, 0}
 };
 
@@ -1710,7 +2219,7 @@ static int Lua_Screen_Clip_Rect_Set_Height(lua_State *L)
   return 0;
 }
 
-const luaL_reg Lua_Screen_Clip_Rect_Get[] = {
+const luaL_Reg Lua_Screen_Clip_Rect_Get[] = {
 {"x", Lua_Screen_Clip_Rect_Get_X},
 {"y", Lua_Screen_Clip_Rect_Get_Y},
 {"width", Lua_Screen_Clip_Rect_Get_Width},
@@ -1718,7 +2227,7 @@ const luaL_reg Lua_Screen_Clip_Rect_Get[] = {
 {0, 0}
 };
 
-const luaL_reg Lua_Screen_Clip_Rect_Set[] = {
+const luaL_Reg Lua_Screen_Clip_Rect_Set[] = {
 {"x", Lua_Screen_Clip_Rect_Set_X},
 {"y", Lua_Screen_Clip_Rect_Set_Y},
 {"width", Lua_Screen_Clip_Rect_Set_Width},
@@ -1777,7 +2286,7 @@ static int Lua_Screen_World_Rect_Set_Height(lua_State *L)
   return 0;
 }
 
-const luaL_reg Lua_Screen_World_Rect_Get[] = {
+const luaL_Reg Lua_Screen_World_Rect_Get[] = {
 {"x", Lua_Screen_World_Rect_Get_X},
 {"y", Lua_Screen_World_Rect_Get_Y},
 {"width", Lua_Screen_World_Rect_Get_Width},
@@ -1785,7 +2294,7 @@ const luaL_reg Lua_Screen_World_Rect_Get[] = {
 {0, 0}
 };
 
-const luaL_reg Lua_Screen_World_Rect_Set[] = {
+const luaL_Reg Lua_Screen_World_Rect_Set[] = {
 {"x", Lua_Screen_World_Rect_Set_X},
 {"y", Lua_Screen_World_Rect_Set_Y},
 {"width", Lua_Screen_World_Rect_Set_Width},
@@ -1844,7 +2353,7 @@ static int Lua_Screen_Map_Rect_Set_Height(lua_State *L)
   return 0;
 }
 
-const luaL_reg Lua_Screen_Map_Rect_Get[] = {
+const luaL_Reg Lua_Screen_Map_Rect_Get[] = {
 {"x", Lua_Screen_Map_Rect_Get_X},
 {"y", Lua_Screen_Map_Rect_Get_Y},
 {"width", Lua_Screen_Map_Rect_Get_Width},
@@ -1852,7 +2361,7 @@ const luaL_reg Lua_Screen_Map_Rect_Get[] = {
 {0, 0}
 };
 
-const luaL_reg Lua_Screen_Map_Rect_Set[] = {
+const luaL_Reg Lua_Screen_Map_Rect_Set[] = {
 {"x", Lua_Screen_Map_Rect_Set_X},
 {"y", Lua_Screen_Map_Rect_Set_Y},
 {"width", Lua_Screen_Map_Rect_Set_Width},
@@ -1911,7 +2420,7 @@ static int Lua_Screen_Term_Rect_Set_Height(lua_State *L)
   return 0;
 }
 
-const luaL_reg Lua_Screen_Term_Rect_Get[] = {
+const luaL_Reg Lua_Screen_Term_Rect_Get[] = {
 {"x", Lua_Screen_Term_Rect_Get_X},
 {"y", Lua_Screen_Term_Rect_Get_Y},
 {"width", Lua_Screen_Term_Rect_Get_Width},
@@ -1919,7 +2428,7 @@ const luaL_reg Lua_Screen_Term_Rect_Get[] = {
 {0, 0}
 };
 
-const luaL_reg Lua_Screen_Term_Rect_Set[] = {
+const luaL_Reg Lua_Screen_Term_Rect_Set[] = {
 {"x", Lua_Screen_Term_Rect_Set_X},
 {"y", Lua_Screen_Term_Rect_Set_Y},
 {"width", Lua_Screen_Term_Rect_Set_Width},
@@ -1954,14 +2463,14 @@ static int Lua_Screen_FOV_Get_Fix(lua_State *L)
     return 1;
 }
 
-const luaL_reg Lua_Screen_FOV_Get[] = {
+const luaL_Reg Lua_Screen_FOV_Get[] = {
 {"horizontal", Lua_Screen_FOV_Get_Horizontal},
 {"vertical", Lua_Screen_FOV_Get_Vertical},
 {"fix_h_not_v", Lua_Screen_FOV_Get_Fix},
 {0, 0}
 };
 
-const luaL_reg Lua_Screen_FOV_Set[] = {
+const luaL_Reg Lua_Screen_FOV_Set[] = {
 {0, 0}
 };
 
@@ -1983,17 +2492,16 @@ static int Lua_Screen_Crosshairs_Get_LuaHUD(lua_State *L)
 static int Lua_Screen_Crosshairs_Set_LuaHUD(lua_State *L)
 {
 	use_lua_hud_crosshairs = lua_toboolean(L, 2);
-	use_lua_hud_crosshairs = true;
 	return 0;
 }
 
-const luaL_reg Lua_Screen_Crosshairs_Get[] = {
+const luaL_Reg Lua_Screen_Crosshairs_Get[] = {
 {"active", Lua_Screen_Crosshairs_Get_Active},
 {"lua_hud", Lua_Screen_Crosshairs_Get_LuaHUD},
 {0, 0}
 };
 										   
-const luaL_reg Lua_Screen_Crosshairs_Set[] = {
+const luaL_Reg Lua_Screen_Crosshairs_Set[] = {
 {"lua_hud", Lua_Screen_Crosshairs_Set_LuaHUD},
 {0, 0}
 };
@@ -2134,7 +2642,7 @@ int Lua_Screen_Frame_Rect(lua_State *L)
 	return 0;
 }
 
-const luaL_reg Lua_Screen_Get[] = {
+const luaL_Reg Lua_Screen_Get[] = {
 {"width", Lua_Screen_Get_Width},
 {"height", Lua_Screen_Get_Height},
 {"renderer", Lua_Screen_Get_Renderer},
@@ -2156,7 +2664,7 @@ const luaL_reg Lua_Screen_Get[] = {
 {0, 0}
 };
 
-const luaL_reg Lua_Screen_Set[] = {
+const luaL_Reg Lua_Screen_Set[] = {
 {"masking_mode", Lua_Screen_Set_Masking_Mode},
 {0, 0}
 };
@@ -2210,7 +2718,7 @@ static int Lua_HUDGame_Player_Get_Ranking(lua_State *L)
 	return 1;
 }
 
-const luaL_reg Lua_HUDGame_Player_Get[] = { 
+const luaL_Reg Lua_HUDGame_Player_Get[] = { 
 {"color", Lua_HUDGame_Player_Get_Color},
 {"team", Lua_HUDGame_Player_Get_Team},
 {"name", Lua_HUDGame_Player_Get_Name},
@@ -2241,7 +2749,7 @@ static int Lua_HUDGame_Players_Length(lua_State *L)
 	return 1;
 }
 
-const luaL_reg Lua_HUDGame_Players_Metatable[] = {
+const luaL_Reg Lua_HUDGame_Players_Metatable[] = {
 {"__index", Lua_HUDGame_Players_Get},
 {"__len", Lua_HUDGame_Players_Length},
 {0, 0}
@@ -2316,7 +2824,7 @@ static int Lua_HUDGame_Get_Version(lua_State *L)
 	return 1;
 }
 
-const luaL_reg Lua_HUDGame_Get[] = {
+const luaL_Reg Lua_HUDGame_Get[] = {
 {"difficulty", Lua_HUDGame_Get_Difficulty},
 {"kill_limit", Lua_HUDGame_Get_Kill_Limit},
 {"time_remaining", Lua_HUDGame_Get_Time_Remaining},
@@ -2393,7 +2901,7 @@ static int Lua_HUDLighting_Fader_Get_Color(lua_State *L)
     return 1;
 }
 
-const luaL_reg Lua_HUDLighting_Fader_Get[] = {
+const luaL_Reg Lua_HUDLighting_Fader_Get[] = {
 {"active", Lua_HUDLighting_Fader_Get_Active},
 {"type", Lua_HUDLighting_Fader_Get_Type},
 {"color", Lua_HUDLighting_Fader_Get_Color},
@@ -2427,13 +2935,92 @@ static int Lua_HUDLighting_Get_Damage_Fader(lua_State *L)
     return 1;
 }
 
-const luaL_reg Lua_HUDLighting_Get[] = {
+const luaL_Reg Lua_HUDLighting_Get[] = {
 {"ambient_light", Lua_HUDLighting_Get_Ambient},
 {"weapon_flash", Lua_HUDLighting_Get_Weapon},
 {"liquid_fader", Lua_HUDLighting_Get_Liquid_Fader},
 {"damage_fader", Lua_HUDLighting_Get_Damage_Fader},
 {0, 0}
 };
+
+
+static int Lua_InterfaceColor_Get_R(lua_State *L)
+{
+    rgb_color clr = get_interface_color(Lua_InterfaceColor::Index(L, 1));
+    lua_pushnumber(L, clr.red / 65535.0);
+	return 1;
+}
+
+static int Lua_InterfaceColor_Get_G(lua_State *L)
+{
+    rgb_color clr = get_interface_color(Lua_InterfaceColor::Index(L, 1));
+    lua_pushnumber(L, clr.green / 65535.0);
+	return 1;
+}
+
+static int Lua_InterfaceColor_Get_B(lua_State *L)
+{
+    rgb_color clr = get_interface_color(Lua_InterfaceColor::Index(L, 1));
+    lua_pushnumber(L, clr.blue / 65535.0);
+	return 1;
+}
+
+static int Lua_InterfaceColor_Get_A(lua_State *L)
+{
+    lua_pushnumber(L, 1.0);
+	return 1;
+}
+
+const luaL_Reg Lua_InterfaceColor_Get[] = {
+    {"r", Lua_InterfaceColor_Get_R},
+    {"g", Lua_InterfaceColor_Get_G},
+    {"b", Lua_InterfaceColor_Get_B},
+    {"a", Lua_InterfaceColor_Get_A},
+    {"red", Lua_InterfaceColor_Get_R},
+    {"green", Lua_InterfaceColor_Get_G},
+    {"blue", Lua_InterfaceColor_Get_B},
+    {"alpha", Lua_InterfaceColor_Get_A},
+    {0, 0}
+};
+
+
+static int Lua_InterfaceRect_Get_X(lua_State *L)
+{
+    screen_rectangle *r = get_interface_rectangle(Lua_InterfaceRect::Index(L, 1));
+    lua_pushnumber(L, r->left);
+	return 1;
+}
+
+static int Lua_InterfaceRect_Get_Y(lua_State *L)
+{
+    screen_rectangle *r = get_interface_rectangle(Lua_InterfaceRect::Index(L, 1));
+    lua_pushnumber(L, r->top);
+	return 1;
+}
+
+static int Lua_InterfaceRect_Get_Width(lua_State *L)
+{
+    screen_rectangle *r = get_interface_rectangle(Lua_InterfaceRect::Index(L, 1));
+    lua_pushnumber(L, r->right - r->left);
+	return 1;
+}
+
+static int Lua_InterfaceRect_Get_Height(lua_State *L)
+{
+    screen_rectangle *r = get_interface_rectangle(Lua_InterfaceRect::Index(L, 1));
+    lua_pushnumber(L, r->bottom - r->top);
+	return 1;
+}
+
+const luaL_Reg Lua_InterfaceRect_Get[] = {
+{"x", Lua_InterfaceRect_Get_X},
+{"y", Lua_InterfaceRect_Get_Y},
+{"width", Lua_InterfaceRect_Get_Width},
+{"height", Lua_InterfaceRect_Get_Height},
+{0, 0}
+};
+
+
 
 extern bool collection_loaded(short);
 
@@ -2469,6 +3056,24 @@ int Lua_HUDObjects_register(lua_State *L)
 	Lua_GameTypes::Register(L);
 	Lua_GameTypes::Length = Lua_GameTypes::ConstantLength(NUMBER_OF_GAME_TYPES);
 	
+	Lua_InterfaceColor::Register(L, Lua_InterfaceColor_Get, 0, 0, Lua_InterfaceColor_Mnemonics);
+	Lua_InterfaceColor::Valid = Lua_InterfaceColor::ValidRange(NUMBER_OF_INTERFACE_COLORS);
+	
+	Lua_InterfaceColors::Register(L);
+	Lua_InterfaceColors::Length = Lua_InterfaceColors::ConstantLength(NUMBER_OF_INTERFACE_COLORS);
+	
+	Lua_InterfaceRect::Register(L, Lua_InterfaceRect_Get, 0, 0, Lua_InterfaceRect_Mnemonics);
+	Lua_InterfaceRect::Valid = Lua_InterfaceRect::ValidRange(NUMBER_OF_INTERFACE_RECTANGLES);
+	
+	Lua_InterfaceRects::Register(L);
+	Lua_InterfaceRects::Length = Lua_InterfaceRects::ConstantLength(NUMBER_OF_INTERFACE_RECTANGLES);
+
+	Lua_InterfaceFont::Register(L, 0, 0, 0, Lua_InterfaceFont_Mnemonics);
+	Lua_InterfaceFont::Valid = Lua_InterfaceFont::ValidRange(NUMBER_OF_INTERFACE_FONTS);
+	
+	Lua_InterfaceFonts::Register(L);
+	Lua_InterfaceFonts::Length = Lua_InterfaceFonts::ConstantLength(NUMBER_OF_INTERFACE_FONTS);
+    	
 	Lua_InventorySection::Register(L, 0, 0, 0, Lua_InventorySection_Mnemonics);
 	Lua_InventorySection::Valid = Lua_InventorySection::ValidRange(NUMBER_OF_ITEM_TYPES + 1);
 	
@@ -2533,8 +3138,26 @@ int Lua_HUDObjects_register(lua_State *L)
 	
 	Lua_HUDPlayer_Sections::Register(L, 0, 0, Lua_HUDPlayer_Sections_Metatable);
 	
+	Lua_HUDPlayer_Weapon_Trigger_Bullet::Register(L, Lua_HUDPlayer_Weapon_Trigger_Bullet_Get);
+	Lua_HUDPlayer_Weapon_Trigger_Bullet::Valid = Lua_HUDPlayer_Weapon_Trigger_Bullet::ValidRange((int) _secondary_weapon + 1);
+    
+	Lua_HUDPlayer_Weapon_Trigger_Energy::Register(L, Lua_HUDPlayer_Weapon_Trigger_Energy_Get);
+	Lua_HUDPlayer_Weapon_Trigger_Energy::Valid = Lua_HUDPlayer_Weapon_Trigger_Energy::ValidRange((int) _secondary_weapon + 1);
+    
 	Lua_HUDPlayer_Weapon_Trigger::Register(L, Lua_HUDPlayer_Weapon_Trigger_Get);
 	Lua_HUDPlayer_Weapon_Trigger::Valid = Lua_HUDPlayer_Weapon_Trigger::ValidRange((int) _secondary_weapon + 1);
+    
+    Lua_HUDPlayer_Weapon_Name_Rect::Register(L, Lua_HUDPlayer_Weapon_Name_Rect_Get);
+    Lua_HUDPlayer_Weapon_Name_Rect::Valid = Lua_HUDPlayer_Weapon::Valid;
+	
+    Lua_HUDPlayer_Weapon_SingleShape::Register(L, Lua_HUDPlayer_Weapon_SingleShape_Get);
+    Lua_HUDPlayer_Weapon_SingleShape::Valid = Lua_HUDPlayer_Weapon::Valid;
+	
+    Lua_HUDPlayer_Weapon_MultShape::Register(L, Lua_HUDPlayer_Weapon_MultShape_Get);
+    Lua_HUDPlayer_Weapon_MultShape::Valid = Lua_HUDPlayer_Weapon::Valid;
+	
+    Lua_HUDPlayer_Weapon_UnusableShape::Register(L, Lua_HUDPlayer_Weapon_UnusableShape_Get);
+    Lua_HUDPlayer_Weapon_UnusableShape::Valid = Lua_HUDPlayer_Weapon::Valid;
 	
 	Lua_HUDPlayer_Item::Register(L, Lua_HUDPlayer_Item_Get);
 	Lua_HUDPlayer_Item::Valid = Lua_HUDPlayer_Item::ValidRange(NUMBER_OF_DEFINED_ITEMS);
@@ -2583,7 +3206,7 @@ int Lua_HUDObjects_register(lua_State *L)
 	Lua_HUDGame::Push(L, 0);
 	lua_setglobal(L, Lua_HUDGame_Name);
 
-	Lua_Font::Register(L, Lua_Font_Get, 0, Lua_Font_Metatable);
+	Lua_Font::Register(L, Lua_Font_Get, Lua_Font_Set, Lua_Font_Metatable);
 	
 	Lua_Fonts::Register(L, Lua_Fonts_Get);
 	Lua_Fonts::Push(L, 0);

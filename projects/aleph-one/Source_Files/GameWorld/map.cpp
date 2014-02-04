@@ -1131,6 +1131,8 @@ void get_object_shape_and_transfer_mode(
 	}
 }
 
+extern bool shapes_file_is_m1();
+
 bool randomize_object_sequence(
 	short object_index,
 	shape_descriptor shape)
@@ -1142,7 +1144,7 @@ bool randomize_object_sequence(
 	animation= get_shape_animation_data(shape);
 	if (!animation) return false;
 	
-	switch (animation->number_of_views)
+	switch (shapes_file_is_m1() ? _unanimated : animation->number_of_views)
 	{
 		case _unanimated:
 			object->shape= shape;
@@ -1394,6 +1396,29 @@ short find_adjacent_polygon(
 	assert(new_polygon_index!=polygon_index);
 	
 	return new_polygon_index;
+}
+
+/* Find the polygon whose attributes we'll mimic on a flooded platform */
+short find_flooding_polygon(
+	short polygon_index)
+{
+	int i;
+	struct polygon_data *polygon = get_polygon_data(polygon_index);
+	
+	for (i= 0; i<polygon->vertex_count; ++i)
+	{
+		if (polygon->adjacent_polygon_indexes[i]!=NONE)
+		{
+			struct polygon_data *adjacent_polygon= get_polygon_data(polygon->adjacent_polygon_indexes[i]);
+			
+			if (adjacent_polygon->type == _polygon_is_major_ouch ||
+				adjacent_polygon->type == _polygon_is_minor_ouch)
+			{
+				return polygon->adjacent_polygon_indexes[i];
+			}
+		}
+	}
+	return NONE;
 }
 
 short find_adjacent_side(

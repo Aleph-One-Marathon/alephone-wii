@@ -53,6 +53,7 @@ enum /* polygon colors */
 	_polygon_hill_color,
 	_polygon_minor_ouch_color,	// LP, AlexJS: these two added for M1 compatibility
 	_polygon_major_ouch_color,
+	_polygon_teleporter_color,
 	NUMBER_OF_POLYGON_COLORS,
 	// For backwards compatibility: all those before the "ouch" colors
 	NUMBER_OF_OLD_POLYGON_COLORS = _polygon_hill_color + 1
@@ -301,8 +302,8 @@ private:
 	{
 		map_name_definition& map_name_data = ConfigPtr->map_name_data;
 		world_point2d location;
-		location.x = Control.half_width;
-		location.y = map_name_data.offset_down;
+		location.x = Control.left + Control.half_width;
+		location.y = Control.top + map_name_data.offset_down;
 		draw_text(location, map_name_data.color, name,
 			map_name_data.Font, _justify_center);
 	}

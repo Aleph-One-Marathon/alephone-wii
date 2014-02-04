@@ -257,6 +257,8 @@ void initialize_motion_sensor(
 		shapes are loaded (because it will do bitmap copying) */
 }
 
+extern bool shapes_file_is_m1();
+
 void reset_motion_sensor(
 	short player_index)
 {
@@ -266,14 +268,17 @@ void reset_motion_sensor(
 	motion_sensor_player_index= player_index;
 	ticks_since_last_update= ticks_since_last_rescan= 0;
 
-	get_shape_bitmap_and_shading_table(mount_shape, &mount, (void **) NULL, NONE);
-	if (!mount) return;
-	get_shape_bitmap_and_shading_table(virgin_mount_shapes, &virgin_mount, (void **) NULL, NONE);
-	if (!virgin_mount) return;
-	
-	assert(mount->width==virgin_mount->width);
-	assert(mount->height==virgin_mount->height);
-	bitmap_window_copy(virgin_mount, mount, 0, 0, mount->width, mount->height);
+	if (!shapes_file_is_m1())
+	{
+		get_shape_bitmap_and_shading_table(mount_shape, &mount, (void **) NULL, NONE);
+		if (!mount) return;
+		get_shape_bitmap_and_shading_table(virgin_mount_shapes, &virgin_mount, (void **) NULL, NONE);
+		if (!virgin_mount) return;
+		
+		assert(mount->width==virgin_mount->width);
+		assert(mount->height==virgin_mount->height);
+		bitmap_window_copy(virgin_mount, mount, 0, 0, mount->width, mount->height);
+	}
 
 	for (i= 0; i<MAXIMUM_MOTION_SENSOR_ENTITIES; ++i) MARK_SLOT_AS_FREE(entities+i);
 	
@@ -285,6 +290,10 @@ void reset_motion_sensor(
 /* ticks_elapsed==NONE means force rescan now.. */
 void HUD_Class::motion_sensor_scan(short ticks_elapsed)
 {
+	if (m1_solo_player_in_terminal()) {
+		return;
+	}
+
 	struct object_data *owner_object= get_object_data(get_player_data(motion_sensor_player_index)->object_index);
 
 	/* if we need to scan for new objects, flood around the owner monster looking for other,

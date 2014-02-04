@@ -7,7 +7,7 @@ AUTOMAKE_OPTIONS = 1.5 foreign dist-bzip2 no-dist-gzip
 
 EXTRA_DIST = COPYING.SDL INSTALL.BeOS INSTALL.Unix INSTALL.Windows	\
   Makefile.BeOS docs/MML.html docs/Lua.html docs/Lua_HUD.html		\
-  data/Fonts Resources/Windows/alephone.ico				\
+  Resources/Windows/alephone.ico				\
   Resources/Windows/alephone.rc						\
   Resources/Windows/marathon.rc Resources/Windows/marathon.ico          \
   Resources/Windows/marathon2.rc Resources/Windows/marathon2.ico        \
@@ -24,6 +24,7 @@ EXTRA_DIST = COPYING.SDL INSTALL.BeOS INSTALL.Unix INSTALL.Windows	\
   PBProjects/SDLMain.m PBProjects/AlephOne.icns				\
   Expat/xmltok/nametab.h PBProjects/config.h PBProjects/confpaths.h	\
   data/AlephSansMono-Bold.ttf data/AlephSansMonoLicense.txt		\
+  data/ProFontAO.ttf data/ProFontAOLicense.txt		\
   docs/alephone.6 examples/lua/Cheats.lua THANKS			\
   data/powered-by-alephone.svg						\
   PBProjects/AlephOne-Xcode4.xcodeproj/project.pbxproj\
@@ -100,13 +101,11 @@ mkdir "$(1)/docs"
 cp $(srcdir)/docs/Lua.html "$(1)/docs/Lua.html"
 cp $(srcdir)/docs/Lua_HUD.html "$(1)/docs/Lua_HUD.html"
 cp $(srcdir)/docs/MML.html "$(1)/docs/MML.html"
-$(call cp_no_svn,$(srcdir)/data/default_theme,$(1)/Themes/Default)
 mkdir "$(1)/Extras"
 cp $(srcdir)/data/Software_Transparent_Liquids.mml "$(1)/Extras"
 cp $(srcdir)/data/Transparent_Liquids.mml "$(1)/Extras"
 cp $(srcdir)/data/Carnage_Messages.mml "$(1)/Extras"
 unix2dos -n $(srcdir)/examples/lua/Cheats.lua "$(1)/Extras/Cheats.lua"
-cp $(srcdir)/data/Fonts "$(1)/Fonts.fntA"
 $(call cp_no_svn,$(srcdir)/Resources/Library Licenses,$(1)/docs/Library Licenses)
 endef
 
@@ -119,6 +118,7 @@ $(WINZIP): Source_Files/AlephOne.exe
 	cp Source_Files/AlephOne.exe $(WINDISTDIR)/
 	unix2dos -n $(srcdir)/INSTALL.Windows "$(WINDISTDIR)/docs/INSTALL.Windows.txt"
 	cp $(srcdir)/data/Transparent_Sprites.mml $(WINDISTDIR)/Extras
+	$(call cp_no_svn,$(srcdir)/data/default_theme,$(WINDISTDIR)/Plugins/Default_Theme)
 	rm -f $(WINZIP)
 	zip -r $(WINZIP) $(WINDISTDIR)
 	rm -rf "$(WINDISTDIR)"
@@ -132,11 +132,11 @@ $(M1_WINUP): Source_Files/Marathon.exe
 	zip -r $(M1_WINUP) "$(WINUPDIR_M1)"
 	rm -rf "$(WINUPDIR_M1)"
 
-WINDISTDIR_M1=Marathon (A1)
+WINDISTDIR_M1=Marathon
 $(M1_WINZIP): Source_Files/Marathon.exe
 	mkdir "$(WINDISTDIR_M1)"
 	$(call windist_common,$(WINDISTDIR_M1))
-	$(call cp_no_svn,$(srcdir)/data/Scenarios/M1A1,$(WINDISTDIR_M1))
+	$(call cp_no_svn,$(srcdir)/data/Scenarios/Marathon,$(WINDISTDIR_M1))
 	cp Source_Files/Marathon.exe "$(WINDISTDIR_M1)/Marathon.exe"
 	rm -f $(M1_WINZIP)
 	zip -r $(M1_WINZIP) "$(WINDISTDIR_M1)"

@@ -90,7 +90,25 @@ OGL_TextureOptions *OGL_GetTextureOptions(short Collection, short CLUT, short Bi
 	{
 		return &it->second;
 	}
+	
+	if (IsInfravisionTable(CLUT) && CLUT != INFRAVISION_BITMAP_SET)
+	{
+		it = Collections[Collection].find(TOKey(INFRAVISION_BITMAP_SET, Bitmap));
+		if (it != Collections[Collection].end())
+		{
+			return &it->second;
+		}
+	}
 
+	if (IsSilhouetteTable(CLUT) && CLUT != SILHOUETTE_BITMAP_SET)
+	{
+		it = Collections[Collection].find(TOKey(SILHOUETTE_BITMAP_SET, Bitmap));
+		if (it != Collections[Collection].end())
+		{
+			return &it->second;
+		}
+	}
+	
 	it = Collections[Collection].find(TOKey(ALL_CLUTS, Bitmap));
 	if (it != Collections[Collection].end())
 	{
@@ -151,7 +169,7 @@ static XML_TO_ClearParser TO_ClearParser;
 class XML_TextureOptionsParser: public XML_ElementParser
 {
 	bool CollIsPresent, BitmapIsPresent;
-	short Collection, CLUT, Bitmap;
+	short Collection, CLUT, Bitmap, CLUT_Variant;
 
 	std::set<std::string> Attributes;
 	
@@ -173,6 +191,7 @@ bool XML_TextureOptionsParser::Start()
 	Data = DefaultTextureOptions;
 	CollIsPresent = BitmapIsPresent = false;
 	CLUT = ALL_CLUTS;
+	CLUT_Variant = CLUT_VARIANT_NORMAL;
 	Attributes.clear();
 		
 	return true;
@@ -193,9 +212,13 @@ bool XML_TextureOptionsParser::_HandleAttribute(const char *Tag, const char *Val
 	{
 		return ReadBoundedInt16Value(Value,CLUT,short(ALL_CLUTS),short(SILHOUETTE_BITMAP_SET));
 	}
+	else if (StringsEqual(Tag,"clut_variant"))
+	{
+		return ReadBoundedInt16Value(Value,CLUT_Variant,short(ALL_CLUT_VARIANTS),short(NUMBER_OF_CLUT_VARIANTS)-1);
+	}
 	else if (StringsEqual(Tag,"bitmap"))
 	{
-		if (ReadBoundedInt16Value(Value,Bitmap,0,MAXIMUM_SHAPES_PER_COLLECTION-1))
+		if (ReadBoundedInt16Value(Value,Bitmap,0,INT16_MAX))
 		{
 			BitmapIsPresent = true;
 			return true;
@@ -256,21 +279,35 @@ bool XML_TextureOptionsParser::_HandleAttribute(const char *Tag, const char *Val
 		logWarning("Ignoring deprecated image_scale tag");
 		return true;
 	}
+	else if (StringsEqual(Tag, "x_offset"))
+	{
+		logWarning("Ignoring deprecated x_offset tag");
+		return true;
+	}
+	else if (StringsEqual(Tag, "y_offset"))
+	{
+		logWarning("Ignoring deprecated y_offset tag");
+		return true;
+	}
 	else if (StringsEqual(Tag,"shape_width"))
 	{
-		return ReadInt16Value(Value,Data.shape_width);
+		logWarning("Ignoring deprecated shape_width tag");
+		return true;
 	}
 	else if (StringsEqual(Tag,"shape_height"))
 	{
-		return ReadInt16Value(Value,Data.shape_height);
+		logWarning("Ignoring deprecated shape_height tag");
+		return true;
 	}
 	else if (StringsEqual(Tag,"offset_x"))
 	{
-		return ReadInt16Value(Value,Data.offset_x);
+		logWarning("Ignoring deprecated offset_x tag");
+		return true;
 	}
 	else if (StringsEqual(Tag,"offset_y"))
 	{
-		return ReadInt16Value(Value,Data.offset_y);
+		logWarning("Ignoring deprecated offset_y tag");
+		return true;
 	}
 	else if (StringsEqual(Tag,"actual_height"))
 	{
@@ -339,11 +376,46 @@ bool XML_TextureOptionsParser::AttributesDone()
 		return false;
 	}
 	
-	TOHash::iterator it = Collections[Collection].find(TOKey(CLUT, Bitmap));
+	// translate deprecated clut options
+	if (CLUT == INFRAVISION_BITMAP_SET)
+	{
+		CLUT = ALL_CLUTS;
+		CLUT_Variant = CLUT_VARIANT_INFRAVISION;
+	}
+	else if (CLUT == SILHOUETTE_BITMAP_SET)
+	{
+		CLUT = ALL_CLUTS;
+		CLUT_Variant = CLUT_VARIANT_SILHOUETTE;
+	}
+	
+	// loop so we can apply "all variants" mode if needed
+	for (short var = CLUT_VARIANT_NORMAL; var < NUMBER_OF_CLUT_VARIANTS; var++)
+	{
+		if (CLUT_Variant != ALL_CLUT_VARIANTS && CLUT_Variant != var)
+			continue;
+		
+		// translate clut+variant to internal clut number
+		short actual_clut = CLUT;
+		if (var == CLUT_VARIANT_INFRAVISION)
+		{
+			if (CLUT == ALL_CLUTS)
+				actual_clut = INFRAVISION_BITMAP_SET;
+			else
+				actual_clut = INFRAVISION_BITMAP_CLUTSPECIFIC + CLUT;
+		}
+		else if (var == CLUT_VARIANT_SILHOUETTE)
+		{
+			if (CLUT == ALL_CLUTS)
+				actual_clut = SILHOUETTE_BITMAP_SET;
+			else
+				actual_clut = SILHOUETTE_BITMAP_CLUTSPECIFIC + CLUT;
+		}
+	
+	TOHash::iterator it = Collections[Collection].find(TOKey(actual_clut, Bitmap));
 	if (it == Collections[Collection].end())
 	{
-		Collections[Collection][TOKey(CLUT, Bitmap)] = Data;
-		return true;
+		Collections[Collection][TOKey(actual_clut, Bitmap)] = Data;
+		continue;
 	}
 		
 	if (Attributes.count("opac_type"))
@@ -401,26 +473,6 @@ bool XML_TextureOptionsParser::AttributesDone()
 		it->second.GlowBlend = Data.GlowBlend;
 	}
 
-	if (Attributes.count("shape_width"))
-	{
-		it->second.shape_width = Data.shape_width;
-	}
-
-	if (Attributes.count("shape_height"))
-	{
-		it->second.shape_height = Data.shape_height;
-	}
-	
-	if (Attributes.count("offset_x"))
-	{
-		it->second.offset_x = Data.offset_x;
-	}
-
-	if (Attributes.count("offset_y"))
-	{
-		it->second.offset_y = Data.offset_y;
-	}
-
 	if (Attributes.count("actual_height"))
 	{
 		it->second.actual_height = Data.actual_height;
@@ -474,6 +526,7 @@ bool XML_TextureOptionsParser::AttributesDone()
 	if (Attributes.count("minimum_glow_intensity"))
 	{
 		it->second.MinGlowIntensity = Data.MinGlowIntensity;
+	}
 	}
 	
 	return true;

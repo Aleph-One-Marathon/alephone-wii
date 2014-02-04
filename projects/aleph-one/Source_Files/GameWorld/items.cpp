@@ -652,7 +652,7 @@ bool try_and_add_player_item(
 				success= true;
 			} 
 			else if(player->items[type]+1<=definition->maximum_count_per_player ||
-				(dynamic_world->game_information.difficulty_level==_total_carnage_level && definition->item_kind==_ammunition))
+				(dynamic_world->game_information.difficulty_level==_total_carnage_level && ((static_world->environment_flags & _environment_m1_weapon_pickups) || definition->item_kind==_ammunition)))
 			{
 				/* Increment your count.. */
 				player->items[type]++;
@@ -808,14 +808,13 @@ void animate_items(void) {
 				
 				// Randomize if non-animated; do only once
 				if (object->facing >= 0) {
-					if (animation->number_of_views == _unanimated)
+					if (randomize_object_sequence(object_index,shape))
 					{
-						randomize_object_sequence(object_index,shape);
 						object->facing = NONE;
 					}
 				}
 				// Now the animation
-				if (animation->number_of_views != _unanimated)
+				if (object->facing >= 0)
 					animate_object(object_index);
 			}
 		}

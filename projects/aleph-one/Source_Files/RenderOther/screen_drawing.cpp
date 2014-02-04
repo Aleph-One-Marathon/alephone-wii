@@ -101,6 +101,17 @@ static screen_rectangle interface_rectangles[NUMBER_OF_INTERFACE_RECTANGLES] =
 	{263, 500, 294, 585}, // adjusted to work with both m2 and inf
       	{0,0,0,0},
 	{0, 0, 0, 0},
+	{0, 0, 0, 0},
+	{0, 0, 320, 640},
+	{0, 0, 18, 640},
+	{302, 0, 320, 640},
+	{27, 72, 293, 568},
+	{27, 9, 293, 316},
+	{27, 324, 293, 631},
+	{27, 9, 293, 631},
+	{0, 0, 0, 0},
+	{0, 0, 0, 0},
+	{0, 0, 0, 0},
 	{0, 0, 0, 0}
 };
 
@@ -130,21 +141,6 @@ static FontSpecifier InterfaceFonts[NUMBER_OF_INTERFACE_FONTS] =
 	{"Courier", 14, styleBold,  0, "#22"},
 	{"Monaco",   9, styleNormal,0, "#4"}
 };
-
-#ifdef HAVE_SDL_TTF
-void fix_missing_interface_fonts()
-{
-	for (int i = 0; i < NUMBER_OF_INTERFACE_FONTS; i++)
-	{
-		strcpy(InterfaceFonts[i].File, "mono");
-	}
-
-	InterfaceFonts[0].AdjustLineHeight = -1;
-	InterfaceFonts[3].AdjustLineHeight = -1;
-	InterfaceFonts[4].Size = 11;
-	InterfaceFonts[4].AdjustLineHeight = -2;
-}
-#endif
 
 // LP change: hardcoding the interface and player colors,
 // so as to banish the 'clut' resources

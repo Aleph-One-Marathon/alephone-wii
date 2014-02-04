@@ -549,6 +549,7 @@ enum /* side flags */
 	_side_is_lighted_switch= 0x0010, // switch must be lighted to use
 	_side_switch_can_be_destroyed= 0x0020, // projectile hits toggle and destroy this switch
 	_side_switch_can_only_be_hit_by_projectiles= 0x0040,
+	_side_item_is_optional= 0x0080, // in Marathon, switches still work without items
 
 	_editor_dirty_bit= 0x4000 // used by the editor...
 };
@@ -811,7 +812,9 @@ enum /* mission flags */
 	_mission_exploration= 0x0002,
 	_mission_retrieval= 0x0004,
 	_mission_repair= 0x0008,
-	_mission_rescue= 0x0010
+	_mission_rescue= 0x0010,
+	_mission_exploration_m1= 0x0020,
+	_mission_rescue_m1= 0x0040
 };
 
 enum /* environment flags */
@@ -821,6 +824,13 @@ enum /* environment flags */
 	_environment_magnetic= 0x0002, // motion sensor works poorly
 	_environment_rebellion= 0x0004, // makes clients fight pfhor
 	_environment_low_gravity= 0x0008, // low gravity
+	_environment_glue_m1= 0x0010, // handle glue polygons like Marathon 1
+	_environment_ouch_m1= 0x0020, // the floor is lava
+	_environment_rebellion_m1= 0x0040,  // use Marathon 1 rebellion (don't strip items/health)
+	_environment_song_index_m1 = 0x0080, // play music
+	_environment_terminals_stop_time = 0x0100, // solo only
+	_environment_activation_ranges = 0x0200, // Marathon 1 monster activation limits
+	_environment_m1_weapon_pickups = 0x0400,    // you can pick up multiple weapons on TC
 
 	_environment_network= 0x2000,	// these two pseudo-environments are used to prevent items 
 	_environment_single_player= 0x4000 // from arriving in the items.c code.
@@ -1171,6 +1181,7 @@ short world_point_to_polygon_index(world_point2d *location);
 short clockwise_endpoint_in_line(short polygon_index, short line_index, short index);
 
 short find_adjacent_polygon(short polygon_index, short line_index);
+short find_flooding_polygon(short polygon_index);
 short find_adjacent_side(short polygon_index, short line_index);
 short find_shared_line(short polygon_index1, short polygon_index2);
 bool line_is_landscaped(short polygon_index, short line_index, world_distance z);

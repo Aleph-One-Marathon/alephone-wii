@@ -560,6 +560,20 @@ get_ticks_since_local_player_in_terminal() {
     return sLocalPlayerTicksSinceTerminal;
 }
 
+bool m1_solo_player_in_terminal()
+{
+	return (static_world->environment_flags & _environment_terminals_stop_time)
+		&& (dynamic_world->player_count == 1) 
+		&& player_in_terminal_mode(local_player_index);
+}
+
+void update_m1_solo_player_in_terminal(ActionQueues* inActionQueuesToUse)
+{
+	update_player_keys_for_terminal(local_player_index, inActionQueuesToUse->dequeueActionFlags(local_player_index));
+	update_player_for_terminal_mode(local_player_index);
+	sLocalPlayerTicksSinceTerminal = 0;
+}
+
 /* assumes ¶t==1 tick */
 void update_players(ActionQueues* inActionQueuesToUse, bool inPredictive)
 {
@@ -1686,6 +1700,10 @@ static void recreate_player(
 	// Done here so that players' missiles will always be guided
 	// if they are intended to be guided
 	adjust_player_physics(get_monster_data(player->monster_index));
+	
+	// Marathon 1 won't activate monsters immediately at level start
+	if (static_world->environment_flags & _environment_activation_ranges)
+		monster->ticks_since_last_activation = dynamic_world->tick_count;
 }
 
 static void kill_player(
@@ -1830,7 +1848,7 @@ static void remove_dead_player_items(
 				}
 			}
 			
-			if (!dropped) object_was_just_destroyed(_object_is_item, item_type);
+			if (film_profile.count_dead_dropped_items_correctly || !dropped) object_was_just_destroyed(_object_is_item, item_type);
 		}
 
 		player->items[item_type]= NONE;

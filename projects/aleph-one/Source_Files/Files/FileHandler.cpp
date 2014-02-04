@@ -87,6 +87,8 @@
 #include <boost/function.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
+namespace io = boost::iostreams;
+
 // From shell_sdl.cpp
 extern vector<DirectorySpecifier> data_search_path;
 extern DirectorySpecifier local_data_dir, preferences_dir, saved_games_dir, recordings_dir;
@@ -181,6 +183,38 @@ SDL_RWops *OpenedFile::TakeRWops ()
 	f = NULL;
 	Close ();
 	return taken;
+}
+
+opened_file_device::opened_file_device(OpenedFile& f) : f(f) { }
+
+std::streamsize opened_file_device::read(char* s, std::streamsize n)
+{
+	return SDL_RWread(f.GetRWops(), s, 1, n);
+}
+
+std::streamsize opened_file_device::write(const char* s, std::streamsize n)
+{
+	return SDL_RWwrite(f.GetRWops(), s, 1, n);
+}
+
+std::streampos opened_file_device::seek(io::stream_offset off, std::ios_base::seekdir way)
+{
+	std::streampos pos;
+
+	switch (way)
+	{
+	case std::ios_base::beg:
+		pos = SDL_RWseek(f.GetRWops(), off + f.fork_offset, SEEK_SET);
+		break;
+	case std::ios_base::end:
+		pos = SDL_RWseek(f.GetRWops(), off, SEEK_END);
+		break;
+	case std::ios_base::cur:
+		pos = SDL_RWseek(f.GetRWops(), off, SEEK_CUR);
+		break;
+	}
+
+	return pos - static_cast<std::streampos>(f.fork_offset);
 }
 
 /*
@@ -506,6 +540,13 @@ static extension_mapping extensions[] =
 	{ "shpA", false, _typecode_shapes },
 	{ "sndA", false, _typecode_sounds },
 
+	{ "scen", false, _typecode_scenario },
+	{ "shps", false, _typecode_shapes },
+	{ "phys", false, _typecode_physics },
+	{ "sndz", false, _typecode_sounds },
+
+	{ "mpg", false, _typecode_movie },
+
 	{0, false, _typecode_unknown}
 };
 
@@ -680,6 +721,11 @@ static string local_path_separators(const char *path)
 // Traverse search path, look for file given relative path name
 bool FileSpecifier::SetNameWithPath(const char *NameWithPath)
 {
+	if (*NameWithPath == '\0') {
+		err = ENOENT;
+		return false;
+	}
+
 	FileSpecifier full_path;
 	string rel_path = local_path_separators(NameWithPath);
 
@@ -699,6 +745,11 @@ bool FileSpecifier::SetNameWithPath(const char *NameWithPath)
 
 bool FileSpecifier::SetNameWithPath(const char* NameWithPath, const DirectorySpecifier& Directory) 
 {
+	if (*NameWithPath == '\0') {
+		err = ENOENT;
+		return false;
+	}
+    
 	FileSpecifier full_path;
 	string rel_path = local_path_separators(NameWithPath);
 	
@@ -1262,6 +1313,9 @@ public:
 			case _typecode_film:
 				prompt = "SAVE FILM";
 				break;
+			case _typecode_movie:
+				prompt = "EXPORT FILM";
+				break;
 			default:
 				prompt = "SAVE FILE";
 				break;
@@ -1300,6 +1354,7 @@ public:
 		}
 		break;
 		case _typecode_film:
+		case _typecode_movie:
 			dir.SetToRecordingsDir();
 			break;
 		default:

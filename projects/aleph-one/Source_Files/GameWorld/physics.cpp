@@ -79,6 +79,9 @@ running backwards shouldnÕt mean doom in a fistfight
 #include "interface.h"
 #include "monsters.h"
 
+#define DONT_REPEAT_DEFINITIONS
+#include "monster_definitions.h"
+
 #include "media.h"
 
 // LP addition:
@@ -238,6 +241,11 @@ void adjust_player_for_polygon_height_change(
 		if (FIXED_TO_WORLD(variables->position.z)<=old_floor_height) /* must be <= */
 		{
 			variables->floor_height= variables->position.z= WORLD_TO_FIXED(new_floor_height);
+			if (film_profile.fix_sliding_on_platforms && variables->external_velocity.k < 0) 
+			{
+				variables->external_velocity.k = 0;
+			}
+
 			if (PLAYER_IS_DEAD(player)) variables->external_velocity.k= 0;
 		}
 	}
@@ -257,8 +265,14 @@ void accelerate_player(
 	variables->external_velocity.k+= WORLD_TO_FIXED(vertical_velocity);
 	variables->external_velocity.k= PIN(variables->external_velocity.k, -constants->terminal_velocity, constants->terminal_velocity);
 	
-	variables->external_velocity.i+= (cosine_table[direction]*velocity)>>(TRIG_SHIFT+WORLD_FRACTIONAL_BITS-FIXED_FRACTIONAL_BITS);
-	variables->external_velocity.j+= (sine_table[direction]*velocity)>>(TRIG_SHIFT+WORLD_FRACTIONAL_BITS-FIXED_FRACTIONAL_BITS);
+	if (get_monster_definition_external(_monster_marine)->flags & _monster_can_grenade_climb)
+	{
+		variables->external_velocity.i= (cosine_table[direction]*velocity)>>(TRIG_SHIFT+WORLD_FRACTIONAL_BITS-FIXED_FRACTIONAL_BITS);
+		variables->external_velocity.j= (sine_table[direction]*velocity)>>(TRIG_SHIFT+WORLD_FRACTIONAL_BITS-FIXED_FRACTIONAL_BITS);
+	} else {
+		variables->external_velocity.i+= (cosine_table[direction]*velocity)>>(TRIG_SHIFT+WORLD_FRACTIONAL_BITS-FIXED_FRACTIONAL_BITS);
+		variables->external_velocity.j+= (sine_table[direction]*velocity)>>(TRIG_SHIFT+WORLD_FRACTIONAL_BITS-FIXED_FRACTIONAL_BITS);
+	}	
 }
 
 void get_absolute_pitch_range(
@@ -826,7 +840,20 @@ static void physics_update(
 	{
 		variables->external_velocity.k/= -COEFFICIENT_OF_ABSORBTION;
 	}
-	if (ABS(variables->external_velocity.k)<SMALL_ENOUGH_VELOCITY &&
+
+	_fixed small_enough_velocity;
+	if (get_monster_definition_external(_monster_marine)->flags & _monster_can_grenade_climb) {
+		_fixed gravity= constants->gravitational_acceleration;		
+		if (static_world->environment_flags&_environment_low_gravity) gravity>>= 1;
+		if (variables->flags&_FEET_BELOW_MEDIA_BIT) gravity>>= 1;
+
+		small_enough_velocity = gravity;
+	} 
+	else 
+	{
+		small_enough_velocity = SMALL_ENOUGH_VELOCITY;
+	}
+	if (ABS(variables->external_velocity.k)<small_enough_velocity &&
 		ABS(variables->floor_height-new_position.z)<CLOSE_ENOUGH_TO_FLOOR)
 	{
 		variables->external_velocity.k= 0, new_position.z= variables->floor_height;
@@ -969,6 +996,48 @@ uint8 *unpack_physics_constants(uint8 *Stream, physics_constants *Objects, size_
 	}
 	
 	assert((S - Stream) == static_cast<ptrdiff_t>(Count*SIZEOF_physics_constants));
+	return S;
+}
+
+uint8* unpack_m1_physics_constants(uint8* Stream, size_t Count)
+{
+	static const int SIZEOF_old_physics_entry = 100;
+	uint8* S = Stream + SIZEOF_old_physics_entry; // first is "editor" record
+	physics_constants* ObjPtr = physics_models;
+	
+	for (size_t k = 0; k < Count - 1; k++, ObjPtr++)
+	{
+		StreamToValue(S,ObjPtr->maximum_forward_velocity);
+		StreamToValue(S,ObjPtr->maximum_backward_velocity);
+		StreamToValue(S,ObjPtr->maximum_perpendicular_velocity);
+		StreamToValue(S,ObjPtr->acceleration);
+		StreamToValue(S,ObjPtr->deceleration);
+		StreamToValue(S,ObjPtr->airborne_deceleration);
+		StreamToValue(S,ObjPtr->gravitational_acceleration);
+		StreamToValue(S,ObjPtr->climbing_acceleration);
+		StreamToValue(S,ObjPtr->terminal_velocity);
+		StreamToValue(S,ObjPtr->external_deceleration);
+
+		StreamToValue(S,ObjPtr->angular_acceleration);
+		StreamToValue(S,ObjPtr->angular_deceleration);
+		StreamToValue(S,ObjPtr->maximum_angular_velocity);
+		StreamToValue(S,ObjPtr->angular_recentering_velocity);
+		StreamToValue(S,ObjPtr->fast_angular_velocity);
+		StreamToValue(S,ObjPtr->fast_angular_maximum);
+		StreamToValue(S,ObjPtr->maximum_elevation);
+		StreamToValue(S,ObjPtr->external_angular_deceleration);
+		
+		StreamToValue(S,ObjPtr->step_delta);
+		StreamToValue(S,ObjPtr->step_amplitude);
+		StreamToValue(S,ObjPtr->radius);
+		StreamToValue(S,ObjPtr->height);
+		StreamToValue(S,ObjPtr->dead_height);
+		StreamToValue(S,ObjPtr->camera_height);
+		ObjPtr->splash_height = 0;
+		
+		StreamToValue(S,ObjPtr->half_camera_separation);
+	}
+	
 	return S;
 }
 

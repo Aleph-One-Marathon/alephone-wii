@@ -153,6 +153,7 @@ enum {
 enum {
 	_weapon_type= 0,
 	_shell_casing_type,
+	_weapon_ammo_type,
 	NUMBER_OF_DATA_TYPES
 };
 
@@ -180,6 +181,10 @@ enum { /* For the flags */ /* [11.unused 1.horizontal 1.vertical 3.unused] */
 #define FIRING_BEFORE_SHELL_CASING_SOUND_IS_PLAYED (TICKS_PER_SECOND/2)
 #define COST_PER_CHARGED_WEAPON_SHOT 4					
 #define ANGULAR_VARIANCE (32)
+
+#define M1_MISSILE_AMMO_SEQUENCE 20
+#define M1_MISSILE_AMMO_XOFFSET (FIXED_ONE/12)
+#define M1_MISSILE_AMMO_YOFFSET (-FIXED_ONE/15)
 
 enum // shell casing flags
 {
@@ -264,7 +269,7 @@ static void put_rounds_into_weapon(short player_index, short which_weapon, short
 static void blow_up_player(short player_index);
 static void select_next_weapon(short player_index, bool forward);
 static void calculate_weapon_position_for_idle(short player_index, short count, short weapon_type,
-	_fixed *height, _fixed *width);
+					       _fixed *height, _fixed *width, bool use_elevation);
 static void add_random_flutter(_fixed flutter_base, _fixed *height, _fixed *width);
 static void calculate_weapon_origin_and_vector(short player_index, short which_trigger,
 	world_point3d *origin, world_point3d *_vector, short *origin_polygon, angle delta_theta);
@@ -876,6 +881,10 @@ void update_player_weapons(
 							} else {
 								trigger->state= _weapon_recovering;
 								trigger->phase= trigger_definition->recovery_ticks;
+								if (definition->flags & _weapon_is_marathon_1)
+								{
+									trigger->sequence = 0;
+								}
 							}
 						}
 						break;
@@ -942,6 +951,9 @@ void update_player_weapons(
 void destroy_players_ball(
 	short player_index)
 {
+	if (film_profile.destroy_players_ball_fix && !player_has_valid_weapon(player_index))
+		return;
+	
 	struct player_data *player= get_player_data(player_index);
 	short ball_color= find_player_ball_color(player_index);
 	struct weapon_data *weapon= get_player_current_weapon(player_index);
@@ -1182,7 +1194,7 @@ bool get_weapon_display_information(
 			/* Assume the best.. */
 			valid= true;
 	
-			if(type==_weapon_type)
+			if(type==_weapon_type || type==_weapon_ammo_type)
 			{
 				short phase;
 
@@ -1190,8 +1202,16 @@ bool get_weapon_display_information(
 				phase= weapon->triggers[which_trigger].phase;
 
 				/* Calculate the base location.. */
-				calculate_weapon_position_for_idle(player_index, which_trigger, 
-					weapon->weapon_type, &height, &width);
+				if (definition->flags & _weapon_is_marathon_1) {
+					// only add in bob height if we're firing
+					if (weapon->triggers[which_trigger].state == _weapon_idle && !automatic_still_firing(player_index, which_trigger)) {
+						calculate_weapon_position_for_idle(player_index, which_trigger, weapon->weapon_type, &height, &width, false);
+					}
+				}
+				else
+				{
+					calculate_weapon_position_for_idle(player_index, which_trigger, weapon->weapon_type, &height, &width, true);
+				}
 
 				/* Figure out where to draw it. */
 				switch(weapon->triggers[which_trigger].state)
@@ -1260,6 +1280,10 @@ bool get_weapon_display_information(
 								if(automatic_still_firing(current_player_index, which_trigger))
 								{
 									shape_index= definition->firing_shape;
+									if (definition->flags & _weapon_flutters_while_firing) 
+									{
+										add_random_flutter(FIXED_ONE, &height, &width);
+									}
 								} else {
 									shape_index= definition->idle_shape;
 									// Now handled in UpdateIdleWeapons()
@@ -1317,6 +1341,10 @@ bool get_weapon_display_information(
 							trigger_definition= get_player_trigger_definition(player_index, which_trigger);
 							height -= (definition->kick_height*(trigger_definition->ticks_per_round-phase))/trigger_definition->ticks_per_round;
 							shape_index= definition->firing_shape;
+							if (definition->flags & _weapon_flutters_while_firing)
+							{
+								add_random_flutter(FIXED_ONE, &height, &width);
+							}
 						}
 						break;
 			
@@ -1326,7 +1354,14 @@ bool get_weapon_display_information(
 							struct trigger_definition *trigger_definition= get_player_trigger_definition(player_index, which_trigger);
 							assert(trigger_definition->recovery_ticks);
 							height-= (definition->kick_height*phase)/trigger_definition->recovery_ticks;
-							shape_index= definition->firing_shape;
+							if (definition->flags & _weapon_is_marathon_1) 
+							{
+								shape_index = definition->idle_shape;
+							}
+							else
+							{
+								shape_index= definition->firing_shape;
+							}
 						}
 						break;
 			
@@ -1378,14 +1413,24 @@ bool get_weapon_display_information(
 						break;
 				}
 
-				/* Determine our frame. */		
-				frame= GET_SEQUENCE_FRAME(weapon->triggers[which_trigger].sequence);
+				/* Determine our frame. */
+				if (type==_weapon_ammo_type)
+				{
+					// hardcoded for Marathon 1 rocket launcher
+					shape_index = M1_MISSILE_AMMO_SEQUENCE;
+					frame = weapon->triggers[which_trigger].rounds_loaded - 1;
+				}
+				else
+					frame= GET_SEQUENCE_FRAME(weapon->triggers[which_trigger].sequence);
 
-				/* Go to the next frame for automatics.. */
-				update_automatic_sequence(current_player_index, which_trigger);
+				if (type==_weapon_type)
+				{
+					/* Go to the next frame for automatics.. */
+					update_automatic_sequence(current_player_index, which_trigger);
 				
-				// Also for idle weapons
-				UpdateIdleAnimation(current_player_index, which_trigger);
+					// Also for idle weapons
+					UpdateIdleAnimation(current_player_index, which_trigger);
+				}
 				
 				/* setup the positioning information */
 				high_level_data= get_shape_animation_data(BUILD_DESCRIPTOR(definition->collection, 
@@ -1393,7 +1438,8 @@ bool get_weapon_display_information(
 				
 				// LP: bug out if there is no weapon sequence to render
 				if (!high_level_data) return false;
-				if (!(frame>=0 && frame<high_level_data->frames_per_view)) return false;
+				if (!(frame>=0 && frame<high_level_data->frames_per_view))
+					return false;
 				
 				data->collection= BUILD_COLLECTION(definition->collection, 0);
 				data->shape_index = shape_index;
@@ -1414,6 +1460,13 @@ bool get_weapon_display_information(
 					data->flip_horizontal= true;
 				} else {
 					data->flip_horizontal= false;
+				}
+				
+				if (type==_weapon_ammo_type)
+				{
+					// hardcoded for Marathon 1 rocket launcher
+					data->vertical_position += M1_MISSILE_AMMO_YOFFSET;
+					data->horizontal_position += M1_MISSILE_AMMO_XOFFSET;
 				}
 			
 				/* Fill in the transfer mode and phase */
@@ -1741,13 +1794,17 @@ static void fire_weapon(
 	/* I hear you.. */
 	if(definition->weapon_class != _melee_class)
 	{
+		int32 range = -1;
+		if (static_world->environment_flags & _environment_activation_ranges)
+			range = trigger_definition->sound_activation_range * WORLD_ONE;
+		
 		if(which_trigger==_primary_weapon && (definition->flags & _weapon_is_automatic) && trigger->ticks_firing<2)
 		{
 			activate_nearby_monsters(player->monster_index, player->monster_index, 
-				_pass_one_zone_border|_activate_invisible_monsters);
+				_pass_one_zone_border|_activate_invisible_monsters, range);
 		} else {
 			activate_nearby_monsters(player->monster_index, player->monster_index, 
-				_pass_one_zone_border|_activate_invisible_monsters);
+				_pass_one_zone_border|_activate_invisible_monsters, range);
 		}
 	}
 
@@ -2735,7 +2792,8 @@ static void calculate_weapon_position_for_idle(
 	short count,
 	short weapon_type,
 	_fixed *height,
-	_fixed *width)
+	_fixed *width,
+	bool use_elevation)
 {
 	struct weapon_definition *definition= get_weapon_definition(weapon_type);
 	struct player_data *player= get_player_data(player_index);
@@ -2755,7 +2813,7 @@ static void calculate_weapon_position_for_idle(
 	/* Weapons are the first thing drawn */
 	bob_height= (player->variables.step_amplitude*definition->bob_amplitude)>>FIXED_FRACTIONAL_BITS;
 	bob_height= (bob_height*table[vertical_angle])>>TRIG_SHIFT;
-	bob_height+= sine_table[player->elevation]<<3;
+	if (use_elevation) bob_height+= sine_table[player->elevation]<<3;
 	*height+= bob_height;
 
 	bob_width= (player->variables.step_amplitude*definition->horizontal_amplitude)>>FIXED_FRACTIONAL_BITS;
@@ -2776,6 +2834,10 @@ static void modify_position_for_two_weapons(
 	{
 		case _melee_class:
 			{
+				if (definition->flags & _weapon_is_marathon_1) {
+					break;
+				}
+
 				struct weapon_data *weapon= get_player_current_weapon(player_index);
 				struct trigger_definition *trigger_definition;
 				short total_delay, delay, breakpoint_delay, sign;
@@ -2888,8 +2950,13 @@ static short get_active_trigger_count_and_states(
 	}
 
 	(*first_trigger)= _primary_weapon;
+
+	int16 weapon_class = definition->weapon_class;
+	if (weapon_class == _melee_class && (definition->flags & _weapon_is_marathon_1)) {
+		weapon_class = _normal_class;
+	}
 	
-	switch(definition->weapon_class)
+	switch(weapon_class)
 	{
 		case _normal_class:
 			active_count= 1;
@@ -3008,6 +3075,9 @@ static void calculate_ticks_from_shapes(
 		{
 			struct shape_animation_data *high_level_data;
 			short total_ticks;
+
+			trigger_definition& primary = definition->weapons_by_trigger[_primary_weapon];
+			trigger_definition& secondary = definition->weapons_by_trigger[_secondary_weapon];
 		
 			high_level_data= get_shape_animation_data(BUILD_DESCRIPTOR(definition->collection,
 				definition->firing_shape));
@@ -3015,35 +3085,50 @@ static void calculate_ticks_from_shapes(
 			if(!high_level_data) continue;
 
 			total_ticks= high_level_data->ticks_per_frame*high_level_data->frames_per_view;
-				
-			if(definition->flags & _weapon_is_automatic)
+
+			if (definition->flags & _weapon_is_marathon_1)
+			{
+				if (definition->flags & _weapon_is_automatic)
+				{
+					primary.ticks_per_round = total_ticks - 1;
+					primary.recovery_ticks = 0;
+				}
+				else
+				{
+					primary.ticks_per_round = total_ticks - 1;
+				}
+			}
+			else if(definition->flags & _weapon_is_automatic)
 			{
 				/* All automatic weapons have no recovery time.. */
-				definition->weapons_by_trigger[_primary_weapon].ticks_per_round= total_ticks;
-				definition->weapons_by_trigger[_primary_weapon].recovery_ticks= 0;
+				primary.ticks_per_round= total_ticks;
+				primary.recovery_ticks= 0;
 			} else {
-				definition->weapons_by_trigger[_primary_weapon].ticks_per_round= 
+				primary.ticks_per_round= 
 					(high_level_data->key_frame+1)*high_level_data->ticks_per_frame;
-				definition->weapons_by_trigger[_primary_weapon].recovery_ticks= total_ticks-
+				primary.recovery_ticks= total_ticks-
 					definition->weapons_by_trigger[_primary_weapon].ticks_per_round;
 			}
 
 			/* Fixup the secondary trigger.. */
-			if(definition->weapons_by_trigger[_secondary_weapon].ticks_per_round== NONE && (definition->flags & _weapon_triggers_share_ammo))
+			if(secondary.ticks_per_round== NONE && (definition->flags & _weapon_triggers_share_ammo))
 			{
-				definition->weapons_by_trigger[_secondary_weapon].ticks_per_round= 
-					definition->weapons_by_trigger[_primary_weapon].ticks_per_round;
-				definition->weapons_by_trigger[_secondary_weapon].recovery_ticks= 
-					definition->weapons_by_trigger[_primary_weapon].recovery_ticks;
+				secondary.ticks_per_round= primary.ticks_per_round;
+				secondary.recovery_ticks= primary.recovery_ticks;
 			}
 
 			/* Rocky modification */
 			if(definition->weapon_class==_melee_class || definition->weapon_class==_twofisted_pistol_class)
 			{
-				definition->weapons_by_trigger[_secondary_weapon].ticks_per_round= 
-					(high_level_data->key_frame+1)*high_level_data->ticks_per_frame;
-				definition->weapons_by_trigger[_secondary_weapon].recovery_ticks= total_ticks-
-					definition->weapons_by_trigger[_secondary_weapon].ticks_per_round;
+				if (definition->flags & _weapon_is_marathon_1)
+				{
+					secondary.ticks_per_round = total_ticks - 1;
+				} else {
+					secondary.ticks_per_round= 
+						(high_level_data->key_frame+1)*high_level_data->ticks_per_frame;
+					secondary.recovery_ticks= total_ticks-
+						definition->weapons_by_trigger[_secondary_weapon].ticks_per_round;
+				}
 			}
 		}
 
@@ -3122,7 +3207,14 @@ static void update_automatic_sequence(
 		
 				frame= GET_SEQUENCE_FRAME(trigger->sequence);
 				
-				if(++frame>=high_level_data->frames_per_view)
+				// does Marathon 1 have a bug or something?
+				if (definition->flags & _weapon_is_marathon_1 && high_level_data->frames_per_view == 2)
+				{
+					if (++frame >= 1) {
+						frame = 0;
+					}
+				}
+				else if(++frame>=high_level_data->frames_per_view)
 				{
 					frame= 0;
 				}				
@@ -3151,7 +3243,7 @@ static void UpdateIdleAnimation(
 	short animation_type= _obj_not_animated;
 	
 	/* if this animation has frames, animate it */		
-	if (animation->frames_per_view>=1 && animation->number_of_views!=_unanimated)
+	if (animation->frames_per_view>=1 && animation->number_of_views!=_unanimated && !(definition->flags & _weapon_is_marathon_1))
 	{
 		short frame, phase;
 		
@@ -3191,6 +3283,8 @@ static void UpdateIdleAnimation(
 		}
 		
 		trigger->sequence= BUILD_SEQUENCE(frame, phase);
+	} else {
+		trigger->sequence = BUILD_SEQUENCE(0, 0);
 	}
 }
 
@@ -3216,6 +3310,8 @@ static void update_sequence(
 			if(which_trigger==_primary_weapon && (definition->flags & _weapon_is_automatic)
 				|| (which_trigger==_secondary_weapon && (definition->flags & _weapon_is_automatic) && (definition->flags & _weapon_secondary_has_angular_flipping)))
 			{
+			} else if (trigger->state == _weapon_recovering && (definition->flags & _weapon_is_marathon_1)) {
+				high_level_data = get_shape_animation_data(BUILD_DESCRIPTOR(definition->collection, definition->idle_shape));
 			} else {
 				high_level_data= get_shape_animation_data(BUILD_DESCRIPTOR(definition->collection, 
 					definition->firing_shape));
@@ -3328,6 +3424,19 @@ static bool get_weapon_data_type_for_count(
 	bool valid= true;
 		
 	*flags= 0;
+	
+	if ((definition->flags & _weapon_is_marathon_1) &&
+		(definition == get_weapon_definition(_weapon_missile_launcher)) &&
+		weapon->triggers[_primary_weapon].rounds_loaded)
+	{
+		if (count == 0)
+		{
+			*type= _weapon_ammo_type;
+			*index= _primary_weapon;
+			return true;
+		}
+		count -= 1;
+	}
 	
 	switch(definition->weapon_class)
 	{
@@ -3633,7 +3742,7 @@ static void test_raise_double_weapon(
 	struct weapon_definition *definition= get_current_weapon_definition(player_index);
 	struct player_data *player= get_player_data(player_index);
 	
-	if(definition->weapon_class==_twofisted_pistol_class || definition->weapon_class==_melee_class)
+	if(definition->weapon_class==_twofisted_pistol_class || (definition->weapon_class==_melee_class && !(definition->flags & _weapon_is_marathon_1)))
 	{
 		struct player_weapon_data *player_weapons= get_player_weapon_data(player_index);
 
@@ -4113,6 +4222,7 @@ inline void StreamToTrigDefData(uint8* &S, trigger_definition& Object)
 	StreamToValue(S,Object.dz);
 	StreamToValue(S,Object.shell_casing_type);
 	StreamToValue(S,Object.burst_count);
+	Object.sound_activation_range = 0;
 }
 
 inline void TrigDefDataToStream(uint8* &S, trigger_definition& Object)
@@ -4183,6 +4293,154 @@ uint8 *unpack_weapon_definition(uint8 *Stream, weapon_definition *Objects, size_
 			StreamToTrigDefData(S,ObjPtr->weapons_by_trigger[m]);
 	}
 	assert((S - Stream) == static_cast<ptrdiff_t>(Count*SIZEOF_weapon_definition));
+	return S;
+}
+
+uint8* unpack_m1_weapon_definition(uint8* Stream, size_t Count)
+{
+	uint8* S = Stream;
+	weapon_definition* ObjPtr = weapon_definitions;
+
+	for (size_t k = 0; k < Count; k++, ObjPtr++)
+	{
+		StreamToValue(S,ObjPtr->item_type);
+		ObjPtr->powerup_type = NONE;
+		StreamToValue(S,ObjPtr->weapon_class);
+		StreamToValue(S,ObjPtr->flags);
+
+		trigger_definition& Trigger0 = ObjPtr->weapons_by_trigger[0];
+		trigger_definition& Trigger1 = ObjPtr->weapons_by_trigger[1];
+		
+		StreamToValue(S, Trigger0.ammunition_type);
+		StreamToValue(S, Trigger0.rounds_per_magazine);
+		StreamToValue(S, Trigger1.ammunition_type);
+		StreamToValue(S, Trigger1.rounds_per_magazine);
+
+		StreamToValue(S,ObjPtr->firing_light_intensity);
+		StreamToValue(S,ObjPtr->firing_intensity_decay_ticks);
+
+		StreamToValue(S,ObjPtr->idle_height);
+		StreamToValue(S,ObjPtr->bob_amplitude);
+		StreamToValue(S,ObjPtr->kick_height);	
+		StreamToValue(S,ObjPtr->reload_height);
+		StreamToValue(S,ObjPtr->idle_width);
+		StreamToValue(S,ObjPtr->horizontal_amplitude);
+
+		StreamToValue(S,ObjPtr->collection);
+		StreamToValue(S,ObjPtr->idle_shape);
+		StreamToValue(S,ObjPtr->firing_shape);
+		StreamToValue(S,ObjPtr->reloading_shape);
+		StreamToValue(S, ObjPtr->unused);
+		StreamToValue(S,ObjPtr->charging_shape);
+		StreamToValue(S,ObjPtr->charged_shape);		
+
+		StreamToValue(S, Trigger0.ticks_per_round);
+		StreamToValue(S, Trigger1.ticks_per_round);
+		
+		StreamToValue(S,ObjPtr->await_reload_ticks);
+		StreamToValue(S,ObjPtr->ready_ticks);
+		ObjPtr->loading_ticks = 0;
+		ObjPtr->finish_loading_ticks = 0;
+
+		StreamToValue(S, Trigger0.recovery_ticks);
+		StreamToValue(S, Trigger1.recovery_ticks);
+		StreamToValue(S, Trigger0.charging_ticks);
+		StreamToValue(S, Trigger1.charging_ticks);
+		
+		StreamToValue(S, Trigger0.recoil_magnitude);
+		StreamToValue(S, Trigger1.recoil_magnitude);
+
+		StreamToValue(S, Trigger0.firing_sound);
+		StreamToValue(S, Trigger1.firing_sound);
+		StreamToValue(S, Trigger0.click_sound);
+		StreamToValue(S, Trigger1.click_sound);
+
+		StreamToValue(S, Trigger0.reloading_sound);
+		Trigger1.reloading_sound = NONE;
+
+		StreamToValue(S, Trigger0.charging_sound);
+		Trigger1.charging_sound = Trigger0.charging_sound;
+
+		StreamToValue(S, Trigger0.shell_casing_sound);
+		StreamToValue(S, Trigger1.shell_casing_sound);
+
+		StreamToValue(S, Trigger0.sound_activation_range);
+		StreamToValue(S, Trigger1.sound_activation_range);
+
+		StreamToValue(S, Trigger0.projectile_type);
+		StreamToValue(S, Trigger1.projectile_type);
+
+		StreamToValue(S, Trigger0.theta_error);
+		StreamToValue(S, Trigger1.theta_error);
+
+		StreamToValue(S, Trigger0.dx);
+		StreamToValue(S, Trigger0.dz);
+		StreamToValue(S, Trigger1.dx);
+		StreamToValue(S, Trigger1.dz);
+
+		StreamToValue(S, Trigger0.burst_count);
+		StreamToValue(S, Trigger1.burst_count);
+
+		S += 2; // instant reload tick
+
+		Trigger0.charged_sound = NONE;
+		Trigger1.charged_sound = NONE;
+		Trigger0.shell_casing_type = NONE;
+		Trigger1.shell_casing_type = NONE;
+
+		if (ObjPtr->flags & _weapon_disappears_after_use_m1) {
+			ObjPtr->flags |= _weapon_disappears_after_use;
+			ObjPtr->flags &= ~_weapon_disappears_after_use_m1;
+		}
+
+		if (ObjPtr->weapon_class == _twofisted_pistol_class) 
+		{
+			// Marathon's settings for trigger 1 are mostly empty
+			ObjPtr->flags |= _weapon_fires_out_of_phase;
+			int16 dx = Trigger1.dx;
+			int16 dz = Trigger1.dz;
+			Trigger1 = Trigger0;
+			Trigger1.dx = dx;
+			Trigger1.dz = dz;
+		}
+		else if (ObjPtr->weapon_class == _dual_function_class)
+		{
+			// triggers share ammo must have been
+			// hard-coded for dual function weapons in
+			// Marathon; also, Marathon 2 expects rounds
+			// per magazine and ammunition type to match
+			ObjPtr->flags |= _weapon_triggers_share_ammo;
+			Trigger1.rounds_per_magazine = Trigger0.rounds_per_magazine;
+			Trigger1.ammunition_type = Trigger0.ammunition_type;
+			
+		}
+
+		// automatic weapons in Marathon flutter while firing
+		if (ObjPtr->flags & _weapon_is_automatic) 
+		{
+			ObjPtr->flags |= _weapon_flutters_while_firing;
+		}
+
+		// this makes the TOZT render correctly, but we don't
+		// want it to flutter so apply after the above statement
+		if (Trigger0.recovery_ticks == 0)
+		{
+			ObjPtr->flags |= _weapon_is_automatic;
+		}
+		
+		// SPNKR doesn't have a firing shape, just use idle
+		if (ObjPtr->firing_shape == NONE)
+		{
+			ObjPtr->firing_shape = ObjPtr->idle_shape;
+		}
+
+		if (k == _weapon_alien_shotgun) {
+			// is there a better way?
+			ObjPtr->flags |= _weapon_has_random_ammo_on_pickup;
+		}
+
+		ObjPtr->flags |= _weapon_is_marathon_1;
+	}
 	return S;
 }
 
