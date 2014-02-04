@@ -24,6 +24,7 @@ SHAPE_BLITTER.H
 
 #include "cseries.h"
 #include "map.h"
+#include "Image_Blitter.h"
 
 #ifndef SDL
 #include <SDL/SDL.h>
@@ -46,16 +47,18 @@ enum {
 class Shape_Blitter
 {
 public:
-	Shape_Blitter(short collection, short texture_index, short texture_type, short clut_index = 0);
+	Shape_Blitter(short collection, short frame_index, short texture_type, short clut_index = 0);
 		
-	void Rescale(int width, int height);
-	int Width();
-	int Height();
+	void Rescale(float width, float height);
+	float Width();
+	float Height();
 	int UnscaledWidth();
 	int UnscaledHeight();
 	
-    void OGL_Draw(SDL_Rect& dst);
-    void SDL_Draw(SDL_Surface *dst_surface, SDL_Rect& dst);
+    void OGL_Draw(const SDL_Rect& dst);
+    void OGL_Draw(const Image_Rect& dst);
+    void SDL_Draw(SDL_Surface *dst_surface, const SDL_Rect& dst);
+    void SDL_Draw(SDL_Surface *dst_surface, const Image_Rect& dst);
 	
     ~Shape_Blitter();
 	
@@ -67,14 +70,15 @@ public:
 	float rotation;
 	
 	// set default cropping rectangle
-	SDL_Rect crop_rect;
+	Image_Rect crop_rect;
 	
 protected:
 	
-	shape_descriptor m_desc;
+	short m_coll;
+    short m_frame;
     short m_type;
-    SDL_Rect m_src;
-    SDL_Rect m_scaled_src;
+    Image_Rect m_src;
+    Image_Rect m_scaled_src;
     
     SDL_Surface *m_surface;
     SDL_Surface *m_scaled_surface;

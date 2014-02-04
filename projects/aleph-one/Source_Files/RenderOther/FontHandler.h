@@ -39,9 +39,7 @@ Jan 14, 2001 (Loren Petrich):
 #include "cseries.h"
 #include "XML_ElementParser.h"
 
-#if defined(SDL)
 #include "sdl_fonts.h"
-#endif
 
 #ifdef HAVE_OPENGL
 #include "OGL_Headers.h"
@@ -56,23 +54,15 @@ class FontSpecifier;
 class FontSpecifier
 {
 public:
-	enum {
-		// How many characters
-		NameSetLen = 64
-	};
-	
 	// Parameters:
-	
-	// Name in HTML-fontname style "font1, font2, font3";
-	// use the first of these fonts that are present,
-	// otherwise use some sensible default
-	char NameSet[NameSetLen];
+	std::string NameSet; // unused
+
 	short Size;
 	short Style;
 	short AdjustLineHeight;
 	
 	// For SDL font support: a font filename
-	char File[NameSetLen];
+	std::string File;
 	
 	// Derived quantities: sync with parameters by calling Update()
 	short Height;			// How tall is it?
@@ -80,12 +70,7 @@ public:
 	short Ascent, Descent, Leading;
 	short Widths[256];
 	
-	// MacOS- and SDL-specific stuff
-#if defined(mac)
-	short ID;
-#elif defined(SDL)
 	font_info *Info;
-#endif
 	
 	// Initialize: call this before calling anything else;
 	// this is from not having a proper constructor for this object.
@@ -94,12 +79,6 @@ public:
 	// Do the updating: must be called before using the font; however, it is called by Init(),
 	// and it will be called by the XML parser if it updates the parameters
 	void Update();
-	
-	// Use this font (MacOS-specific); has this form because MacOS Quickdraw has a global font value
-	// for each GrafPort (draw context)
-#ifdef mac
-	void Use();
-#endif
 	
 	// Get text width for text that must be centered (map title)
 	int TextWidth(const char *Text);
@@ -144,17 +123,6 @@ public:
 	bool operator!=(FontSpecifier& F)
 		{return (!((*this) == F));}
 	FontSpecifier& operator=(FontSpecifier& F);
-	
-	// Search functions for names; call these in alternation on a pointer to the current name,
-	// which is initialized to the name-string pointer above
-	
-	// Given a pointer to somewhere in a name set, returns the pointer
-	// to the start of the next name, or NULL if it did not find any
-	static char *FindNextName(char *NamePtr);
-	
-	// Given a pointer to the beginning of a name, finds the pointer to the character
-	// just after the end of that name
-	static char *FindNameEnd(char *NamePtr);
 	
 	// Not sure what kind of explicit constructor would be consistent with the way
 	// that fonts' initial values are specified, as {nameset-string, size, style}.

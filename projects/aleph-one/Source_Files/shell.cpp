@@ -121,6 +121,7 @@
 #include "Logging.h"
 #include "network.h"
 #include "Console.h"
+#include "Movie.h"
 
 // LP addition: whether or not the cheats are active
 // Defined in shell_misc.cpp
@@ -135,6 +136,7 @@ extern char *bundle_resource_path;
 extern char *app_log_directory;
 extern char *app_preferences_directory;
 extern char *app_support_directory;
+extern char *app_screenshots_directory;
 #else
 char application_name[] = A1_DISPLAY_NAME;
 char application_identifier[] = "org.bungie.source.AlephOne";
@@ -185,6 +187,7 @@ extern string get_preferences_directory(void);
 
 // From preprocess_map_sdl.cpp
 extern bool get_default_music_spec(FileSpecifier &file);
+extern bool get_default_theme_spec(FileSpecifier& file);
 
 // From vbl_sdl.cpp
 void execute_timer_tasks(uint32 time);
@@ -223,12 +226,12 @@ static void usage(const char *prg_name)
 #endif
 	  "\t[-s | --nosound]       Do not access the sound card\n"
 	  "\t[-m | --nogamma]       Disable gamma table effects (menu fades)\n"
-          "\t[-j | --nojoystick]    Do not initialize joysticks\n"
+	  "\t[-j | --nojoystick]    Do not initialize joysticks\n"
 	  // Documenting this might be a bad idea?
 	  // "\t[-i | --insecure_lua]  Allow Lua netscripts to take over your computer\n"
 	  "\t[-F | --options_file]  Load options from the given file\n"
 	  "\tdirectory              Directory containing scenario data files\n"
-          "\tfile                   Saved game to load or film to play\n"
+	  "\tfile                   Saved game to load or film to play\n"
 	  "\nYou can also use the ALEPHONE_DATA environment variable to specify\n"
 	  "the data directory.\n"
 #ifdef __WIN32__
@@ -423,7 +426,7 @@ int main(int argc, char **argv)
 	  "\nThis is free software with ABSOLUTELY NO WARRANTY.\n"
 	  "You are welcome to redistribute it under certain conditions.\n"
 	  "For details, see the file COPYING.\n"
-#if defined(__BEOS__) || defined(__WIN32__) 
+#if defined(__BEOS__) || defined(__WIN32__)
 	  // BeOS and Windows are statically linked against SDL, so we have to include this:
 	  "\nSimple DirectMedia Layer (SDL) Library included under the terms of the\n"
 	  "GNU Library General Public License.\n"
@@ -563,9 +566,8 @@ static void initialize_application(void)
 
 #elif defined(__wii__)
 
-	default_data_dir = arg_directory;
+	default_data_dir = "sd:/AlephOne";
 	local_data_dir = default_data_dir;
-	log_dir = local_data_dir;
 
 #else
 	default_data_dir = "";
@@ -635,6 +637,10 @@ static void initialize_application(void)
 	saved_games_dir = local_data_dir + "Saved Games";
 	recordings_dir = local_data_dir + "Recordings";
 	screenshots_dir = local_data_dir + "Screenshots";
+#if defined(__APPLE__) && defined(__MACH__)
+    if (app_screenshots_directory)
+        screenshots_dir = app_screenshots_directory;
+#endif
 
 
 	DirectorySpecifier local_mml_dir = local_data_dir + "MML";
@@ -644,6 +650,7 @@ static void initialize_application(void)
 	initialize_resources();
 
 	init_physics_wad_data();
+	initialize_fonts(false);
 
 	load_film_profile(FILM_PROFILE_DEFAULT, false);
 
@@ -668,12 +675,13 @@ static void initialize_application(void)
 			data_search_path.insert(data_search_path.begin() + dsp_insert_pos, chosen_dir);
 			
 			// Parse MML files again, now that we have a new dir to search
+			initialize_fonts(false);
 			SetupParseTree();
 			LoadBaseMMLScripts();
 		}
 	}
 
-	initialize_fonts();
+	initialize_fonts(true);
 	Plugins::instance()->enumerate();			
 	
 #if defined(__WIN32__) || (defined(__MACH__) && defined(__APPLE__))
@@ -750,11 +758,15 @@ static void initialize_application(void)
 	alephone::Screen::instance()->Initialize(&graphics_preferences->screen_mode);
 	initialize_marathon();
 	initialize_screen_drawing();
-	FileSpecifier theme = environment_preferences->theme_dir;
+	FileSpecifier theme;
 	const Plugin* theme_plugin = Plugins::instance()->find_theme();
 	if (theme_plugin)
 	{
 		theme = theme_plugin->directory + theme_plugin->theme;
+	}
+	else
+	{
+		get_default_theme_spec(theme);
 	}
 	initialize_dialogs(theme);
 	initialize_terminal_manager();
@@ -775,8 +787,10 @@ void shutdown_application(void)
         static bool already_shutting_down = false;
         if(already_shutting_down)
                 return;
-        
+
         already_shutting_down = true;
+        
+	close_external_resources();
         
 	restore_gamma();
 #if defined(HAVE_SDL_IMAGE) && (SDL_IMAGE_PATCHLEVEL >= 8)
@@ -1060,11 +1074,11 @@ static void handle_game_key(const SDL_Event &event)
 		}
 		else if (key == input_preferences->shell_keycodes[_key_volume_up])
 		{
-			changed_prefs = SoundManager::instance()->AdjustVolumeUp(_snd_adjust_volume);
+			changed_prefs = SoundManager::instance()->AdjustVolumeUp(Sound_AdjustVolume());
 		}
 		else if (key == input_preferences->shell_keycodes[_key_volume_down])
 		{
-			changed_prefs = SoundManager::instance()->AdjustVolumeDown(_snd_adjust_volume);
+			changed_prefs = SoundManager::instance()->AdjustVolumeDown(Sound_AdjustVolume());
 		}
 		else if (key == input_preferences->shell_keycodes[_key_switch_view])
 		{
@@ -1285,9 +1299,9 @@ static void process_game_key(const SDL_Event &event)
 	switch (get_game_state()) {
 	case _game_in_progress:
 #if defined(__APPLE__) && defined(__MACH__)
-		if ((event.key.keysym.mod & KMOD_META)) 
+		if ((event.key.keysym.mod & KMOD_META))
 #else
-		if ((event.key.keysym.mod & KMOD_ALT) || (event.key.keysym.mod & KMOD_META)) 
+		if ((event.key.keysym.mod & KMOD_ALT) || (event.key.keysym.mod & KMOD_META))
 #endif
 		{
 			int item = -1;
@@ -1448,7 +1462,7 @@ static void process_event(const SDL_Event &event)
 	case SDL_ACTIVEEVENT:
 		if (event.active.state & SDL_APPINPUTFOCUS) {
 			if (!event.active.gain && !(SDL_GetAppState() & SDL_APPINPUTFOCUS)) {
-				if (get_game_state() == _game_in_progress && get_keyboard_controller_status()) {
+				if (get_game_state() == _game_in_progress && get_keyboard_controller_status() && !Movie::instance()->IsRecording()) {
 					darken_world_window();
 					set_keyboard_controller_status(false);
 					show_cursor();
@@ -1598,7 +1612,9 @@ void dump_screen(void)
 	}
 
 	// Read OpenGL frame buffer
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 	glReadPixels(0, 0, video->w, video->h, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+	glPixelStorei(GL_PACK_ALIGNMENT, 4);  // return to default
 
 	// Copy pixel buffer (which is upside-down) to surface
 	for (int y = 0; y < video->h; y++)

@@ -89,22 +89,22 @@
     </section>
     <section name="Loading Collections" id="loading_collections">
       <description>
-        <p>A Lua script can ask for the engine to load collections it might otherwise not load; for instance, in order to be able to spawn defenders and compilers on a map that might not have them otherwise, add the indices for those collections to the global table CollectionsUsed:
-        <pre>CollectionsUsed = { 10, 16 }</pre>
+        <p>A Lua script can ask for the engine to load collections it might otherwise not load; for instance, in order to be able to draw defender and compiler shapes during a level that might not have them otherwise, add the indices for those collections to the global table CollectionsUsed:
         </p>
+        <pre>CollectionsUsed = { 10, 16 }</pre>
       </description>
     </section>
   </section>
   <triggers id="triggers">
     <description>These are functions scripts can define which Aleph One will call at specific times or events. For the HUD, the draw() trigger is the most important. For example, to write "Hello world" in the upper left corner of the screen:
-<pre>Triggers = {}
+<span class="pre">Triggers = {}
 function Triggers.init()
   myFont = Fonts.new{size = 14}
 end
 function Triggers.draw()
   myFont:draw_text("Hello world", 50, 50, {1, 1, 1, 1});
 end
-</pre>
+</span>
 </description>
     <function name="init">
       <description>when a game session is started (after leaving the main menu)</description>
@@ -124,7 +124,7 @@ end
   <section id="using_tables" name="Using Tables">
     <description><p>There are numerous tables (technically, userdata) defined in Aleph One which scripts can use to access objects in the game. A complete list is below.</p></description>
     <section id="custom" name="Custom Fields">
-      <description><p>In a real Lua table, you can set any field you want. In order to help troubleshooting, Aleph One's userdata tables will only accept the fields listed in the documentation below. However, by prepending an underscore, custom fields can be indexed. These custom fields will be associated with the object until it is destroyed.<pre>Players[0]._favorite_flavor = "chocolate"</pre></p></description>
+      <description><p>In a real Lua table, you can set any field you want. In order to help troubleshooting, Aleph One's userdata tables will only accept the fields listed in the documentation below. However, by prepending an underscore, custom fields can be indexed. These custom fields will be associated with the object until it is destroyed.</p><pre>Players[0]._favorite_flavor = "chocolate"</pre></description>
     </section>
   </section>
   <tables id="tables">
@@ -180,11 +180,11 @@ end
         </variable>
       </subtable>
       <subtable name="crosshairs" classname="lua_crosshairs">
-        <variable name="active" access="read-only" version="SVN">
+        <variable name="active" access="read-only" version="20111201">
           <description>whether crosshairs are visible</description>
           <type>boolean</type>
         </variable>
-        <variable name="lua_hud" version="SVN">
+        <variable name="lua_hud" version="20111201">
           <description>whether the Lua HUD script draws the crosshairs</description>
           <type>boolean</type>
         </variable>
@@ -197,7 +197,7 @@ end
         <description>whether the overhead map is currently displayed</description>
         <type>boolean</type>
       </variable>
-      <variable name="map_overlay_active" access="read-only" version="SVN">
+      <variable name="map_overlay_active" access="read-only" version="20111201">
         <description>whether the "Overlay Map" preference is enabled</description>
         <type>boolean</type>
       </variable>
@@ -285,6 +285,14 @@ end
       <variable name="style" access="read-only">
         <type>number</type>
       </variable>
+      <variable name="line_height" access="read-only">
+        <type>number</type>
+      </variable>
+      <variable name="scale" version="20140104">
+        <description>scale factor, for resizing specific bitmap font sizes</description>
+        <note>it's usually better to create a new font at the correct size instead</note>
+        <type>number</type>
+      </variable>
       <function name="measure_text">
         <description>returns the width and height of a string when drawn in this font</description>
         <argument name="string"><type>string</type></argument>
@@ -300,22 +308,37 @@ end
     </table>
     <accessor name="Fonts" contains="font">
       <function name="new" named_parameters="true">
-        <description>all arguments are optional and passed by name; "id" and "file" are mutually exclusive; returns font or nil</description>
-        <argument name="id">
-          <description>a resource ID from the Fonts file (for the default Fonts file, valid values are 4 for Monaco and 22 for Courier) [default: nil]</description>
-          <type>number</type>
-        </argument>
-        <argument name="file">
+        <argument name="file" required="false">
           <description>the path to a TTF file, for the standard variant of the font (the special path "mono" indicates the default Mono Sans font) [default: "mono"]</description>
           <type>string</type>
         </argument>
-        <argument name="size">
+        <argument name="size" required="false">
           <description>the font size to use [default: 12]</description>
           <type>number</type>
         </argument>
-        <argument name="style">
+        <argument name="style" required="false">
           <description>a number indicating the sum of any font styles to use (1 - bold; 2 - italic; 4 - underline) [default: 0]</description>
           <type>number</type>
+        </argument>
+      </function>
+      <function name="new" named_parameters="true">
+        <argument name="id">
+          <description>a resource ID from the Fonts file (for the default Fonts file, valid values are 4 for Monaco and 22 for Courier)</description>
+          <type>number</type>
+        </argument>
+        <argument name="size" required="false">
+          <description>the font size to use [default: 12]</description>
+          <type>number</type>
+        </argument>
+        <argument name="style" required="false">
+          <description>a number indicating the sum of any font styles to use (1 - bold; 2 - italic; 4 - underline) [default: 0]</description>
+          <type>number</type>
+        </argument>
+      </function>
+      <function name="new" named_parameters="true" version="20140104">
+        <argument name="interface">
+          <description>see InterfaceFonts for mnemonics</description>
+          <type>interface_font</type>
         </argument>
       </function>
       <index/>
@@ -370,13 +393,14 @@ end
     </table>
     <accessor name="Images" contains="image">
       <function name="new" named_parameters="true">
-        <description>all arguments are passed by name; returns image or nil</description>
-        <argument name="resource" required="false">
-          <description>a resource ID from the Images file (if given, other arguments are ignored)</description>
+        <argument name="resource">
+          <description>a resource ID from the Images file</description>
           <type>number</type>
         </argument>
-        <argument name="path" required="false">
-          <description>the path to the image file to use (required if resource is not given)</description>
+      </function>
+      <function name="new" named_parameters="true">
+        <argument name="path">
+          <description>the path to the image file to use</description>
           <type>string</type>
         </argument>
         <argument name="mask" required="false">
@@ -442,14 +466,14 @@ end
           <type>collection</type>
         </argument>
         <argument name="texture_index">
-          <description>texture bitmap index</description>
+          <description>frame (not bitmap) index</description>
           <type>number</type>
         </argument>
         <argument name="type" required="false">
           <description>type such as wall or sprite; see "Texture Types"</description>
           <type>texture_type</type>
         </argument>
-        <argument name="color table" required="false">
+        <argument name="color_table" required="false">
           <description>color table index</description>
           <type>number</type>
         </argument>
@@ -492,7 +516,7 @@ end
           <description>true if this player is the local player</description>
           <type>boolean</type>
         </variable>
-        <variable name="active" version="SVN">
+        <variable name="active" version="20111201">
           <description>true if this player's viewpoint is currently displayed</description>
           <type>boolean</type>
         </variable>
@@ -539,17 +563,17 @@ end
         <type>number</type>
       </variable>
       <subtable name="velocity">
-        <variable name="forward" version="SVN">
+        <variable name="forward" version="20111201">
           <description>player's forward/backward velocity, from internal and external forces</description>
           <note>in WU per tick; positive values mean forward movement</note>
           <type>number</type>
         </variable>
-        <variable name="perpendicular" version="SVN">
+        <variable name="perpendicular" version="20111201">
           <description>player's left/right velocity</description>
           <note>in WU per tick; positive values mean rightward movement</note>
           <type>number</type>
         </variable>
-        <variable name="vertical" version="SVN">
+        <variable name="vertical" version="20111201">
           <description>player's up/down velocity</description>
           <note>in WU per tick; positive values mean upward movement</note>
           <type>number</type>
@@ -594,6 +618,10 @@ end
           <description>label to use for more than 1 of the item</description>
           <type>string</type>
           <note>from stringset 150</note>
+        </variable>
+        <variable name="valid" version="20140104">
+          <description>whether item is valid in the current environment (i.e. vacuum)</description>
+          <type>boolean</type>
         </variable>
         <variable name="type"><type>item_type</type></variable>
       </subtable-accessor>
@@ -654,6 +682,11 @@ end
         <description>amount of oxygen player has (max is 10800)</description>
         <type>number</type>
       </variable>
+      <variable name="respawn_duration" version="20140104">
+        <description>ticks remaining before dead player can revive</description>
+        <note>nil until player is completely dead</note>
+        <type>number</type>
+      </variable>
       <variable name="team">
         <description>player's team (pants color)</description>
         <type>number</type>
@@ -698,11 +731,29 @@ end
       </subtable>
       <subtable-accessor name="weapons" classname="player_weapon" index="weapon_type">
         <variable name="type"><type>weapon_type</type></variable>
-        <variable name="name" version="SVN">
+        <variable name="name" version="20111201">
           <description>label shown in classic HUD</description>
           <type>string</type>
           <note>from stringset 137; may differ from label in Player.items</note>
         </variable>
+        <subtable name="name_rect" classname="player_weapon_name_rect" version="20140104">
+          <description>position of label in classic HUD</description>
+          <variable name="x"><type>number</type></variable>
+          <variable name="y"><type>number</type></variable>
+          <variable name="width"><type>number</type></variable>
+          <variable name="height"><type>number</type></variable>
+        </subtable>
+        <subtable name="shape" classname="player_weapon_shape" version="20140104">
+          <alias>multiple_shape</alias>
+          <alias>multiple_unused_shape</alias>
+          <note>can be nil</note>
+          <variable name="texture_index">
+            <description>frame in Interface collection</description>
+            <type>number</type>
+          </variable>
+          <variable name="x"><type>number</type></variable>
+          <variable name="y"><type>number</type></variable>
+        </subtable>
         <subtable name="primary" classname="player_weapon_trigger">
           <alias>secondary</alias>
           <variable name="rounds">
@@ -719,6 +770,67 @@ end
           <variable name="weapon_drawn">
             <type>boolean</type>
           </variable>
+          <subtable name="bullet_display" classname="player_weapon_trigger_bullet" version="20140104">
+            <note>can be nil</note>
+            <variable name="x">
+              <type>number</type>
+            </variable>
+            <variable name="y">
+              <type>number</type>
+            </variable>
+            <variable name="width">
+              <description>width of a single bullet in classic HUD</description>
+              <type>number</type>
+            </variable>
+            <variable name="height">
+              <description>height of a single bullet in classic HUD</description>
+              <type>number</type>
+            </variable>
+            <variable name="across">
+              <description>number of bullets in a single row</description>
+              <type>number</type>
+            </variable>
+            <variable name="down">
+              <description>number of bullet rows</description>
+              <type>number</type>
+            </variable>
+            <variable name="right_to_left">
+              <type>boolean</type>
+            </variable>
+            <variable name="texture_index">
+              <type>number</type>
+            </variable>
+            <variable name="empty_texture_index">
+              <type>number</type>
+            </variable>
+          </subtable>
+          <subtable name="energy_display" classname="player_weapon_trigger_energy" version="20140104">
+            <note>can be nil</note>
+            <variable name="x">
+              <type>number</type>
+            </variable>
+            <variable name="y">
+              <type>number</type>
+            </variable>
+            <variable name="width">
+              <type>number</type>
+            </variable>
+            <variable name="height">
+              <type>number</type>
+            </variable>
+            <variable name="maximum">
+              <note>should usually match total_rounds</note>
+              <type>number</type>
+            </variable>
+            <variable name="color">
+              <description>the interface color for drawing the full region and border</description>
+              <type>InterfaceColor</type>
+            </variable>
+            <variable name="empty_color">
+              <description>the interface color for drawing the empty region</description>
+              <type>InterfaceColor</type>
+            </variable>
+          </subtable>
         </subtable>
       </subtable-accessor>
       <variable name="zoom_active">
@@ -758,6 +870,109 @@ end
     </table>
     <accessor name="Lighting" contains="lighting"/>
 
+    
+    <enum name="interface_color">
+      <variable name="r" access="read-only">
+        <alias>red</alias>
+        <type>number</type>
+      </variable>
+      <variable name="g" access="read-only">
+        <alias>green</alias>
+        <type>number</type>
+      </variable>
+      <variable name="b" access="read-only">
+        <alias>blue</alias>
+        <type>number</type>
+      </variable>
+      <variable name="a" access="read-only">
+        <alias>alpha</alias>
+        <type>number</type>
+        <note>alpha is always 1</note>
+      </variable>
+      <mnemonics>
+        <mnemonic name="ammo box full"/>
+        <mnemonic name="ammo box empty"/>
+        <mnemonic name="black"/>
+        <mnemonic name="inventory text"/>
+        <mnemonic name="inventory header background"/>
+        <mnemonic name="inventory background"/>
+        <mnemonic name="slate player"/>
+        <mnemonic name="red player"/>
+        <mnemonic name="violet player"/>
+        <mnemonic name="yellow player"/>
+        <mnemonic name="white player"/>
+        <mnemonic name="orange player"/>
+        <mnemonic name="blue player"/>
+        <mnemonic name="green player"/>
+        <mnemonic name="white"/>
+        <mnemonic name="invalid weapon"/>
+        <mnemonic name="computer border text background"/>
+        <mnemonic name="computer border text"/>
+        <mnemonic name="computer text"/>
+        <mnemonic name="computer white text"/>
+        <mnemonic name="computer red text"/>
+        <mnemonic name="computer dark green text"/>
+        <mnemonic name="computer cyan text"/>
+        <mnemonic name="computer yellow text"/>
+        <mnemonic name="computer dark red text"/>
+        <mnemonic name="computer blue text"/>
+      </mnemonics>
+    </enum>
+    <enum-accessor name="InterfaceColors" contains="interface_color" nice-name="Interface Colors" version="20140104"/>
+    
+    <enum name="interface_font">
+      <mnemonics>
+        <mnemonic name="interface"/>
+        <mnemonic name="weapon name"/>
+        <mnemonic name="player name"/>
+        <mnemonic name="interface item count"/>
+        <mnemonic name="terminal"/>
+        <mnemonic name="terminal title"/>
+        <mnemonic name="network statistics"/>
+      </mnemonics>
+    </enum>
+    <enum-accessor name="InterfaceFonts" contains="interface_font" nice-name="Interface Fonts" version="20140104"/>
+
+    <enum name="interface_rect">
+      <variable name="x" access="read-only"><type>number</type></variable>
+      <variable name="y" access="read-only"><type>number</type></variable>
+      <variable name="width" access="read-only"><type>number</type></variable>
+      <variable name="height" access="read-only"><type>number</type></variable>
+      <mnemonics>
+        <mnemonic name="player name"/>
+        <mnemonic name="oxygen"/>
+        <mnemonic name="shield"/>
+        <mnemonic name="motion sensor"/>
+        <mnemonic name="microphone"/>
+        <mnemonic name="inventory"/>
+        <mnemonic name="weapon display"/>
+        <mnemonic name="new-game button"/>
+        <mnemonic name="load-game button"/>
+        <mnemonic name="gather button"/>
+        <mnemonic name="join button"/>
+        <mnemonic name="preferences button"/>
+        <mnemonic name="replay button"/>
+        <mnemonic name="save-last button"/>
+        <mnemonic name="replace-saved button"/>
+        <mnemonic name="credits button"/>
+        <mnemonic name="quit button"/>
+        <mnemonic name="center button"/>
+        <mnemonic name="unused 18"/>
+        <mnemonic name="unused 19"/>
+        <mnemonic name="terminal screen"/>
+        <mnemonic name="terminal header"/>
+        <mnemonic name="terminal footer"/>
+        <mnemonic name="terminal full text"/>
+        <mnemonic name="terminal left"/>
+        <mnemonic name="terminal right"/>
+        <mnemonic name="terminal logon graphic"/>
+        <mnemonic name="terminal logon title"/>
+        <mnemonic name="terminal logon location"/>
+        <mnemonic name="respawn indicator"/>
+        <mnemonic name="blinker"/>
+      </mnemonics>
+    </enum>
+    <enum-accessor name="InterfaceRects" contains="interface_rect" nice-name="Interface Rectangles" version="20140104"/>
     
     <enum name="item_type">
       <mnemonics>

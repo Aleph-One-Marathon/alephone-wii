@@ -116,6 +116,7 @@ Feb 8, 2003 (Woody Zenfell):
 #include "shell.h"
 
 #include "Console.h"
+#include "Movie.h"
 
 #include <limits.h>
 
@@ -388,34 +389,41 @@ enum {
 static int
 update_world_elements_one_tick()
 {
-        L_Call_Idle();
-
-        update_lights();
-        update_medias();
-        update_platforms();
-        
-        update_control_panels(); // don't put after update_players
-        update_players(GameQueue, false);
-        move_projectiles();
-        move_monsters();
-        update_effects();
-        recreate_objects();
-        
-        handle_random_sound_image();
-        animate_scenery();
-
-        // LP additions:
-	if (film_profile.animate_items)
+	if (m1_solo_player_in_terminal()) 
 	{
-		animate_items();
-	}
-
-        AnimTxtr_Update();
-        ChaseCam_Update();
-
+		update_m1_solo_player_in_terminal(GameQueue);
+	} 
+	else
+	{
+		L_Call_Idle();
+		
+		update_lights();
+		update_medias();
+		update_platforms();
+		
+		update_control_panels(); // don't put after update_players
+		update_players(GameQueue, false);
+		move_projectiles();
+		move_monsters();
+		update_effects();
+		recreate_objects();
+		
+		handle_random_sound_image();
+		animate_scenery();
+		
+		// LP additions:
+		if (film_profile.animate_items)
+		{
+			animate_items();
+		}
+		
+		AnimTxtr_Update();
+		ChaseCam_Update();
+		
 #if !defined(DISABLE_NETWORKING)
-        update_net_game();
+		update_net_game();
 #endif // !defined(DISABLE_NETWORKING)
+	}
 
         if(check_level_change()) 
         {
@@ -494,7 +502,7 @@ update_world()
 
                 
                 L_Call_PostIdle();
-                if(theUpdateResult != kUpdateNormalCompletion)
+                if(theUpdateResult != kUpdateNormalCompletion || Movie::instance()->IsRecording())
                 {
                         canUpdate = false;
                 }
@@ -594,8 +602,6 @@ void leaving_map(
 	// doesn't work out. 
 	Music::instance()->StopLevelMusic();
 	SoundManager::instance()->StopAllSounds();
-
-	SoundManager::instance()->UnloadCustomSounds();
 }
 
 /* call this function after the new level has been completely read into memory, after
@@ -643,7 +649,7 @@ bool entering_map(bool restoring_saved)
 #endif // !defined(DISABLE_NETWORKING)
 	randomize_scenery_shapes();
 
-	reset_action_queues(); //¦¦
+//	reset_action_queues(); //¦¦
 //	sync_heartbeat_count();
 //	set_keyboard_controller_status(true);
 
@@ -762,6 +768,24 @@ short calculate_level_completion_state(
 		}
 	}
 	
+	/* if there are any polygons which must be seen and have not been mapped, weÕre not done */
+	if ((static_world->mission_flags&_mission_exploration_m1) &&
+	    dynamic_world->player_count == 1)
+	{
+		short polygon_index;
+		struct polygon_data *polygon;
+		
+		for (polygon_index= 0, polygon= map_polygons; polygon_index<dynamic_world->polygon_count; ++polygon_index, ++polygon)
+		{
+			if (polygon->type==_polygon_must_be_explored &&
+			    !POLYGON_IS_IN_AUTOMAP(polygon_index))
+			{
+				completion_state= _level_unfinished;
+				break;
+			}
+		}
+	}
+	
 	/* if there are any items left on this map, weÕre not done */
 	if (static_world->mission_flags&_mission_retrieval)
 	{
@@ -778,7 +802,7 @@ short calculate_level_completion_state(
 	if (completion_state==_level_finished)
 	{
 		/* if this is a rescue mission and more than half of the civilians died, the mission failed */
-		if (static_world->mission_flags&_mission_rescue &&
+		if (static_world->mission_flags&(_mission_rescue|_mission_rescue_m1) &&
 			dynamic_world->current_civilian_causalties>dynamic_world->current_civilian_count/2)
 		{
 			completion_state= _level_failed;
@@ -825,16 +849,33 @@ void cause_polygon_damage(
 	struct polygon_data *polygon= get_polygon_data(polygon_index);
 	struct monster_data *monster= get_monster_data(monster_index);
 	struct object_data *object= get_object_data(monster->object_index);
+    
+    short polygon_type = polygon->type;
+    // apply damage from flooded platforms
+    if (polygon->type == _polygon_is_platform)
+	{
+		struct platform_data *platform= get_platform_data(polygon->permutation);
+		if (platform && PLATFORM_IS_FLOODED(platform))
+		{
+			short adj_index = find_flooding_polygon(polygon_index);
+			if (adj_index != NONE)
+			{
+				struct polygon_data *adj_polygon = get_polygon_data(adj_index);
+				polygon_type = adj_polygon->type;
+			}
+		}
+	}
+
 
 // #if 0
-	if ((polygon->type==_polygon_is_minor_ouch && !(dynamic_world->tick_count&MINOR_OUCH_FREQUENCY) && object->location.z==polygon->floor_height) ||
-		(polygon->type==_polygon_is_major_ouch && !(dynamic_world->tick_count&MAJOR_OUCH_FREQUENCY)))
+	if ((polygon_type==_polygon_is_minor_ouch && !(dynamic_world->tick_count&MINOR_OUCH_FREQUENCY) && object->location.z==polygon->floor_height) ||
+		(polygon_type==_polygon_is_major_ouch && !(dynamic_world->tick_count&MAJOR_OUCH_FREQUENCY)))
 	{
 		struct damage_definition damage;
 		
 		damage.flags= _alien_damage;
-		damage.type= polygon->type==_polygon_is_minor_ouch ? _damage_polygon : _damage_major_polygon;
-		damage.base= polygon->type==_polygon_is_minor_ouch ? MINOR_OUCH_DAMAGE : MAJOR_OUCH_DAMAGE;
+		damage.type= polygon_type==_polygon_is_minor_ouch ? _damage_polygon : _damage_major_polygon;
+		damage.base= polygon_type==_polygon_is_minor_ouch ? MINOR_OUCH_DAMAGE : MAJOR_OUCH_DAMAGE;
 		damage.random= 0;
 		damage.scale= FIXED_ONE;
 		

@@ -114,7 +114,7 @@ static int Lua_MonsterType_Enemies_Set(lua_State *L)
 	return 0;
 }
 
-const luaL_reg Lua_MonsterType_Enemies_Metatable[] = {
+const luaL_Reg Lua_MonsterType_Enemies_Metatable[] = {
 	{"__index", Lua_MonsterType_Enemies_Get},
 	{"__newindex", Lua_MonsterType_Enemies_Set},
 	{0, 0}
@@ -154,7 +154,7 @@ static int Lua_MonsterType_Friends_Set(lua_State *L)
 	return 0;
 }
 
-const luaL_reg Lua_MonsterType_Friends_Metatable[] = {
+const luaL_Reg Lua_MonsterType_Friends_Metatable[] = {
 	{"__index", Lua_MonsterType_Friends_Get},
 	{"__newindex", Lua_MonsterType_Friends_Set},
 	{0, 0}
@@ -195,7 +195,7 @@ static int Lua_MonsterType_Immunities_Set(lua_State *L)
 	return 0;
 }
 
-const luaL_reg Lua_MonsterType_Immunities_Metatable[] = {
+const luaL_Reg Lua_MonsterType_Immunities_Metatable[] = {
 	{"__index", Lua_MonsterType_Immunities_Get},
 	{"__newindex", Lua_MonsterType_Immunities_Set},
 	{0, 0}
@@ -236,7 +236,7 @@ int Lua_MonsterType_Weaknesses_Set(lua_State *L)
 	return 0;
 }
 
-const luaL_reg Lua_MonsterType_Weaknesses_Metatable[] = {
+const luaL_Reg Lua_MonsterType_Weaknesses_Metatable[] = {
 	{"__index", Lua_MonsterType_Weaknesses_Get},
 	{"__newindex", Lua_MonsterType_Weaknesses_Set},
 	{0, 0}
@@ -249,6 +249,7 @@ static bool Lua_MonsterType_Valid(int16 index)
 	return index >= 0 && index < NUMBER_OF_MONSTER_TYPES;
 }
 
+
 static int Lua_MonsterType_Get_Class(lua_State *L) {
 	monster_definition *definition = get_monster_definition_external(Lua_MonsterType::Index(L, 1));
 	Lua_MonsterClass::Push(L, definition->_class);
@@ -259,6 +260,15 @@ static int Lua_MonsterType_Get_Enemies(lua_State *L) {
 	Lua_MonsterType_Enemies::Push(L, Lua_MonsterType::Index(L, 1));
 	return 1;
 }
+
+template<uint32 flag>
+static int Lua_MonsterType_Get_Flag(lua_State* L)
+{
+	monster_definition* definition = get_monster_definition_external(Lua_MonsterType::Index(L, 1));
+	lua_pushboolean(L, definition->flags & flag);
+	return 1;
+}
+
 
 static int Lua_MonsterType_Get_Height(lua_State *L) {
 	monster_definition *definition = get_monster_definition_external(Lua_MonsterType::Index(L, 1));
@@ -345,6 +355,25 @@ static int Lua_MonsterType_Get_Item(lua_State *L) {
 static int Lua_MonsterType_Set_Class(lua_State *L) {
 	monster_definition *definition = get_monster_definition_external(Lua_MonsterType::Index(L, 1));
 	definition->_class = static_cast<int32>(Lua_MonsterClass::ToIndex(L, 2));
+	return 0;
+}
+
+template<uint32 flag>
+static int Lua_MonsterType_Set_Flag(lua_State* L)
+{
+	if (!lua_isboolean(L, 2))
+		return luaL_error(L, "monster flag: incorrect argument type");
+
+	monster_definition* definition = get_monster_definition_external(Lua_MonsterType::Index(L, 1));
+	if (lua_toboolean(L, 2)) 
+	{
+		definition->flags |= flag;
+	}
+	else
+	{
+		definition->flags &= ~flag;
+	}
+
 	return 0;
 }
 
@@ -452,7 +481,9 @@ static int Lua_MonsterType_Set_Random_Location(lua_State* L)
 	return 0;
 }
 
-const luaL_reg Lua_MonsterType_Get[] = {
+const luaL_Reg Lua_MonsterType_Get[] = {
+	{"attacks_immediately", Lua_MonsterType_Get_Flag<_monster_attacks_immediately>},
+	{"cannot_be_dropped", Lua_MonsterType_Get_Flag<_monster_cannot_be_dropped>},
 	{"class", Lua_MonsterType_Get_Class},
 	{"enemies", Lua_MonsterType_Get_Enemies},
 	{"friends", Lua_MonsterType_Get_Friends},
@@ -460,27 +491,35 @@ const luaL_reg Lua_MonsterType_Get[] = {
 	{"immunities", Lua_MonsterType_Get_Immunities},
 	{"impact_effect", Lua_MonsterType_Get_Impact_Effect},
 	{"initial_count", Lua_MonsterType_Get_Initial_Count},
+	{"major", Lua_MonsterType_Get_Flag<_monster_major>},
 	{"maximum_count", Lua_MonsterType_Get_Maximum_Count},
 	{"melee_impact_effect", Lua_MonsterType_Get_Melee_Impact_Effect},
 	{"minimum_count", Lua_MonsterType_Get_Minimum_Count},
+	{"minor", Lua_MonsterType_Get_Flag<_monster_minor>},
 	{"item", Lua_MonsterType_Get_Item},
 	{"radius", Lua_MonsterType_Get_Radius},
-	{"random_count", Lua_MonsterType_Get_Random_Count},
+	{"random_chance", Lua_MonsterType_Get_Random_Chance},
 	{"random_location", Lua_MonsterType_Get_Random_Location},
-	{"total_available", Lua_MonsterType_Get_Random_Chance},
+	{"total_available", Lua_MonsterType_Get_Random_Count},
 	{"weaknesses", Lua_MonsterType_Get_Weaknesses},
+	{"waits_with_clear_shot", Lua_MonsterType_Get_Flag<_monster_waits_with_clear_shot>},
 	{0, 0}
 };
 
-const luaL_reg Lua_MonsterType_Set[] = {
+const luaL_Reg Lua_MonsterType_Set[] = {
+	{"attacks_immediately", Lua_MonsterType_Set_Flag<_monster_attacks_immediately>},
+	{"cannot_be_dropped", Lua_MonsterType_Set_Flag<_monster_cannot_be_dropped>},
 	{"class", Lua_MonsterType_Set_Class},
 	{"initial_count", Lua_MonsterType_Set_Initial_Count},
 	{"item", Lua_MonsterType_Set_Item},
+	{"major", Lua_MonsterType_Set_Flag<_monster_major>},
 	{"maximum_count", Lua_MonsterType_Set_Maximum_Count},
 	{"minimum_count", Lua_MonsterType_Set_Minimum_Count},
+	{"minor", Lua_MonsterType_Set_Flag<_monster_minor>},
 	{"random_chance", Lua_MonsterType_Set_Random_Chance},
 	{"random_location", Lua_MonsterType_Set_Random_Location},
 	{"total_available", Lua_MonsterType_Set_Random_Count},
+	{"waits_with_clear_shot", Lua_MonsterType_Set_Flag<_monster_waits_with_clear_shot>},
 	{0, 0}
 };
 
@@ -886,7 +925,7 @@ static int Lua_Monster_Set_Vitality(lua_State *L)
 	return 0;
 }
 
-const luaL_reg Lua_Monster_Get[] = {
+const luaL_Reg Lua_Monster_Get[] = {
 	{"accelerate", L_TableFunction<Lua_Monster_Accelerate>},
 	{"action", Lua_Monster_Get_Action},
 	{"active", Lua_Monster_Get_Active},
@@ -913,7 +952,7 @@ const luaL_reg Lua_Monster_Get[] = {
 	{0, 0}
 };
 
-const luaL_reg Lua_Monster_Set[] = {
+const luaL_Reg Lua_Monster_Set[] = {
 	{"active", Lua_Monster_Set_Active},
 	{"external_velocity", Lua_Monster_Set_External_Velocity},
 	{"facing", Lua_Monster_Set_Facing},
@@ -967,7 +1006,7 @@ int Lua_Monsters_New(lua_State *L)
 	return 1;
 }
 
-const luaL_reg Lua_Monsters_Methods[] = {
+const luaL_Reg Lua_Monsters_Methods[] = {
 	{"new", Lua_Monsters_New},
 	{0, 0}
 };

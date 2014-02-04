@@ -63,7 +63,9 @@ enum /* constants for activate_nearby_monsters */
 	_activate_deaf_monsters= 0x0008, // i.e., trigger
 	_pass_solid_lines= 0x0010, // i.e., not a sound (trigger)
 	_use_activation_biases= 0x0020, // inactive monsters follow their editor instructions (trigger)
-	_activation_cannot_be_avoided= 0x0040 // cannot be suppressed because of recent activation (trigger)
+	_activation_cannot_be_avoided= 0x0040, // cannot be suppressed because of recent activation (trigger)
+	_cannot_pass_superglue= 0x0080, // i.e., glue trigger
+	_activate_glue_monsters= 0x0100 // glue trigger
 };
 
 /* activation biases are only used when the monster is activated by a trigger */
@@ -297,7 +299,7 @@ bool possible_intersecting_monsters(vector<short> *IntersectedObjectsPtr, unsign
 
 void get_monster_dimensions(short monster_index, world_distance *radius, world_distance *height);
 
-void activate_nearby_monsters(short target_index, short caller_index, short flags);
+void activate_nearby_monsters(short target_index, short caller_index, short flags, int32 max_range = -1);
 
 void damage_monsters_in_radius(short primary_target_index, short aggressor_index, short aggressor_type,
 	world_point3d *epicenter, short epicenter_polygon_index, world_distance radius, struct damage_definition *damage, short projectile_index);
@@ -335,8 +337,10 @@ uint8 *unpack_monster_data(uint8 *Stream, monster_data *Objects, size_t Count);
 uint8 *pack_monster_data(uint8 *Stream, monster_data *Objects, size_t Count);
 uint8 *unpack_monster_definition(uint8 *Stream, size_t Count);
 uint8 *pack_monster_definition(uint8 *Stream, size_t Count);
+uint8* unpack_m1_monster_definition(uint8* Stream, size_t Count);
 void init_monster_definitions();
 
 XML_ElementParser *DamageKicks_GetParser();
+XML_ElementParser* Monsters_GetParser();
 
 #endif

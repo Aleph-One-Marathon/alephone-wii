@@ -22,20 +22,27 @@
 #include "ReplacementSounds.h"
 #include "Decoder.h"
 
+#include <boost/make_shared.hpp>
+#include <boost/shared_ptr.hpp>
+
 SoundReplacements *SoundReplacements::m_instance = 0;
 
-bool ExternalSoundHeader::LoadExternal(FileSpecifier& File)
+boost::shared_ptr<SoundData> ExternalSoundHeader::LoadExternal(FileSpecifier& File)
 {
+	boost::shared_ptr<SoundData> p;
 	auto_ptr<Decoder> decoder(Decoder::Get(File));
-	if (!decoder.get()) return false;
+	if (!decoder.get()) return p;
 
-	int32 length = decoder->Frames() * decoder->BytesPerFrame();
-	if (!length) return false;
+	length = decoder->Frames() * decoder->BytesPerFrame();
+	if (!length) return p;
 
-	if (decoder->Decode(Load(length), length) != length) 
+	p = boost::make_shared<SoundData>(length);
+
+	if (decoder->Decode(&(*p)[0], length) != length) 
 	{
-		Clear();
-		return false;
+		p.reset();
+		length = 0;
+		return p;
 	}
 	
 	sixteen_bit = decoder->IsSixteenBit();
@@ -46,63 +53,23 @@ bool ExternalSoundHeader::LoadExternal(FileSpecifier& File)
 	loop_start = loop_end = 0;
 	rate = (uint32 /* unsigned fixed */) (FIXED_ONE * decoder->Rate());
 
-	return true;
-	
-}
-
-SoundReplacements::SoundReplacements()
-{
-	SOHash.resize(SoundOptions::HashSize, NONE);
+	return p;
 }
 
 SoundOptions* SoundReplacements::GetSoundOptions(short Index, short Slot)
 {
-	// Set up a *reference* to the appropriate hashtable entry
-	int16& HashVal = SOHash[SoundOptions::HashFunc(Index, Slot)];
-	
-	// Check to see if the sound-option entry is correct;
-	// if it is, then we're done.
-	if (HashVal != NONE)
+	boost::unordered_map<key, SoundOptions>::iterator it = m_hash.find(key(Index, Slot));
+	if (it != m_hash.end()) 
 	{
-		std::vector<SoundOptionsEntry>::iterator SOIter = SOList.begin() + HashVal;
-		if (SOIter->Index == Index && SOIter->Slot == Slot)
-		{
-			return &SOIter->OptionsData;
-		}
-	}
-
-	// Fallback for the case of a hashtable miss;
-	// do a linear search and then update the has entry appropriately
-	int16 Indx = 0;
-	for (std::vector<SoundOptionsEntry>::iterator SOIter = SOList.begin(); SOIter < SOList.end(); SOIter++, Indx++)
+		return &it->second;
+	} 
+	else
 	{
-		if (SOIter->Index == Index && SOIter->Slot == Slot)
-		{
-			HashVal = Indx;
-			return &SOIter->OptionsData;
-		}
+		return 0;
 	}
-
-	// None found
-	return 0;
 }
 
 void SoundReplacements::Add(const SoundOptions& Data, short Index, short Slot)
 {
-	// Check to see if a frame is already accounted for
-	for (vector<SoundOptionsEntry>::iterator SOIter = SOList.begin(); SOIter < SOList.end(); SOIter++)
-	{
-		if (SOIter->Index == Index && SOIter->Slot == Slot)
-		{
-			SOIter->OptionsData = Data;
-			return;
-		}
-	}
-
-	// If not, then add a new frame entry
-	SoundOptionsEntry DataEntry;
-	DataEntry.Index = Index;
-	DataEntry.Slot = Slot;
-	DataEntry.OptionsData = Data;
-	SOList.push_back(DataEntry);
+	m_hash[key(Index, Slot)] = Data;
 }

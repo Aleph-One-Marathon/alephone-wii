@@ -112,6 +112,7 @@ Jan 12, 2003 (Loren Petrich)
 #include "media.h"
 #include "Packing.h"
 #include "lua_script.h"
+#include "Logging.h"
 
 
 #ifdef env68k
@@ -198,6 +199,9 @@ struct damage_kick_definition
 	// if non-zero, will enable vertical_component if
 	// delta_vitality is greater than threshold
 	short vertical_threshold;
+
+	// whether monsters die a hard death, or in flames
+	short death_action;
 };
 
 /* ---------- definitions */
@@ -205,30 +209,30 @@ struct damage_kick_definition
 // LP: implements commented-out damage-kick code
 struct damage_kick_definition damage_kick_definitions[NUMBER_OF_DAMAGE_TYPES] = 
 {
-	{0, 1, true, 0}, // _damage_explosion,
-	{0, 3, true, 0}, // _damage_electrical_staff,
-	{0, 1, false, 0}, // _damage_projectile,
-	{0, 1, false, 0}, // _damage_absorbed,
-	{0, 1, false, 0}, // _damage_flame,
-	{0, 1, false, 0}, // _damage_hound_claws,
-	{0, 1, false, 0}, // _damage_alien_projectile,
-	{0, 1, false, 0}, // _damage_hulk_slap,
-	{0, 3, true, 0}, // _damage_compiler_bolt,
-	{0, 0, false, 100}, // _damage_fusion_bolt,
-	{0, 1, false, 0}, // _damage_hunter_bolt,
-	{0, 1, false, 0}, // _damage_fist,
-	{250, 0, false, 0}, // _damage_teleporter,
-	{0, 1, false, 0}, // _damage_defender,
-	{0, 3, true, 0}, // _damage_yeti_claws,
-	{0, 1, false, 0}, // _damage_yeti_projectile,
-	{0, 1, false, 0}, // _damage_crushing,
-	{0, 1, false, 0}, // _damage_lava,
-	{0, 1, false, 0}, // _damage_suffocation,
-	{0, 1, false, 0}, // _damage_goo,
-	{0, 1, false, 0}, // _damage_energy_drain,
-	{0, 1, false, 0}, // _damage_oxygen_drain,
-	{0, 1, false, 0}, // _damage_hummer_bolt,
-	{0, 0, true, 0} // _damage_shotgun_projectile,
+	{0, 1, true, 0, _monster_is_dying_hard}, // _damage_explosion,
+	{0, 3, true, 0, _monster_is_dying_soft}, // _damage_electrical_staff,
+	{0, 1, false, 0, _monster_is_dying_soft}, // _damage_projectile,
+	{0, 1, false, 0, _monster_is_dying_soft}, // _damage_absorbed,
+	{0, 1, false, 0, _monster_is_dying_flaming}, // _damage_flame,
+	{0, 1, false, 0, _monster_is_dying_soft}, // _damage_hound_claws,
+	{0, 1, false, 0, _monster_is_dying_flaming}, // _damage_alien_projectile,
+	{0, 1, false, 0, _monster_is_dying_soft}, // _damage_hulk_slap,
+	{0, 3, true, 0, _monster_is_dying_soft}, // _damage_compiler_bolt,
+	{0, 0, false, 100, _monster_is_dying_soft}, // _damage_fusion_bolt,
+	{0, 1, false, 0, _monster_is_dying_soft}, // _damage_hunter_bolt,
+	{0, 1, false, 0, _monster_is_dying_soft}, // _damage_fist,
+	{250, 0, false, 0, _monster_is_dying_soft}, // _damage_teleporter,
+	{0, 1, false, 0, _monster_is_dying_soft}, // _damage_defender,
+	{0, 3, true, 0, _monster_is_dying_soft}, // _damage_yeti_claws,
+	{0, 1, false, 0, _monster_is_dying_soft}, // _damage_yeti_projectile,
+	{0, 1, false, 0, _monster_is_dying_hard}, // _damage_crushing,
+	{0, 1, false, 0, _monster_is_dying_flaming}, // _damage_lava,
+	{0, 1, false, 0, _monster_is_dying_soft}, // _damage_suffocation,
+	{0, 1, false, 0, _monster_is_dying_soft}, // _damage_goo,
+	{0, 1, false, 0, _monster_is_dying_soft}, // _damage_energy_drain,
+	{0, 1, false, 0, _monster_is_dying_soft}, // _damage_oxygen_drain,
+	{0, 1, false, 0, _monster_is_dying_soft}, // _damage_hummer_bolt,
+	{0, 0, true, 0, _monster_is_dying_soft} // _damage_shotgun_projectile,
 };
 
 /* ---------- globals */
@@ -261,6 +265,8 @@ static bool try_monster_attack(short monster_index);
 			
 int32 monster_pathfinding_cost_function(short source_polygon_index, short line_index,
 	short destination_polygon_index, void *data);
+int32 monster_m1_trigger_flood_proc(short source_polygon_index, short line_index,
+                                    short destination_polygon_index, void *data);
 
 void set_monster_action(short monster_index, short action);
 void set_monster_mode(short monster_index, short new_mode, short target_index);
@@ -288,6 +294,26 @@ static void cause_shrapnel_damage(short monster_index);
 monster_definition *get_monster_definition_external(const short type);
 
 /* ---------- code */
+
+static bool mTYPE_IS_ENEMY(monster_definition *definition, short type)
+{
+    if (static_world->environment_flags & _environment_rebellion_m1)
+    {
+        if (definition->_class & _class_client_m1)
+        {
+            return (get_monster_definition(type)->_class & _class_pfhor_m1);
+        }
+        else if (definition->_class & _class_pfhor_m1)
+        {
+            if (get_monster_definition(type)->_class & _class_client_m1)
+            {
+                return true;
+            }
+        }
+    }
+    return TYPE_IS_ENEMY(definition, type);
+}
+
 
 monster_data *get_monster_data(
 	short monster_index)
@@ -425,7 +451,12 @@ short new_monster(
 	}
 
 	/* keep track of how many civilians we drop on this level */
-//	if (monster_index!=NONE && (definition->_class&_class_human_civilian)) dynamic_world->current_civilian_count+= 1;
+	if ((static_world->mission_flags & _mission_rescue_m1) &&
+	    monster_index!=NONE && 
+	    (definition->_class&_class_human_civilian_m1)) 
+	{
+		dynamic_world->current_civilian_count+= 1;
+	}
 
 	return monster_index;
 }
@@ -463,6 +494,7 @@ void move_monsters(
 					/* update our objectÕs animation unless weÕre ÔsufferingÕ from an external velocity
 						or weÕre airborne (if weÕre a flying or floating monster, ignore both of these */
 					if ((!monster->external_velocity&&!monster->vertical_velocity) ||
+						(film_profile.ketchup_fix && (monster->action==_monster_is_attacking_close||monster->action==_monster_is_attacking_far)) ||
 						((monster->action!=_monster_is_being_hit||!monster->external_velocity) && (definition->flags&(_monster_floats|_monster_flys))))
 					{
 						animate_object(monster->object_index);
@@ -613,7 +645,7 @@ void move_monsters(
 				if (!monster_got_time && !MONSTER_IS_BLIND(monster) && monster_index>dynamic_world->last_monster_index_to_get_time)
 				{
 					change_monster_target(monster_index, find_closest_appropriate_target(monster_index, false));
-					if (MONSTER_HAS_VALID_TARGET(monster)) activate_nearby_monsters(monster->target_index, monster_index, _pass_one_zone_border);
+					if (MONSTER_HAS_VALID_TARGET(monster)) activate_nearby_monsters(monster->target_index, monster_index, _pass_one_zone_border, MONSTER_ALERT_ACTIVATION_RANGE);
 					
 					monster_got_time= true;
 					dynamic_world->last_monster_index_to_get_time= monster_index;
@@ -777,9 +809,18 @@ enum
 void activate_nearby_monsters(
 	short target_index, /* activate with lock on this target (or NONE for lock-less activation) */
 	short caller_index, /* start the flood from here */
-	short flags)
+	short flags,
+	int32 max_range)
 {
 	struct monster_data *caller= get_monster_data(caller_index);
+    int32 max_cost= INT32_MAX;
+    if (static_world->environment_flags&_environment_activation_ranges)
+    {
+		if (max_range>0)
+			max_cost= max_range*max_range;
+		else if (flags&_activate_glue_monsters)
+			max_cost= GLUE_TRIGGER_ACTIVATION_RANGE*GLUE_TRIGGER_ACTIVATION_RANGE;
+    }
 
 	if (dynamic_world->tick_count-caller->ticks_since_last_activation>MINIMUM_ACTIVATION_SEPARATION ||
 		(flags&_activation_cannot_be_avoided))
@@ -791,7 +832,7 @@ void activate_nearby_monsters(
 		
 		/* flood out from the target monsterÕs polygon, searching through the object lists of all
 			polygons we encounter */
-		polygon_index= flood_map(polygon_index, INT32_MAX, monster_activation_flood_proc, _flagged_breadth_first, &flood_flags);
+		polygon_index= flood_map(polygon_index, max_cost, monster_activation_flood_proc, _flagged_breadth_first, &flood_flags);
 		while (polygon_index!=NONE)
 		{
 			short object_index;
@@ -866,7 +907,7 @@ void activate_nearby_monsters(
 				}
 			}
 			
-			polygon_index= flood_map(NONE, INT32_MAX, monster_activation_flood_proc, _flagged_breadth_first, &flood_flags);
+			polygon_index= flood_map(NONE, max_cost, monster_activation_flood_proc, _flagged_breadth_first, &flood_flags);
 		}
 
 		// deferred find_closest_appropriate_target() calls
@@ -888,12 +929,13 @@ static int32 monster_activation_flood_proc(
 {
 	int32 *flags=(int32 *)data;
 	struct polygon_data *destination_polygon= get_polygon_data(destination_polygon_index);
+	struct polygon_data *source_polygon= get_polygon_data(source_polygon_index);
 	struct line_data *line= get_line_data(line_index);
-	int32 cost= 1;
+	bool obey_glue= (static_world->environment_flags&_environment_glue_m1);
+	bool limit_activation= (static_world->environment_flags&_environment_activation_ranges);
+	int32 cost= limit_activation ? source_polygon->area : 1;
 
 //	dprintf("P#%d==>P#%d by L#%d", source_polygon_index, destination_polygon_index, line_index);
-
-	(void) (source_polygon_index);
 
 	if (destination_polygon->type==_polygon_is_zone_border)
 	{
@@ -907,13 +949,45 @@ static int32 monster_activation_flood_proc(
 			cost= -1;
 		}
 	}
-	
+	else if ((destination_polygon->type==_polygon_is_superglue) &&
+	         ((*flags)&_cannot_pass_superglue) &&
+	         obey_glue)
+	{
+		cost= -1;
+	}
+	else if ((destination_polygon->type==_polygon_is_glue) &&
+	         !((*flags)&_activate_glue_monsters) &&
+	         obey_glue)
+	{
+		cost= -1;
+	}
+	else if ((destination_polygon->type==_polygon_is_monster_impassable) &&
+	         limit_activation)
+	{
+		cost= -1;
+	}
+	else if ((destination_polygon->type==_polygon_is_platform) &&
+	         (destination_polygon->floor_height==destination_polygon->ceiling_height) &&
+	         !((*flags)&_pass_solid_lines) &&
+	         limit_activation)
+	{
+		cost= -1;
+	}
+
 	if (!((*flags)&_pass_solid_lines) && LINE_IS_SOLID(line)) cost= -1;
+
+	if (cost>0 && limit_activation)
+	{
+		world_distance delta_height= destination_polygon->floor_height-source_polygon->floor_height;
+		cost+= delta_height*delta_height;
+	}
 	
 	return cost;
 }
 
 #define LIVE_ALIEN_THRESHHOLD 8
+
+static std::vector<bool> monster_must_be_exterminated(NUMBER_OF_MONSTER_TYPES, false);
 
 bool live_aliens_on_map(
 	void)
@@ -930,16 +1004,11 @@ bool live_aliens_on_map(
 		{
 			struct monster_definition *definition= get_monster_definition(monster->type);
 
-#if 0			
-			switch (monster->type)
+			if (monster_must_be_exterminated[monster->type])
 			{
-				case _monster_juggernaut_minor:
-				case _monster_juggernaut_major:
-				case _monster_alien_leader:
-					found_alien_which_must_be_killed= true;
-					break;
+				found_alien_which_must_be_killed = true;
+				break;
 			}
-#endif
 			
 			if ((definition->flags&_monster_is_alien) ||
 				((static_world->environment_flags&_environment_rebellion) && !MONSTER_IS_PLAYER(monster)))
@@ -1034,6 +1103,10 @@ void activate_monster(
 	if (OBJECT_IS_INVISIBLE(object))
 	{
 		teleport_object_in(monster->object_index);
+	}
+	else if (definition->flags & _monster_makes_sound_when_activated)
+	{
+		play_object_sound(monster->object_index, definition->activation_sound);
 	}
 	
 	changed_polygon(object->polygon, object->polygon, NONE);
@@ -1160,6 +1233,12 @@ void monster_moved(
 	{
 		/* cause lights to light, platforms to trigger, etc.; the player does this differently */
 		changed_polygon(old_polygon_index, object->polygon, NONE);
+	}
+	else if ((static_world->environment_flags & _environment_glue_m1) &&
+	         (get_polygon_data(object->polygon)->type == _polygon_is_glue_trigger))
+	{
+		activate_nearby_monsters(target_index, target_index,
+			_pass_solid_lines|_activate_deaf_monsters|_activate_invisible_monsters|_use_activation_biases|_cannot_pass_superglue|_activate_glue_monsters);
 	}
 
 	for (monster_index=0,monster=monsters;monster_index<MAXIMUM_MONSTERS_PER_MAP;++monster_index,++monster)
@@ -1512,18 +1591,17 @@ void damage_monster(
 			}
 			else
 			{
-				monster->unused[0]=-1;			//steal an unused for monster death
 				if (!MONSTER_IS_DYING(monster))
 				{
 					short action;
 					
-					if ((damage->type==_damage_flame||damage->type==_damage_lava||damage->type==_damage_alien_projectile) && (definition->flags&_monster_can_die_in_flames))
+					if ((damage_kick_definitions[damage->type].death_action == _monster_is_dying_flaming) && (definition->flags&_monster_can_die_in_flames))
  					{
 						action= _monster_is_dying_flaming;
 					}
 					else
 					{
-						if ((damage->type==_damage_explosion || damage->type==_damage_crushing || (FLAG(damage->type)&definition->weaknesses) ||
+						if ((damage_kick_definitions[damage->type].death_action == _monster_is_dying_hard || ((FLAG(damage->type)&definition->weaknesses) && !(definition->flags & _monster_weaknesses_cause_soft_death)) ||
 							definition->soft_dying_shape==UNONE) && definition->hard_dying_shape!=UNONE && !(definition->flags&_monster_has_delayed_hard_death))
 						{
 							action= _monster_is_dying_hard;
@@ -1535,7 +1613,7 @@ void damage_monster(
 						if (definition->flags&_monster_has_delayed_hard_death) monster->vertical_velocity= -1;
 					}
 					
-					if (action==_monster_is_dying_flaming) play_object_sound(monster->object_index, definition->flaming_sound);
+					if (action==_monster_is_dying_flaming || (damage->type == _damage_crushing && (definition->flags & _monster_screams_when_crushed))) play_object_sound(monster->object_index, definition->flaming_sound);
 					set_monster_action(target_index, action);
 					monster_died(target_index); /* orphan projectile, recalculate aggressor paths */
 					
@@ -1545,6 +1623,11 @@ void damage_monster(
 						team_monster_damage_given[aggressor_player->team].kills += 1;
 						
 						if (definition->_class&_class_human_civilian) dynamic_world->civilians_killed_by_players+= 1;
+					}
+
+					if ((static_world->mission_flags & _mission_rescue_m1) && (definition->_class & _class_human_civilian_m1))
+					{
+						dynamic_world->current_civilian_causalties += 1;
 					}
 				}
 				
@@ -2170,7 +2253,7 @@ static bool switch_target_check(
 					then go kick his ass. */
 				attacker_attitude= get_monster_attitude(monster_index, attacker_index);
 				if (target_index!=NONE) target_attitude= get_monster_attitude(monster_index, target_index);
-				if (TYPE_IS_ENEMY(definition, attacker->type) ||
+				if (mTYPE_IS_ENEMY(definition, attacker->type) ||
 					(TYPE_IS_NEUTRAL(definition, attacker->type)&&delta_vitality) ||
 					MONSTER_IS_BERSERK(monster))
 				{
@@ -2205,7 +2288,7 @@ static short get_monster_attitude(
 	short attitude;
 
 	/* berserk monsters are hostile toward everything */
-	if (TYPE_IS_ENEMY(definition, target_type) || MONSTER_IS_BERSERK(monster) ||
+	if (mTYPE_IS_ENEMY(definition, target_type) || MONSTER_IS_BERSERK(monster) ||
 		(MONSTER_HAS_VALID_TARGET(monster) && monster->target_index==target_index) ||
 		((definition->_class&_class_human_civilian) && MONSTER_IS_PLAYER(target) && dynamic_world->civilians_killed_by_players>=CIVILIANS_KILLED_BY_PLAYER_THRESHHOLD))
 	{
@@ -2417,7 +2500,7 @@ void change_monster_target(
 			{
 				play_object_sound(monster->object_index, definition->friendly_activation_sound);
 			}
-			else
+			else if (!(definition->flags & _monster_makes_sound_when_activated))
 			{
 				if (monster->mode==_monster_unlocked) play_object_sound(monster->object_index, definition->activation_sound);
 			}
@@ -2514,7 +2597,7 @@ static void handle_moving_or_stationary_monster(
 				if (try_monster_attack(monster_index))
 				{
 					/* activate with lock nearby monsters on our target */
-					activate_nearby_monsters(monster->target_index, monster_index, _pass_one_zone_border);
+					activate_nearby_monsters(monster->target_index, monster_index, _pass_one_zone_border, MONSTER_ALERT_ACTIVATION_RANGE);
 				}
 				else
 				{
@@ -2569,9 +2652,21 @@ void set_monster_action(
 		set_object_shape_and_transfer_mode(monster->object_index, shape, NONE);
 
 		/* if this monster does shrapnel damage, do it */
-		if (action==_monster_is_dying_hard && (definition->flags&_monster_has_delayed_hard_death))
+		if (action == _monster_is_dying_hard)
 		{
-			cause_shrapnel_damage(monster_index);
+			if (definition->flags & _monster_has_delayed_hard_death)
+			{
+				cause_shrapnel_damage(monster_index);
+			}
+			else if (film_profile.key_frame_zero_shrapnel_fix)
+			{
+				object_data* object = get_object_data(monster->object_index);
+				shape_animation_data* animation = get_shape_animation_data(object->shape);
+				if (animation && animation->key_frame == 0)
+				{
+					cause_shrapnel_damage(monster_index);
+				}
+			}
 		}
 		
 		if ((definition->flags&_monster_has_nuclear_hard_death) && action==_monster_is_dying_hard)
@@ -2642,7 +2737,25 @@ static void kill_monster(
 	}
 	
 	/* stuff in an appropriate dead shape (or remove our object if we donÕt have a dead shape) */
-	if (shape==UNONE)
+    bool remove_object = (shape == UNONE);
+    if (!remove_object && (static_world->environment_flags & _environment_ouch_m1))
+    {
+        struct polygon_data *polygon = get_polygon_data(object->polygon);
+        switch (polygon->type)
+        {
+            case _polygon_is_major_ouch:
+            case _polygon_is_minor_ouch:
+                remove_object = true;
+                break;
+            case _polygon_is_platform:
+                if (PLATFORM_IS_FLOODED(get_platform_data(polygon->permutation)) &&
+                    find_flooding_polygon(object->polygon) != NONE)
+                    remove_object = true;
+                break;
+        }
+    }
+    
+	if (remove_object)
 	{
 		remove_map_object(monster->object_index);
 	}
@@ -2767,7 +2880,7 @@ static bool translate_monster(
 				can attack his current target (if he is locked or losing_lock); if not, drop lock
 				and ask for a new path. */
 			
-			if (!TYPE_IS_ENEMY(definition, obstacle_monster->type) && !(MONSTER_HAS_VALID_TARGET(monster)&&monster->target_index==obstacle_object->permutation) &&
+			if (!mTYPE_IS_ENEMY(definition, obstacle_monster->type) && !(MONSTER_HAS_VALID_TARGET(monster)&&monster->target_index==obstacle_object->permutation) &&
 				!MONSTER_IS_BERSERK(monster))
 			{
 				if (!MONSTER_IS_PLAYER(obstacle_monster))
@@ -2811,10 +2924,19 @@ static bool translate_monster(
 				
 				/* if weÕre a kamakazi and weÕre within range, pop */
 				if ((definition->flags&_monster_is_kamakazi) &&
-					object->location.z+definition->height>key_height && object->location.z<key_height)
+					object->location.z<key_height)
 				{
-					set_monster_action(monster_index, _monster_is_dying_hard);
-					monster_died(monster_index);
+					bool in_range = object->location.z+definition->height>key_height;
+					
+					/* if we're short and can't float, take out their knees! */
+					if (!in_range && film_profile.allow_short_kamikaze && !(definition->flags&_monster_floats))
+						in_range = object->location.z>=obstacle_object->location.z;
+					
+					if (in_range)
+					{
+						set_monster_action(monster_index, _monster_is_dying_hard);
+						monster_died(monster_index);
+					}
 				}
 				
 				/* if we float and this is our target, go up */
@@ -2977,7 +3099,20 @@ static bool try_monster_attack(
 		
 						if (definition->flags&_monster_chooses_weapons_randomly)
 						{
-							if (global_random()&1) new_action= _monster_is_attacking_far;
+							bool switch_to_ranged = true;
+							if (film_profile.validate_random_ranged_attack)
+							{
+								if (definition->ranged_attack.type == NONE)
+								{
+									logWarning("Monster chooses weapons randomly, but has no ranged attack");
+									definition->flags &= ~_monster_chooses_weapons_randomly;
+									switch_to_ranged = false;
+								}
+								else
+									switch_to_ranged = (range<definition->ranged_attack.range);
+							}
+							if (switch_to_ranged && global_random()&1)
+								new_action= _monster_is_attacking_far;
 						}
 					}
 					break;
@@ -3137,6 +3272,13 @@ int32 monster_pathfinding_cost_function(
 				case _platform_will_never_be_accessable: cost= -1; break;
 				default: cost+= MONSTER_PATHFINDING_PLATFORM_COST; respect_polygon_heights= false; break;
 			}
+            
+            // don't move into flooded platforms
+            if ((static_world->environment_flags&_environment_ouch_m1) &&
+                !(definition->flags&(_monster_flys|_monster_floats)) &&
+                PLATFORM_IS_FLOODED(get_platform_data(destination_polygon->permutation)) &&
+                (find_flooding_polygon(destination_polygon_index) != NONE))
+                cost= -1;
 		}
 		if (source_polygon->type==_polygon_is_platform)
 		{
@@ -3176,6 +3318,13 @@ int32 monster_pathfinding_cost_function(
 			case _polygon_is_monster_impassable:
 			case _polygon_is_teleporter:
 				cost= -1;
+				break;
+            
+			case _polygon_is_minor_ouch:
+			case _polygon_is_major_ouch:
+				if ((static_world->environment_flags&_environment_ouch_m1) &&
+				    !(definition->flags&(_monster_flys|_monster_floats)))
+					cost= -1;
 				break;
 		}
 	}
@@ -3644,6 +3793,88 @@ uint8 *unpack_monster_definition(uint8 *Stream, monster_definition* Objects, siz
 	return S;
 }
 
+uint8* unpack_m1_monster_definition(uint8 *Stream, size_t Count)
+{
+	uint8* S = Stream;
+	monster_definition* ObjPtr = monster_definitions;
+
+	for (size_t k = 0; k < Count; k++, ObjPtr++)
+	{
+		StreamToValue(S, ObjPtr->collection);
+
+		StreamToValue(S, ObjPtr->vitality);
+		StreamToValue(S, ObjPtr->immunities);
+		StreamToValue(S, ObjPtr->weaknesses);
+		StreamToValue(S, ObjPtr->flags);
+
+		StreamToValue(S, ObjPtr->_class);
+		StreamToValue(S, ObjPtr->friends);
+		StreamToValue(S, ObjPtr->enemies);
+		
+		ObjPtr->sound_pitch = FIXED_ONE;
+		StreamToValue(S, ObjPtr->activation_sound);
+		S += 2; // ignore conversation sound
+
+		// Marathon doesn't have these
+		ObjPtr->friendly_activation_sound = NONE;
+		ObjPtr->clear_sound = NONE;
+		ObjPtr->kill_sound = NONE;
+		ObjPtr->apology_sound = NONE;
+		ObjPtr->friendly_fire_sound = NONE;
+		
+		StreamToValue(S, ObjPtr->flaming_sound);
+		StreamToValue(S, ObjPtr->random_sound);
+		StreamToValue(S, ObjPtr->random_sound_mask);
+
+		StreamToValue(S, ObjPtr->carrying_item_type);
+
+		StreamToValue(S, ObjPtr->radius);
+		StreamToValue(S, ObjPtr->height);
+		StreamToValue(S, ObjPtr->preferred_hover_height);
+		StreamToValue(S, ObjPtr->minimum_ledge_delta);
+		StreamToValue(S, ObjPtr->maximum_ledge_delta);
+		StreamToValue(S, ObjPtr->external_velocity_scale);
+
+		StreamToValue(S, ObjPtr->impact_effect);
+		StreamToValue(S, ObjPtr->melee_impact_effect);
+		ObjPtr->contrail_effect = NONE;
+		
+		StreamToValue(S,ObjPtr->half_visual_arc);
+		StreamToValue(S,ObjPtr->half_vertical_visual_arc);
+		StreamToValue(S,ObjPtr->visual_range);	
+		StreamToValue(S,ObjPtr->dark_visual_range);
+		StreamToValue(S,ObjPtr->intelligence);
+		StreamToValue(S,ObjPtr->speed);
+		StreamToValue(S,ObjPtr->gravity);
+		StreamToValue(S,ObjPtr->terminal_velocity);
+		StreamToValue(S,ObjPtr->door_retry_mask);
+		StreamToValue(S,ObjPtr->shrapnel_radius);
+
+		S = unpack_damage_definition(S, &ObjPtr->shrapnel_damage, 1);
+
+		StreamToValue(S,ObjPtr->hit_shapes);
+		StreamToValue(S,ObjPtr->hard_dying_shape);
+		StreamToValue(S,ObjPtr->soft_dying_shape);
+		StreamToValue(S,ObjPtr->hard_dead_shapes);
+		StreamToValue(S,ObjPtr->soft_dead_shapes);
+		StreamToValue(S,ObjPtr->stationary_shape);
+		StreamToValue(S,ObjPtr->moving_shape);
+
+		ObjPtr->teleport_in_shape = ObjPtr->stationary_shape;
+		ObjPtr->teleport_out_shape = ObjPtr->teleport_out_shape;
+
+		StreamToValue(S, ObjPtr->attack_frequency);
+		StreamToAttackDef(S, ObjPtr->melee_attack);
+		StreamToAttackDef(S, ObjPtr->ranged_attack);
+
+		ObjPtr->flags |= _monster_weaknesses_cause_soft_death;
+		ObjPtr->flags |= _monster_screams_when_crushed;
+		ObjPtr->flags |= _monster_makes_sound_when_activated;
+		ObjPtr->flags |= _monster_can_grenade_climb;
+	}
+
+	return S;
+}
 
 uint8 *pack_monster_definition(uint8 *Stream, size_t Count)
 {
@@ -3735,7 +3966,7 @@ class XML_DamageKickParser: public XML_ElementParser
 	
 	// What is present?
 	bool IndexPresent;
-	enum {NumberOfValues = 3};
+	enum {NumberOfValues = 4};
 	bool IsPresent[NumberOfValues];
 	
 public:
@@ -3802,6 +4033,15 @@ bool XML_DamageKickParser::HandleAttribute(const char *Tag, const char *Value)
 		}
 		else return false;
 	}
+	else if (StringsEqual(Tag,"death_action"))
+	{
+		if (ReadInt16Value(Value,Data.death_action))
+		{
+			IsPresent[3] = true;
+			return true;
+		}
+		else return false;
+	}
 	UnrecognizedTag();
 	return false;
 }
@@ -3819,6 +4059,7 @@ bool XML_DamageKickParser::AttributesDone()
 	if (IsPresent[0]) OrigData.base_value = Data.base_value;
 	if (IsPresent[1]) OrigData.delta_vitality_multiplier = Data.delta_vitality_multiplier;
 	if (IsPresent[2]) OrigData.is_also_vertical = Data.is_also_vertical;
+	if (IsPresent[3]) OrigData.death_action = Data.death_action;
 	
 	return true;
 }
@@ -3846,4 +4087,85 @@ XML_ElementParser *DamageKicks_GetParser()
 	DamageKicksParser.AddChild(&DamageKickParser);
 	
 	return &DamageKicksParser;
+}
+
+class XML_MonsterParser : public XML_ElementParser
+{
+	short Index;
+	bool MustBeExterminated;
+
+	bool IndexPresent;
+	bool ValuePresent;
+
+public:
+	bool Start();
+	bool HandleAttribute(const char* Tag, const char* Value);
+	bool AttributesDone();
+	bool ResetValues();
+
+	XML_MonsterParser() : XML_ElementParser("monster") { }
+};
+
+bool XML_MonsterParser::Start()
+{
+	IndexPresent = false;
+	ValuePresent = false;
+
+	return true;
+}
+
+bool XML_MonsterParser::HandleAttribute(const char* Tag, const char* Value)
+{
+	if (StringsEqual(Tag, "Index"))
+	{
+		if (ReadBoundedInt16Value(Value, Index, 0, NUMBER_OF_MONSTER_TYPES-1))
+		{
+			IndexPresent = true;
+			return true;
+		}
+		else return false;
+	}
+	else if (StringsEqual(Tag, "must_be_exterminated"))
+	{
+		if (ReadBooleanValue(Value, MustBeExterminated))
+		{
+			ValuePresent = true;
+			return true;
+		}
+		else return false;
+	}
+	UnrecognizedTag();
+	return false;
+}
+
+bool XML_MonsterParser::AttributesDone()
+{
+	if (!IndexPresent)
+	{
+		AttribsMissing();
+		return false;
+	}
+
+	if (ValuePresent)
+	{
+		monster_must_be_exterminated[Index] = MustBeExterminated;
+	}
+
+	return true;
+}
+
+bool XML_MonsterParser::ResetValues()
+{
+	monster_must_be_exterminated.clear();
+	monster_must_be_exterminated.resize(NUMBER_OF_MONSTER_TYPES, false);
+}
+
+static XML_MonsterParser MonsterParser;
+
+static XML_ElementParser MonstersParser("monsters");
+
+XML_ElementParser* Monsters_GetParser()
+{
+	MonstersParser.AddChild(&MonsterParser);
+	return &MonstersParser;
 }

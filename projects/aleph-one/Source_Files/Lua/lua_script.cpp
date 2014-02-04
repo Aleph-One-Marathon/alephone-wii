@@ -220,6 +220,7 @@ static const luaL_Reg lualibs[] = {
 	{"", luaopen_base},
 	{LUA_TABLIBNAME, luaopen_table},
 	{LUA_STRLIBNAME, luaopen_string},
+	{LUA_BITLIBNAME, luaopen_bit32},
 	{LUA_MATHLIBNAME, luaopen_math},
 	{LUA_DBLIBNAME, luaopen_debug},
 	{NULL, NULL}
@@ -244,7 +245,7 @@ class LuaState
 {
 public:
 	LuaState() : running_(false), num_scripts_(0) {
-		state_.reset(lua_open(), lua_close);
+		state_.reset(luaL_newstate(), lua_close);
 	}
 
 	virtual ~LuaState() {
@@ -267,18 +268,18 @@ public:
 		const luaL_Reg *lib = lualibs;
 		for (; lib->func; lib++)
 		{
-			lua_pushcfunction(State(), lib->func);
-			lua_pushstring(State(), lib->name);
-			lua_call(State(), 1, 0);
+			luaL_requiref(State(), lib->name, lib->func, 1);
+			lua_pop(State(), 1);
 		}
-		if(insecure_lua) {
-		  const luaL_Reg *lib = insecurelibs;
-		  for (; lib->func; lib++)
-		    {
-		      lua_pushcfunction(State(), lib->func);
-		      lua_pushstring(State(), lib->name);
-		      lua_call(State(), 1, 0);
-		    }
+
+		if (insecure_lua) 
+		{
+			const luaL_Reg *lib = insecurelibs;
+			for (; lib->func; lib++)
+			{
+				luaL_requiref(State(), lib->name, lib->func, 1);
+				lua_pop(State(), 1);
+			}
 		}
 
 		// set up a persistence table in the registry
@@ -353,9 +354,8 @@ public:
 
 	void Initialize() {
 		LuaState::Initialize();
-		lua_pushcfunction(State(), luaopen_io);
-		lua_pushstring(State(), LUA_IOLIBNAME);
-		lua_call(State(), 1, 0);
+		luaL_requiref(State(), LUA_IOLIBNAME, luaopen_io, 1);
+		lua_pop(State(), 1);
 	}
 };
 
@@ -364,8 +364,7 @@ bool LuaState::GetTrigger(const char* trigger)
 	if (!running_)
 		return false;
 
-	lua_pushstring(State(), "Triggers");
-	lua_gettable(State(), LUA_GLOBALSINDEX);
+	lua_getglobal(State(), "Triggers");
 	if (!lua_istable(State(), -1))
 	{
 		lua_pop(State(), 1);
@@ -834,7 +833,7 @@ void LuaState::LoadCompatibility()
 
 bool LuaState::Load(const char *buffer, size_t len)
 {
-	int status = luaL_loadbuffer(State(), buffer, len, "level_script");
+	int status = luaL_loadbufferx(State(), buffer, len, "level_script", "t");
 	if (status == LUA_ERRRUN)
 		logWarning("Lua loading failed: error running script.");
 	if (status == LUA_ERRFILE)
@@ -918,15 +917,15 @@ void LuaState::ExecuteCommand(const std::string& line)
 	lua_settop(State(), 0);	
 }
 
+extern bool can_load_collection(short);
+
 // pass by pointer because boost::bind can't do non-const past 2nd argument
 void LuaState::MarkCollections(std::set<short>* collections)
 {
 	if (!running_)
 		return;
 		
-	lua_pushstring(State(), "CollectionsUsed");
-	lua_gettable(State(), LUA_GLOBALSINDEX);
-	
+	lua_getglobal(State(), "CollectionsUsed");
 	if (lua_istable(State(), -1))
 	{
 		int i = 1;
@@ -935,7 +934,7 @@ void LuaState::MarkCollections(std::set<short>* collections)
 		while (lua_isnumber(State(), -1))
 		{
 			short collection_index = static_cast<short>(lua_tonumber(State(), -1));
-			if (collection_index >= 0 && collection_index < NUMBER_OF_COLLECTIONS)
+			if (can_load_collection(collection_index))
 			{
 				mark_collection_for_loading(collection_index);
 				collections->insert(collection_index);
@@ -950,7 +949,7 @@ void LuaState::MarkCollections(std::set<short>* collections)
 	else if (lua_isnumber(State(), -1))
 	{
 		short collection_index = static_cast<short>(lua_tonumber(State(), -1));
-		if (collection_index >= 0 && collection_index < NUMBER_OF_COLLECTIONS)
+		if (can_load_collection(collection_index))
 		{
 			mark_collection_for_loading(collection_index);
 			collections->insert(collection_index);
@@ -1154,10 +1153,13 @@ void L_Call_Init(bool fRestoringSaved)
 		// generator from the lousy one is clearly not
 		// ideal, but it should be good enough for our
 		// purposes.
+		uint16 current_seed = get_random_seed();
 		lua_random_generator.z = (static_cast<uint32>(global_random ()) << 16) + static_cast<uint32>(global_random ());
 		lua_random_generator.w = (static_cast<uint32>(global_random ()) << 16) + static_cast<uint32>(global_random ());
 		lua_random_generator.jsr = (static_cast<uint32>(global_random ()) << 16) + static_cast<uint32>(global_random ());
 		lua_random_generator.jcong = (static_cast<uint32>(global_random ()) << 16) + static_cast<uint32>(global_random ());
+		if (!film_profile.lua_increments_rng)
+			set_random_seed(current_seed);
 		
 	}
 

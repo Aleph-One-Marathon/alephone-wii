@@ -64,6 +64,7 @@ extern short GetNumberOfPaths();
 void OverheadMapClass::Render(overhead_map_data& Control)
 {
 	world_distance x0= Control.origin.x, y0= Control.origin.y;
+	int xoff= Control.left + Control.half_width, yoff= Control.top + Control.half_height;
 	short scale= Control.scale;
 	world_point2d location;
 	short i;
@@ -102,6 +103,22 @@ void OverheadMapClass::Render(overhead_map_data& Control)
 					case _polygon_is_platform:
 						color= PLATFORM_IS_SECRET(get_platform_data(polygon->permutation)) ?
 							_polygon_color : _polygon_platform_color;
+						if (PLATFORM_IS_FLOODED(get_platform_data(polygon->permutation)))
+						{
+							short adj_index = find_flooding_polygon(i);
+							if (adj_index != NONE)
+							{
+								switch (get_polygon_data(adj_index)->type)
+								{
+									case _polygon_is_minor_ouch:
+										color = _polygon_minor_ouch_color;
+										break;
+									case _polygon_is_major_ouch:
+										color = _polygon_major_ouch_color;
+										break;
+								}
+							}
+						}
 						break;
 					
 					case _polygon_is_minor_ouch:
@@ -111,6 +128,11 @@ void OverheadMapClass::Render(overhead_map_data& Control)
 					case _polygon_is_major_ouch:
 						color = _polygon_major_ouch_color;
 						break;
+                        
+					case _polygon_is_teleporter:
+						color = _polygon_teleporter_color;
+						break;
+                        
 				case _polygon_is_hill:
 					color = _polygon_hill_color;
 					break;
@@ -209,8 +231,8 @@ void OverheadMapClass::Render(overhead_map_data& Control)
 			if (POLYGON_IS_IN_AUTOMAP(annotation->polygon_index) &&
 				TEST_STATE_FLAG(annotation->polygon_index, _polygon_on_automap))
 			{
-				location.x= Control.half_width + WORLD_TO_SCREEN(annotation->location.x, x0, scale);
-				location.y= Control.half_height + WORLD_TO_SCREEN(annotation->location.y, y0, scale);
+				location.x= xoff + WORLD_TO_SCREEN(annotation->location.x, x0, scale);
+				location.y= yoff + WORLD_TO_SCREEN(annotation->location.y, y0, scale);
 				
 				draw_annotation(&location, annotation->type, annotation->text, scale);
 			}
@@ -235,8 +257,8 @@ void OverheadMapClass::Render(overhead_map_data& Control)
 			{
 				for (step= 0; step<count; ++step)
 				{
-					location.x= Control.half_width + WORLD_TO_SCREEN(points[step].x, x0, scale);
-					location.y= Control.half_height + WORLD_TO_SCREEN(points[step].y, y0, scale);
+					location.x= xoff + WORLD_TO_SCREEN(points[step].x, x0, scale);
+					location.y= yoff + WORLD_TO_SCREEN(points[step].y, y0, scale);
 					// LP change: made this more general
 					draw_path(step,location);
 				}
@@ -270,8 +292,8 @@ void OverheadMapClass::Render(overhead_map_data& Control)
 	
 								if ((GET_GAME_OPTIONS()&_overhead_map_is_omniscient) || local_player->team==player->team)
 								{
-									location.x= Control.half_width + WORLD_TO_SCREEN(object->location.x, x0, scale);
-									location.y= Control.half_height + WORLD_TO_SCREEN(object->location.y, y0, scale);
+									location.x= xoff + WORLD_TO_SCREEN(object->location.x, x0, scale);
+									location.y= yoff + WORLD_TO_SCREEN(object->location.y, y0, scale);
 									
 									draw_player(&location, object->facing, player->team, scale);
 								}
@@ -336,8 +358,8 @@ void OverheadMapClass::Render(overhead_map_data& Control)
 						if (thing_type==_projectile_thing || ((dynamic_world->tick_count+i)&8))
 						// if (thing_type!=_civilian_thing || ((dynamic_world->tick_count+i)&8))
 						{
-							location.x= Control.half_width + WORLD_TO_SCREEN(object->location.x, x0, scale);
-							location.y= Control.half_height + WORLD_TO_SCREEN(object->location.y, y0, scale);
+							location.x= xoff + WORLD_TO_SCREEN(object->location.x, x0, scale);
+							location.y= yoff + WORLD_TO_SCREEN(object->location.y, y0, scale);
 							
 							draw_thing(&location, object->facing, thing_type, scale);
 						}
@@ -355,8 +377,8 @@ void OverheadMapClass::Render(overhead_map_data& Control)
 			if (saved_object->type==_saved_goal &&
 				saved_object->location.x==Control.origin.x && saved_object->location.y==Control.origin.y)
 			{
-				location.x= Control.half_width + WORLD_TO_SCREEN(saved_object->location.x, x0, scale);
-				location.y= Control.half_height + WORLD_TO_SCREEN(saved_object->location.y, y0, scale);
+				location.x= xoff + WORLD_TO_SCREEN(saved_object->location.x, x0, scale);
+				location.y= yoff + WORLD_TO_SCREEN(saved_object->location.y, y0, scale);
 				draw_thing(&location, 0, _checkpoint_thing, scale);
 			}
 		}
@@ -374,7 +396,7 @@ void OverheadMapClass::transform_endpoints_for_overhead_map(
 	struct overhead_map_data& Control)
 {
 	world_distance x0= Control.origin.x, y0= Control.origin.y;
-	short screen_width= Control.width, screen_height= Control.height;
+	int xoff= Control.left + Control.half_width, yoff = Control.top + Control.half_height;
 	short scale= Control.scale;
 	short i;
 
@@ -383,10 +405,13 @@ void OverheadMapClass::transform_endpoints_for_overhead_map(
 	{
 		struct endpoint_data *endpoint= get_endpoint_data(i);
 		
-		endpoint->transformed.x= Control.half_width + WORLD_TO_SCREEN(endpoint->vertex.x, x0, scale);
-		endpoint->transformed.y= Control.half_height + WORLD_TO_SCREEN(endpoint->vertex.y, y0, scale);
+		endpoint->transformed.x= xoff + WORLD_TO_SCREEN(endpoint->vertex.x, x0, scale);
+		endpoint->transformed.y= yoff + WORLD_TO_SCREEN(endpoint->vertex.y, y0, scale);
 
-		if (endpoint->transformed.x>=0&&endpoint->transformed.y>=0&&endpoint->transformed.y<=screen_height&&endpoint->transformed.x<=screen_width)
+		if (endpoint->transformed.x >= Control.left &&
+            endpoint->transformed.y >= Control.top &&
+            endpoint->transformed.y <= Control.top + Control.height &&
+            endpoint->transformed.x <= Control.left + Control.width)
 		{
 			SET_STATE_FLAG(i, _endpoint_on_automap, true);
 		}
@@ -412,6 +437,14 @@ void OverheadMapClass::transform_endpoints_for_overhead_map(
 
 /* --------- the false automap */
 
+static void add_poly_to_false_automap(short polygon_index)
+{
+	struct polygon_data *polygon= get_polygon_data(polygon_index);
+	for (int i = 0; i < polygon->vertex_count; ++i)
+            ADD_LINE_TO_AUTOMAP(polygon->line_indexes[i]);
+	ADD_POLYGON_TO_AUTOMAP(polygon_index);
+}
+
 void OverheadMapClass::generate_false_automap(
 	short polygon_index)
 {
@@ -431,6 +464,7 @@ void OverheadMapClass::generate_false_automap(
 		memset(automap_lines, 0, automap_line_buffer_size);
 		memset(automap_polygons, 0, automap_polygon_buffer_size);
 		
+		add_poly_to_false_automap(polygon_index);
 		polygon_index= flood_map(polygon_index, INT32_MAX, false_automap_cost_proc, _breadth_first, (void *) NULL);
 		do
 		{
@@ -472,7 +506,6 @@ int32 OverheadMapClass::false_automap_cost_proc(
 	struct polygon_data *destination_polygon= get_polygon_data(destination_polygon_index);
 	struct polygon_data *source_polygon= get_polygon_data(source_polygon_index);
 	int32 cost= 1;
-	short i;
 
 	(void) (line_index);
 	(void) (caller_data);
@@ -495,9 +528,9 @@ int32 OverheadMapClass::false_automap_cost_proc(
 		}
 	}
 
-	/* add the source polygon and all its lines to the automap */	
-	for (i= 0; i<source_polygon->vertex_count; ++i) ADD_LINE_TO_AUTOMAP(source_polygon->line_indexes[i]);
-	ADD_POLYGON_TO_AUTOMAP(source_polygon_index);
+	/* add the destination polygon and all its lines to the automap */
+	if (cost > 0)
+		add_poly_to_false_automap(destination_polygon_index);
 	
 	return cost;
 }

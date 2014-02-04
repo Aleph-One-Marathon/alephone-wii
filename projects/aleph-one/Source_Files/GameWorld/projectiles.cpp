@@ -514,7 +514,14 @@ void move_projectiles(
 								{
 									if ((definition->flags&_persistent_and_virulent) && !destroy_persistent_projectile && monster_obstruction_index!=NONE)
 									{
-										projectile->owner_index= monster_obstruction_index; /* keep going, but don’t hit this target again */
+										bool reassign_projectile = true;
+										if (film_profile.prevent_dead_projectile_owners)
+										{
+											monster_data *monster = get_monster_data(monster_obstruction_index);
+											reassign_projectile = MONSTER_IS_PLAYER(monster) || !MONSTER_IS_DYING(monster);
+										}
+										if (reassign_projectile)
+											projectile->owner_index= monster_obstruction_index; /* keep going, but don’t hit this target again */
 									}
 									// LP addition: don't remove a projectile that will hit media and continue (PMB flag)
 									else if (!will_go_through)
@@ -1205,6 +1212,46 @@ uint8 *unpack_projectile_definition(uint8 *Stream, projectile_definition *Object
 uint8 *unpack_projectile_definition(uint8 *Stream, size_t Count)
 {
 	return unpack_projectile_definition(Stream,projectile_definitions,Count);
+}
+
+uint8* unpack_m1_projectile_definition(uint8* Stream, size_t Count)
+{
+	uint8* S = Stream;
+	projectile_definition* ObjPtr = projectile_definitions;
+
+	for (size_t k = 0; k < Count; k++, ObjPtr++)
+	{
+		StreamToValue(S,ObjPtr->collection);
+		StreamToValue(S,ObjPtr->shape);
+		StreamToValue(S,ObjPtr->detonation_effect);
+		ObjPtr->media_detonation_effect = NONE;
+		StreamToValue(S,ObjPtr->contrail_effect);
+		StreamToValue(S,ObjPtr->ticks_between_contrails);
+		StreamToValue(S,ObjPtr->maximum_contrails);
+		ObjPtr->media_projectile_promotion = 0;
+
+		StreamToValue(S,ObjPtr->radius);
+		StreamToValue(S,ObjPtr->area_of_effect);
+		S = unpack_damage_definition(S, &ObjPtr->damage, 1);
+
+		uint16 flags;
+		StreamToValue(S, flags);
+		ObjPtr->flags = flags;
+		
+		StreamToValue(S,ObjPtr->speed);
+		StreamToValue(S,ObjPtr->maximum_range);
+
+		ObjPtr->sound_pitch = FIXED_ONE;
+		StreamToValue(S,ObjPtr->flyby_sound);
+		ObjPtr->rebound_sound = NONE;
+
+		if (ObjPtr->damage.type == _damage_projectile)
+		{
+			ObjPtr->flags |= _bleeding_projectile;
+		}
+	}
+
+	return S;
 }
 
 

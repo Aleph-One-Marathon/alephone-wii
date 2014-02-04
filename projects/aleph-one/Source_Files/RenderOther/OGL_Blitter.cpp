@@ -77,6 +77,8 @@ void OGL_Blitter::_LoadTextures()
 	// ensure our textures get cleaned up
 	Register(this);
 
+	uint32 rgb_mask = ~(t->format->Amask);
+
 	glEnable(GL_TEXTURE_2D);
 	int i = 0;
 	for (int y = 0; y < v_rects; y++)
@@ -85,8 +87,8 @@ void OGL_Blitter::_LoadTextures()
 		{
 			m_rects[i].x = x * m_tile_width;
 			m_rects[i].y = y * m_tile_height;
-			m_rects[i].w = std::min(m_tile_width, m_src.w - x * m_tile_width);
-			m_rects[i].h = std::min(m_tile_height, m_src.h - y * m_tile_height);
+			m_rects[i].w = std::min(m_tile_width, static_cast<int>(m_src.w - x * m_tile_width));
+			m_rects[i].h = std::min(m_tile_height, static_cast<int>(m_src.h - y * m_tile_height));
 
 			SDL_Rect sr = { m_rects[i].x, m_rects[i].y, m_rects[i].w, m_rects[i].h }; 
 			SDL_BlitSurface(m_surface, &sr, t, NULL);
@@ -97,7 +99,7 @@ void OGL_Blitter::_LoadTextures()
 				uint32 *curRow = static_cast<uint32 *>(t->pixels) + (row * m_tile_width);
 				for (int col = m_rects[i].w; col < m_tile_width; ++col)
 				{
-					curRow[col] = curRow[m_rects[i].w - 1];
+					curRow[col] = curRow[m_rects[i].w - 1] & rgb_mask;
 				}
 			}
 			
@@ -107,7 +109,7 @@ void OGL_Blitter::_LoadTextures()
 				uint32 *curRow = static_cast<uint32 *>(t->pixels) + (row * m_tile_width);
 				for (int col = 0; col < m_tile_width; ++col)
 				{
-					curRow[col] = lastRow[col];
+					curRow[col] = lastRow[col] & rgb_mask;
 				}
 			}
 			
@@ -186,10 +188,20 @@ void OGL_Blitter::BoundScreen(bool in_game)
 	// zoom to center 640x480, if not in level
 	if (!in_game && get_screen_mode()->fill_the_screen)
 	{
-		float scale = std::min(w/(float)640, h/(float)480);
-		glScalef(scale, scale, 1.0);
-		int margin = (480 - h)/2;
-		glTranslatef(margin * w/h, margin, 0.0);
+        if (w/(float)h >= 640/480.0)
+        {
+            float scale = h/480.0;
+            glScalef(scale, scale, 1.0);
+            float margin = (480 - h)/2.0;
+            glTranslatef(margin * w/(float)h, margin, 0.0);
+        }
+        else
+        {
+            float scale = w/640.0;
+            glScalef(scale, scale, 1.0);
+            float margin = (640 - w)/2.0;
+            glTranslatef(margin, margin * h/(float)w, 0.0);
+        }
 	}
 	glMatrixMode(GL_MODELVIEW);
 }
@@ -201,49 +213,34 @@ void OGL_Blitter::WindowToScreen(int& x, int& y, bool in_game)
 		int w = ScreenWidth();
 		int h = ScreenHeight();
 		
-		float scale = std::min(w/(float)640, h/(float)480);
-		x /= scale;
-		y /= scale;
-		int margin = (480 - h)/2;
-		x -= margin * w/h;
-		y -= margin;
+        if (w/(float)h >= 640/480.0)
+        {
+            float scale = h/480.0;
+            x /= scale;
+            y /= scale;
+            float margin = (480 - h)/2.0;
+            x -= margin * w/(float)h;
+            y -= margin;
+        }
+        else
+        {
+            float scale = w/640.0;
+            x /= scale;
+            y /= scale;
+            float margin = (640 - w)/2.0;
+            x -= margin;
+            y -= margin * h/(float)w;
+        }
 	}
 }
 
-struct OGL_Rect {
-    GLdouble x;
-    GLdouble y;
-    GLdouble w;
-    GLdouble h;
-};
-
-void OGL_Blitter::Draw(const SDL_Rect& dst, const SDL_Rect& src)
+void OGL_Blitter::Draw(const SDL_Rect& dst)
 {
-	OGL_Rect sr;
-	if (m_src.w != m_scaled_src.w)
-	{
-		sr.x = src.x * m_src.w / (float)m_scaled_src.w;
-		sr.w = src.w * m_src.w / (float)m_scaled_src.w;
-	}
-	else
-	{
-		sr.x = src.x;
-		sr.w = src.w;
-	}
-	if (m_src.h != m_scaled_src.h)
-	{
-		sr.y = src.y * m_src.h / (float)m_scaled_src.h;
-		sr.h = src.h * m_src.h / (float)m_scaled_src.h;
-	}
-	else
-	{
-		sr.y = src.y;
-		sr.h = src.h;
-	}
-	_Draw(dst, sr);
+    Image_Rect idst = { dst.x, dst.y, dst.w, dst.h };
+    Draw(idst);
 }
-	
-void OGL_Blitter::_Draw(const SDL_Rect& dst, const struct OGL_Rect& src)
+
+void OGL_Blitter::Draw(const Image_Rect& dst, const Image_Rect& raw_src)
 {
 	if (!Loaded())
 		return;
@@ -263,6 +260,28 @@ void OGL_Blitter::_Draw(const SDL_Rect& dst, const struct OGL_Rect& src)
 //	glDisable(GL_SCISSOR_TEST);
 //	glDisable(GL_STENCIL_TEST);
 	glEnable(GL_TEXTURE_2D);
+
+	Image_Rect src;
+	if (m_src.w != m_scaled_src.w)
+	{
+		src.x = raw_src.x * m_src.w / m_scaled_src.w;
+		src.w = raw_src.w * m_src.w / m_scaled_src.w;
+	}
+	else
+	{
+		src.x = raw_src.x;
+		src.w = raw_src.w;
+	}
+	if (m_src.h != m_scaled_src.h)
+	{
+		src.y = raw_src.y * m_src.h / m_scaled_src.h;
+		src.h = raw_src.h * m_src.h / m_scaled_src.h;
+	}
+	else
+	{
+		src.y = raw_src.y;
+		src.h = raw_src.h;
+	}
 
 	GLdouble x_scale = dst.w / (GLdouble) src.w;
 	GLdouble y_scale = dst.h / (GLdouble) src.h;
